@@ -52,18 +52,21 @@ button { font-family: inherit; }
 .hd-badge { background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 650;
   padding: 7px 14px; border-radius: 9px; }
 
-/* ── 바디: 지도 배경 + 좌측 사이드바 + 중앙 카드 ─────── */
+/* ── 바디: 조작부 → 판독부 → 지도 3열 (IA §4.2) ──────── */
 .body { flex: 1; position: relative; min-height: 0; background: #EDF1F6; }
 
-/* 3열 레이아웃: 지도는 가운데 전용 영역(가려지지 않음) */
-.map-canvas { position: absolute; top: 14px; bottom: 14px; left: 320px; right: 378px; z-index: 0;
+/* 흐름 배치. 읽기 순서 = 인과 순서: 고른다 → 읽는다 → 본다 */
+.body-3col { display: flex; align-items: stretch; gap: 14px; padding: 14px; height: 100%; overflow: hidden; }
+
+/* 3열 레이아웃: 지도는 오른쪽 가변 영역 */
+.map-canvas { position: relative; flex: 1 1 auto; min-width: 420px; z-index: 0;
   border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow-card); }
 .map-canvas .leaflet-container { background: #e9eef5; font: inherit; }
 .map-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink2); }
 .map-empty code { background: #eef1f6; padding: 3px 8px; border-radius: 6px; }
 
-/* ── 사이드바 ───────────────────────────────────────── */
-.sidebar { position: absolute; top: 14px; left: 14px; bottom: 14px; width: 292px; z-index: 20;
+/* ── 사이드바 (조작부) ──────────────────────────────── */
+.sidebar { position: relative; flex: none; width: 292px; min-height: 0; z-index: 20;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow-card); padding: 14px; display: flex; flex-direction: column; gap: 14px;
   overflow-y: auto; background: #F4F6FA; }
@@ -184,22 +187,31 @@ button { font-family: inherit; }
 .sb-summary span { display: block; font-size: 10px; color: var(--ink3); }
 .sb-summary b { font-size: 15px; font-weight: 750; }
 
-/* ── 중앙 차트 카드 열 ──────────────────────────────── */
-.center { position: absolute; top: 14px; right: 14px; bottom: 14px; width: 350px; z-index: 20;
+/* ── 판독부 (통계창) — 조작부와 지도 사이 ─────────────── */
+.center { position: relative; flex: none; width: 366px; min-height: 0; z-index: 20;
   display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 2px; }
 .breadcrumb { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
   box-shadow: var(--shadow-card); padding: 10px 12px 10px 15px; font-size: 12.5px; color: var(--ink3);
-  flex: none; display: flex; align-items: center; gap: 8px; }
+  flex: none; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 5; }
 .breadcrumb .bc-txt { flex: 1; }
 .breadcrumb b { color: var(--accent); font-weight: 700; margin-left: 6px; }
 .center-collapse { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line);
   background: var(--surface); color: var(--ink2); font-size: 15px; line-height: 1; cursor: pointer; }
-.center-collapse:hover { background: var(--muted); }
-.center-reopen { position: absolute; top: 14px; left: 320px; z-index: 25; display: flex; align-items: center; gap: 4px;
-  padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
-  box-shadow: var(--shadow-float); color: var(--ink2); font-size: 12px; font-weight: 650; cursor: pointer; }
-.center-reopen:hover { background: var(--muted); }
-.center-reopen span { color: var(--accent); font-weight: 800; }
+.center-collapse:hover { background: var(--muted); border-color: var(--accent); color: var(--accent); }
+
+/* 접힘 레일 — 판독부 자리에 34px 세로 띠로 남는다 (IA §4.3) */
+.center-rail { position: relative; flex: none; width: 34px; z-index: 20; padding: 10px 0 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow-card); color: var(--ink2); }
+.center-rail:hover { border-color: var(--accent); color: var(--accent); }
+.center-rail .cr-btn { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--surface); color: inherit; font-size: 13px; line-height: 1; cursor: pointer; padding: 0; }
+.center-rail .cr-label { writing-mode: vertical-rl; text-orientation: mixed; font-size: 11.5px;
+  font-weight: 650; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-height: 0; }
+.center-rail .cr-label b { color: var(--accent); font-weight: 800; }
+.center-rail .cr-tag { flex: none; writing-mode: vertical-rl; font-size: 10px; color: var(--ink3); }
 
 /* 데이터 출처 버튼 + 모달 */
 .src-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px;
@@ -384,8 +396,9 @@ button { font-family: inherit; }
   border-radius: 10px !important; box-shadow: var(--shadow-float) !important; }
 .recharts-tooltip-item { color: var(--ink2) !important; }
 
-@media (max-width: 1180px) {
-  .center { position: static; width: auto; }
+/* 반응형 §4.4 — 1180~1400px: 3열 유지, 판독부만 축소 */
+@media (max-width: 1400px) {
+  .center { width: 330px; }
 }
 
 /* ── 상세 카드 (정리본) ─────────────────────────────── */
@@ -574,7 +587,7 @@ button { font-family: inherit; }
 .mp-chg em { flex: 1; font-style: normal; font-size: 10px; color: var(--ink3); text-align: right; }
 
 /* ── CompareMaps (A/B 나란히 보기) ─────────────────────────────── */
-.abm-wrap { position: absolute; top: 14px; bottom: 14px; left: 320px; right: 378px; z-index: 0;
+.abm-wrap { position: relative; flex: 1 1 auto; min-width: 420px; min-height: 0; z-index: 0;
   display: flex; flex-direction: column; gap: 8px; }
 .abm-bar { flex: none; display: flex; align-items: center; gap: 10px; background: var(--surface);
   border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; box-shadow: var(--shadow-card); }
@@ -722,9 +735,16 @@ button { font-family: inherit; }
 .modal-wide .gl-note { margin: 0; padding: 10px 20px; border-top: 1px solid var(--line);
   background: var(--muted); border-radius: 0 0 16px 16px; }
 
-/* 반응형: 좁은 화면에서 A/B 비교는 위아래로 */
+/* 반응형 §4.4 — 1180px 미만: 세로 적층 (조작 → 지도 70vh → 판독) */
 @media (max-width: 1180px) {
-  .abm-wrap { position: static; height: 70vh; }
+  .body-3col { flex-direction: column; gap: 12px; padding: 12px; height: auto; overflow-y: auto; }
+  .sidebar { order: 1; width: auto; flex: none; overflow: visible; }
+  .map-canvas, .abm-wrap { order: 2; width: auto; flex: none; min-width: 0; height: 70vh; }
+  .center { order: 3; width: auto; flex: none; overflow: visible; }
+  .center-rail { order: 3; width: auto; height: 34px; flex: none; flex-direction: row; padding: 0 12px; }
+  .center-rail .cr-label, .center-rail .cr-tag { writing-mode: horizontal-tb; flex: none; }
+  .center-rail .cr-label { flex: 1; }
+  .breadcrumb { position: relative; }
   .abm-maps { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
   .mp-grid { grid-template-columns: 1fr; }
 }

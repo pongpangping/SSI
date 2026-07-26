@@ -19,7 +19,21 @@ function Card({ n, title, sub, children }) {
   )
 }
 
-export default function CenterPanel({ sector, method, metric, selectedRow, link }) {
+// 접힘 상태의 34px 세로 레일. 선택 지역이 바뀌면 라벨만 갱신되고,
+// 지도 클릭으로 자동 펼침은 하지 않는다 (명세 §5, 원칙 P4).
+export function CenterRail({ selectedRow, onOpen }) {
+  const name = selectedRow ? `${selectedRow.sido} ${selectedRow.name}` : '선택 없음'
+  return (
+    <div className="center-rail" role="button" tabIndex={0} title="통계창 펼치기"
+      onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}>
+      <button className="cr-btn" aria-label="통계창 펼치기" onClick={(e) => { e.stopPropagation(); onOpen() }}>›</button>
+      <div className="cr-label"><b>{name}</b></div>
+      <div className="cr-tag">통계창</div>
+    </div>
+  )
+}
+
+export default function CenterPanel({ sector, method, metric, selectedRow, link, onCollapse }) {
   const m = methodOf(method)
   return (
     <div className="center">
@@ -30,6 +44,10 @@ export default function CenterPanel({ sector, method, metric, selectedRow, link 
           · 표준화<b>{m.label}</b>
           · 지도<b>{metric.label}</b>
         </span>
+        {onCollapse && (
+          <button className="center-collapse" title="통계창 접기 — 지도를 넓게 봅니다"
+            aria-label="통계창 접기" onClick={onCollapse}>‹</button>
+        )}
       </div>
 
       <Card n="1" title="선택 시군구 · 표준화 방법별 결과" sub="왜 민감한가">

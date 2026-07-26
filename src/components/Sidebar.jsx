@@ -5,7 +5,7 @@ const SECTOR_KEYS = ['S1', 'S8']
 
 export default function Sidebar({
   sector, onSector, method, onMethod, metric, metricKey, onMetric,
-  onlyHigh, onOnlyHigh, compare, onCompare,
+  onlyHigh, onOnlyHigh, compare, onCompare, panelOpen, onPanelOpen,
 }) {
   const metrics = metricsFor(sector, method)
   const s = sectorSummary(sector)
@@ -32,18 +32,6 @@ export default function Sidebar({
       <div className="sb-group">
         <div className="sb-group-head"><i className="sg-dot std" />표준화 방법<em>지도·차트가 바뀜</em></div>
         <MethodPicker sector={sector} method={method} onMethod={onMethod} />
-      </div>
-
-      {/* 두 진영 비교 지도 */}
-      <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot panel" />비교 보기<em>A/B</em></div>
-        <button className={`grid-toggle${compare ? ' on' : ''}`} onClick={() => onCompare(!compare)}>
-          <span className="gt-txt">
-            <b>간격보존형 ↔ 순위전용형 나란히</b>
-            <em>같은 지표를 MinMax·PctRank 두 지도로 동시에 그려 차이를 눈으로 확인</em>
-          </span>
-          <span className="gt-sw"><i /></span>
-        </button>
       </div>
 
       {/* 지도 지표 */}
@@ -78,6 +66,26 @@ export default function Sidebar({
           <span className="gt-txt">
             <b>민감(high) 지역만</b>
             <em>SSI_camp 부문 상위 20% — 방법 선택에 순위가 크게 흔들림</em>
+          </span>
+          <span className="gt-sw"><i /></span>
+        </button>
+      </div>
+
+      {/* 두 진영 비교 지도 */}
+      <div className="sb-group">
+        <div className="sb-group-head"><i className="sg-dot panel" />보기 모드<em>A/B · 통계창</em></div>
+        <button className={`grid-toggle${compare ? ' on' : ''}`} onClick={() => onCompare(!compare)}>
+          <span className="gt-txt">
+            <b>간격보존형 ↔ 순위전용형 나란히</b>
+            <em>같은 지표를 MinMax·PctRank 두 지도로 동시에 그려 차이를 눈으로 확인</em>
+          </span>
+          <span className="gt-sw"><i /></span>
+        </button>
+        <button className={`grid-toggle${!panelOpen ? ' on' : ''}`} style={{ marginTop: 8 }}
+          onClick={() => onPanelOpen(!panelOpen)}>
+          <span className="gt-txt">
+            <b>통계창 접기</b>
+            <em>가운데 판독 카드를 접고 지도를 조작부 바로 옆까지 넓힌다</em>
           </span>
           <span className="gt-sw"><i /></span>
         </button>

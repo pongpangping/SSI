@@ -4,7 +4,7 @@ import Header from './components/Header.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import NationalMap from './components/NationalMap.jsx'
 import CompareMaps from './components/CompareMaps.jsx'
-import CenterPanel from './components/CenterPanel.jsx'
+import CenterPanel, { CenterRail } from './components/CenterPanel.jsx'
 import DataTable from './components/DataTable.jsx'
 
 // ── URL 해시 상태 공유 (#s=S1&m=minmax&k=rank&r=경기도|성남시) ──────────────
@@ -16,6 +16,7 @@ function parseHash() {
   if (h.get('k')) o.metricKey = h.get('k')
   if (h.get('r')) o.selected = decodeURIComponent(h.get('r'))
   if (h.get('c') === '1') o.compare = true
+  if (h.get('p') === '0') o.panelOpen = false
   return o
 }
 
@@ -25,6 +26,7 @@ export default function App() {
   const [method, setMethod] = useState(init.method || 'minmax')
   const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
   const [compare, setCompare] = useState(!!init.compare)
+  const [panelOpen, setPanelOpen] = useState(init.panelOpen !== false)
   const [onlyHigh, setOnlyHigh] = useState(false)
   const [selected, setSelected] = useState(init.selected || null)
   const [hovered, setHovered] = useState(null)
@@ -46,8 +48,9 @@ export default function App() {
     p.set('s', sector); p.set('m', method); p.set('k', metric.key)
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
+    if (!panelOpen) p.set('p', '0')
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [sector, method, metric.key, sel, compare])
+  }, [sector, method, metric.key, sel, compare, panelOpen])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
 
@@ -61,12 +64,15 @@ export default function App() {
           metric={metric} metricKey={metric.key} onMetric={setMetricKey}
           onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
           compare={compare} onCompare={setCompare}
+          panelOpen={panelOpen} onPanelOpen={setPanelOpen}
         />
+        {panelOpen
+          ? <CenterPanel sector={sector} method={method} metric={metric}
+              selectedRow={selectedRow} link={link} onCollapse={() => setPanelOpen(false)} />
+          : <CenterRail selectedRow={selectedRow} onOpen={() => setPanelOpen(true)} />}
         {compare
           ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} {...link} />
           : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} {...link} />}
-        <CenterPanel sector={sector} method={method} metric={metric}
-          selectedRow={selectedRow} link={link} />
       </div>
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
         selected={sel} onSelect={setSelected} />}

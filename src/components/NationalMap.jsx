@@ -29,6 +29,7 @@ export default function NationalMap({
   compact = false, title = null, subtitle = null, onMapReady = null,
 }) {
   const geoRef = useRef(null)
+  const wrapRef = useRef(null)
   const [map, setMap] = useState(null)
   const [tilesReady, setTilesReady] = useState(false)
 
@@ -93,6 +94,18 @@ export default function NationalMap({
     try { map.fitBounds(geoRef.current.getBounds(), { padding: [12, 12] }) } catch (e) { /* noop */ }
   }, [map])
 
+  // 통계창 접기/펼치기·창 크기 변화로 지도 폭이 바뀌면 Leaflet에 알린다
+  useEffect(() => {
+    if (!map || !wrapRef.current || typeof ResizeObserver === 'undefined') return
+    let raf = 0
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }) } catch (e) { /* noop */ } })
+    })
+    ro.observe(wrapRef.current)
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
+  }, [map])
+
   const ramp = RAMP[metric.scale] || BLUE
   const lowLab = metric.scale === 'rank' ? '하위(229위)'
     : metric.scale === 'div' ? '◀ 순위 상승' : '낮음'
@@ -100,7 +113,7 @@ export default function NationalMap({
     : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
 
   return (
-    <div className={`map-canvas${compact ? ' map-compact' : ''}`}>
+    <div ref={wrapRef} className={`map-canvas${compact ? ' map-compact' : ''}`}>
       {title && <div className="map-cap"><b>{title}</b>{subtitle && <em>{subtitle}</em>}</div>}
       <MapContainer ref={setMap} center={[36.4, 127.8]} zoom={compact ? 6 : 7} zoomControl={false}
         preferCanvas={true} scrollWheelZoom={!compact} style={{ height: '100%', width: '100%' }}>
