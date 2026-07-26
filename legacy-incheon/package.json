@@ -1,0 +1,26 @@
+{
+  "name": "incheon-household-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "인천광역시 1인가구·세대구조 대시보드 (글라스모피즘)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "extract": "python3 scripts/extract.py"
+  },
+  "//": "npm run build → dist/index.html (단일 자기완결형 파일, 더블클릭으로 열림)",
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
+    "recharts": "^2.13.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.0.3"
+  }
+}

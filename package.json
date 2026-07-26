@@ -1,16 +1,19 @@
 {
-  "name": "incheon-household-dashboard",
+  "name": "spatial-diagnosis-dashboards",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "인천광역시 1인가구·세대구조 대시보드 (글라스모피즘)",
+  "description": "국토종합진단지수 표준화 민감도 대시보드(메인) + 인천 1인가구·세대구조 대시보드(legacy-incheon)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "extract": "python3 scripts/extract.py"
+    "deploy": "vite build && cp dist/index.html docs/index.html && touch docs/.nojekyll",
+    "dev:incheon": "vite --config legacy-incheon/vite.config.js",
+    "build:incheon": "vite build --config legacy-incheon/vite.config.js",
+    "deploy:incheon": "npm run build:incheon && mkdir -p docs/incheon && cp legacy-incheon/dist/index.html docs/incheon/index.html"
   },
-  "//": "npm run build → dist/index.html (단일 자기완결형 파일, 더블클릭으로 열림)",
+  "//": "npm run deploy → docs/index.html (SSI, 메인) / npm run deploy:incheon → docs/incheon/index.html (인천, 보존)",
   "dependencies": {
     "leaflet": "^1.9.4",
     "react": "^18.3.1",

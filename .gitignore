@@ -1,9 +1,17 @@
 node_modules/
 dist/
+legacy-incheon/dist/
 .vite/
 __pycache__/
 *.pyc
-.DS_Store
 .venv/
-# 원본(대용량) 경계 SHP — 재현은 extract.py 로. 산출물(incheonGeo.json)만 커밋
+.DS_Store
+*.log
+shot-*.png
+verify.cjs
+_to_delete/
+
+# 원본(대용량) 경계 SHP — 재현은 legacy-incheon/scripts/extract.py 로.
+# 산출물(legacy-incheon/src/data/incheonGeo.json)만 커밋한다. SHP 단독 185MB로 GitHub 100MB 한도 초과.
+legacy-incheon/data/raw/N3A_G0110000/
 data/raw/N3A_G0110000/

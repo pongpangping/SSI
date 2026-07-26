@@ -1,128 +1,93 @@
-import { useState } from 'react'
-import { METRICS, metricBy } from '../lib/metrics.js'
-import { pct, downloadCsv } from '../lib/format.js'
-import { COMPOSITE_INDICATORS } from '../lib/stats.js'
+import { SECTORS, metricsFor, sectorSummary } from '../lib/ssi.js'
+import MethodPicker from './MethodPicker.jsx'
+
+const SECTOR_KEYS = ['S1', 'S8']
 
 export default function Sidebar({
-  rows, summary, metricKey, onMetric, avgFilter, onAvgFilter, avgValue, selected, onSelect,
-  showGrid, onToggleGrid, weights, onWeights,
+  sector, onSector, method, onMethod, metric, metricKey, onMetric,
+  onlyHigh, onOnlyHigh, compare, onCompare,
 }) {
-  const metric = metricBy(metricKey)
-  const vals = rows.map((r) => r[metricKey]).filter((x) => x != null)
-  const min = Math.min(...vals), max = Math.max(...vals)
-  const ordered = [...rows].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-  const nAbove = rows.filter((r) => r[metricKey] >= avgValue).length
-
-  // 아코디언 상태: 전체 패널 열림/닫힘 + 펼쳐진 지표(하나만)
-  const [panelOpen, setPanelOpen] = useState(true)
-  const [openKey, setOpenKey] = useState(metricKey)
-
-  const clickMetric = (k) => {
-    if (openKey === k) { setOpenKey(null); return }   // 이미 열린 항목 다시 누르면 접힘
-    onMetric(k); setOpenKey(k)                         // 선택 + 해당 항목만 펼침(나머지 접힘)
-  }
+  const metrics = metricsFor(sector, method)
+  const s = sectorSummary(sector)
+  const groups = metrics.reduce((a, m) => { (a[m.group] ||= []).push(m); return a }, {})
 
   return (
     <aside className="sidebar">
-      {/* ── 그룹 1 : 지도에 반영 (색 · 강조 · 격자) ── */}
+      {/* 부문 선택 */}
       <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot map" />지도에 반영<em>색 · 강조 · 격자</em></div>
-
-        {/* 지도 지표 — 아코디언 (선택 항목만 펼침 / 다시 누르면 접힘) */}
-        <div className="acc">
-          <button className="acc-head" onClick={() => setPanelOpen((o) => !o)}>
-            <span className="acc-ic">◧</span><span className="acc-title">지도 지표 (색)</span>
-            <span className="acc-minus">{panelOpen ? '–' : '+'}</span>
-          </button>
-          {panelOpen && (
-            <div className="acc-body">
-              {METRICS.map((m) => {
-                const isOpen = openKey === m.key
-                const isActive = metricKey === m.key
-                return (
-                  <div key={m.key} className={`acc-item${isActive ? ' active' : ''}${isOpen ? ' open' : ''}`}>
-                    <button className="ai-head" onClick={() => clickMetric(m.key)}>
-                      <span className="ai-name">{m.label}</span>
-                      <span className="ai-chev">{isOpen ? '▾' : '▸'}</span>
-                    </button>
-                    {isOpen && (
-                      <div className="ai-detail">
-                        <div className="ai-desc">{m.desc}</div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+        <div className="sb-group-head"><i className="sg-dot map" />부문 선택<em>진단 대상</em></div>
+        <div className="seg-sector">
+          {SECTOR_KEYS.map((k) => (
+            <button key={k} className={sector === k ? 'active' : ''} onClick={() => onSector(k)}>
+              <b>{k}</b><span>{SECTORS[k].name}</span>
+            </button>
+          ))}
         </div>
-
-        {/* 집중지수 가중치 — 지표 선택 박스와 분리해 아래 별도 패널로 */}
-        {metricKey === 'composite' && (
-          <div className="wpanel">
-            <div className="wpanel-h"><span className="wpanel-t">집중지수 가중치</span></div>
-            {COMPOSITE_INDICATORS.map((ind) => (
-              <div className="wrow" key={ind.key}>
-                <div className="wrow-top">
-                  <span>{ind.label}{ind.invert ? ' (작을수록↑)' : ''}</span>
-                  <b>{weights[ind.key]}</b>
-                </div>
-                <input type="range" min="0" max="3" step="1" value={weights[ind.key]}
-                  onChange={(e) => onWeights({ ...weights, [ind.key]: Number(e.target.value) })} />
-              </div>
-            ))}
-            <div className="wpanel-note">높을수록 1인·고령·소규모 가구 집중. 정규화(min-max) 후 가중 평균 → 0~100점.</div>
-          </div>
-        )}
-
-        <div className="sb-legend">
-          <span>{metric.fmt(min)}</span>
-          <div className="lg-bar" />
-          <span>{metric.fmt(max)}</span>
+        <div className="sb-hint">
+          지표 {SECTORS[sector].inds.length}개 · {SECTORS[sector].inds.map((i) => i.label).join(' · ')}
         </div>
+      </div>
 
-        {/* 인천 평균 대비 강조 */}
-        <div className="dd-sublabel">인천 평균 대비 강조 · {metric.fmt(avgValue)}</div>
-        <div className="seg-toggle">
-          <button className={!avgFilter ? 'active' : ''} onClick={() => onAvgFilter(null)}>전체</button>
-          <button className={avgFilter === 'above' ? 'active' : ''}
-            onClick={() => onAvgFilter(avgFilter === 'above' ? null : 'above')}>
-            평균 이상<em>{nAbove}</em></button>
-          <button className={avgFilter === 'below' ? 'active' : ''}
-            onClick={() => onAvgFilter(avgFilter === 'below' ? null : 'below')}>
-            평균 미만<em>{rows.length - nAbove}</em></button>
-        </div>
+      {/* ★ 표준화 방법 */}
+      <div className="sb-group">
+        <div className="sb-group-head"><i className="sg-dot std" />표준화 방법<em>지도·차트가 바뀜</em></div>
+        <MethodPicker sector={sector} method={method} onMethod={onMethod} />
+      </div>
 
-        {/* 격자 밀집도 토글 */}
-        <button className={`grid-toggle${showGrid ? ' on' : ''}`}
-          onClick={() => onToggleGrid(!showGrid)}>
+      {/* 두 진영 비교 지도 */}
+      <div className="sb-group">
+        <div className="sb-group-head"><i className="sg-dot panel" />비교 보기<em>A/B</em></div>
+        <button className={`grid-toggle${compare ? ' on' : ''}`} onClick={() => onCompare(!compare)}>
           <span className="gt-txt">
-            <b>격자 밀집도</b>
-            <em>구 확대 시 SGIS 1km 격자로 1인가구 밀도 표시</em>
+            <b>간격보존형 ↔ 순위전용형 나란히</b>
+            <em>같은 지표를 MinMax·PctRank 두 지도로 동시에 그려 차이를 눈으로 확인</em>
           </span>
           <span className="gt-sw"><i /></span>
         </button>
       </div>
 
-      {/* ── 그룹 2 : 표·상세에 반영 (선택 지역) ── */}
+      {/* 지도 지표 */}
       <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot panel" />표·상세에 반영<em>선택 지역</em></div>
-        <label className="dropdown">
-          <span className="dd-label">시군구 선택</span>
-          <span className="dd-value">{rows.find((r) => r.code === selected)?.name ?? '선택'}
-            <span className="dd-caret">⌄</span></span>
-          <select value={selected} onChange={(e) => onSelect(e.target.value)}>
-            {ordered.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
-          </select>
-        </label>
-        <div className="sb-hint">고른 지역이 오른쪽 상세·순위·차트에 반영됩니다. 지도를 직접 클릭하면 그 지역으로 확대돼요.</div>
-        <button className="csv-btn" onClick={() => downloadCsv(rows)}>⤓ 표 내보내기 (CSV)</button>
+        <div className="sb-group-head"><i className="sg-dot metric" />지도에 그릴 값<em>색으로 표시</em></div>
+        <div className="mlist">
+          {Object.entries(groups).map(([g, items]) => (
+            <div key={g} className="mgrp">
+              <div className="mgrp-h">{g}</div>
+              {items.map((m) => (
+                <button key={m.key} className={`mitem${metricKey === m.key ? ' active' : ''}`}
+                  onClick={() => onMetric(m.key)}>
+                  <span className="mi-name">{m.label}{m.dynamic && <i className="mi-dyn" title="표준화 방법에 따라 값이 바뀜">◆</i>}</span>
+                  {metricKey === m.key && <span className="mi-desc">{m.desc}</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="sb-legend">
+          <span>{metric.scale === 'rank' ? '하위' : metric.scale === 'div' ? '상승' : '낮음'}</span>
+          <div className={`lg-bar ${metric.scale}`} />
+          <span>{metric.scale === 'rank' ? '상위' : metric.scale === 'div' ? '하락' : '높음'}</span>
+        </div>
+        <div className="sb-hint">◆ 표시는 표준화 방법을 바꾸면 지도가 바뀌는 항목입니다.</div>
+      </div>
+
+      {/* 민감 지역 필터 */}
+      <div className="sb-group">
+        <div className="sb-group-head"><i className="sg-dot warn" />민감 지역<em>경고 대상</em></div>
+        <button className={`grid-toggle${onlyHigh ? ' on' : ''}`} onClick={() => onOnlyHigh(!onlyHigh)}>
+          <span className="gt-txt">
+            <b>민감(high) 지역만</b>
+            <em>SSI_camp 부문 상위 20% — 방법 선택에 순위가 크게 흔들림</em>
+          </span>
+          <span className="gt-sw"><i /></span>
+        </button>
       </div>
 
       <div className="sb-summary">
-        <div><span>1인가구</span><b>{pct(summary.onePersonRate)}</b></div>
-        <div><span>세대당</span><b>{summary.avgHouseholdSize}명</b></div>
-        <div><span>고령1인</span><b>{pct(summary.agedOneShareOfOne)}</b></div>
+        <div><span>시군구</span><b>{s.n}개</b></div>
+        <div><span>SSI 평균</span><b>{s.avg.toFixed(1)}</b></div>
+        <div><span>10계단↑</span><b>{s.over10}개</b></div>
+        <div><span>민감(high)</span><b>{s.high}개</b></div>
       </div>
     </aside>
   )
