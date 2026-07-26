@@ -1,7 +1,7 @@
 import { METHODS, CAMP } from '../lib/ssi.js'
 
 export default function MethodCompare({ row, sector, method, onMethod }) {
-  if (!row) return <div className="empty-hint">지도에서 시군구를 클릭하면 표준화 방법별 계산 결과가 표시됩니다.</div>
+  if (!row) return <div className="empty-hint">지도에서 시군구 클릭</div>
   const d = row[sector]
   const camp = d.ssiCamp
   const rMin = d.rank.minmax, rPct = d.rank.pctrank
@@ -12,7 +12,7 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
       <div className="mc-top">
         <div className="mc-name">{row.sido} {row.name}</div>
         <div className={`mc-badge ${d.flag === 'high' ? 'high' : ''}`}>
-          SSI_camp <b>{camp}계단</b>{d.flag === 'high' && <span> · 민감</span>}
+          순위 이동 <b>{camp}계단</b>{d.flag === 'high' && <span> · 민감</span>}
         </div>
       </div>
 
@@ -47,17 +47,18 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
         ))}
       </div>
 
-      {/* 검산용 중복 컬럼 (메타데이터가 투명성 목적으로 유지한다고 명시) */}
-      <div className="mc-verify">
-        검산 · SSI_camp = |MinMax대표순위 {d.repMinmax} − PctRank대표순위 {d.repPctrank}| = <b>{Math.abs(d.repMinmax - d.repPctrank)}</b>
-        {' '}(표기값 {camp}) · SSI_range {d.ssiRange} · SSI_std {d.ssiStd}
+      {/* 판정 · 보조 수치 — 문장 대신 배지와 칩으로 */}
+      <div className="mc-flags">
+        <span className={`mcf ${d.flag === 'high' ? 'high' : 'ok'}`}>
+          {d.flag === 'high' ? '방법에 민감' : '방법에 안정'}
+        </span>
+        {sector === 'S1' && d.tradeoff && <span className="mcf trade" title="부문 내 두 지표의 백분위 순위 차가 30%p 초과">지표 엇갈림 30%p↑</span>}
       </div>
 
-      <div className="mc-note">
-        {d.flag === 'high'
-          ? '⚠ 이 지역은 표준화 방법 선택에 따라 순위가 크게 달라집니다 — 해석 시 어떤 방법을 썼는지 반드시 함께 밝혀야 합니다.'
-          : '표준화 방법을 바꿔도 순위가 비교적 안정적인 지역입니다.'}
-        {sector === 'S1' && d.tradeoff && <div className="mc-trade">↔ 트레이드오프: 부문 내 두 지표의 백분위 순위 차가 30%p를 초과합니다(한쪽 앞서고 한쪽 뒤처짐) — SSI_camp가 커지는 원인.</div>}
+      <div className="mc-chips" title="4개 방법 순위의 폭·표준편차, 그리고 순위 이동 검산">
+        <span><em>순위 폭</em><b>{d.ssiRange}</b></span>
+        <span><em>표준편차</em><b>{d.ssiStd}</b></span>
+        <span><em>검산</em><b>|{d.repMinmax}−{d.repPctrank}|={Math.abs(d.repMinmax - d.repPctrank)}</b></span>
       </div>
     </div>
   )

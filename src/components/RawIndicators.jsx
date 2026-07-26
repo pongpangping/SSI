@@ -2,7 +2,7 @@ import { SECTORS, rawSeries } from '../lib/ssi.js'
 
 // 부문 내 원자료 지표: 선택 시군구 값 + 전국 대비 위치(백분위)
 export default function RawIndicators({ row, sector }) {
-  if (!row) return <div className="empty-hint">시군구를 선택하면 부문 내 지표 원자료를 보여줍니다.</div>
+  if (!row) return <div className="empty-hint">시군구를 선택하세요</div>
   const inds = SECTORS[sector].inds
 
   return (
@@ -35,7 +35,6 @@ export default function RawIndicators({ row, sector }) {
           </div>
         )
       })}
-      <div className="ri-note">방향(↑/↓)은 지표가 좋음을 뜻하는 쪽. CI 계산 시 x′ = max + min − x 로 반전 적용됩니다.</div>
     </div>
   )
 }

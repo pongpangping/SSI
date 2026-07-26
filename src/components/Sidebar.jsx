@@ -1,11 +1,25 @@
 import { SECTORS, metricsFor, sectorSummary } from '../lib/ssi.js'
 import MethodPicker from './MethodPicker.jsx'
+import RegionPicker from './RegionPicker.jsx'
 
 const SECTOR_KEYS = ['S1', 'S8']
 
+function Step({ n, title, plain, children }) {
+  return (
+    <div className="sb-step">
+      <div className="sb-step-head">
+        <span className="sb-step-n">{n}</span>
+        <span className="sb-step-t">{title}<em>{plain}</em></span>
+      </div>
+      <div className="sb-step-body">{children}</div>
+    </div>
+  )
+}
+
 export default function Sidebar({
   sector, onSector, method, onMethod, metric, metricKey, onMetric,
-  onlyHigh, onOnlyHigh, compare, onCompare, panelOpen, onPanelOpen,
+  onlyHigh, onOnlyHigh, compare, onCompare,
+  sido, onSido, selected, onSelect,
 }) {
   const metrics = metricsFor(sector, method)
   const s = sectorSummary(sector)
@@ -13,9 +27,11 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      {/* 부문 선택 */}
-      <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot map" />부문 선택<em>진단 대상</em></div>
+      <Step n="1" title="어디를 볼까" plain="행정구역">
+        <RegionPicker sido={sido} onSido={onSido} selected={selected} onSelect={onSelect} />
+      </Step>
+
+      <Step n="2" title="무엇을 진단할까" plain="부문">
         <div className="seg-sector">
           {SECTOR_KEYS.map((k) => (
             <button key={k} className={sector === k ? 'active' : ''} onClick={() => onSector(k)}>
@@ -23,29 +39,24 @@ export default function Sidebar({
             </button>
           ))}
         </div>
-        <div className="sb-hint">
-          지표 {SECTORS[sector].inds.length}개 · {SECTORS[sector].inds.map((i) => i.label).join(' · ')}
+        <div className="chip-row">
+          {SECTORS[sector].inds.map((i) => <span key={i.label} className="chip">{i.label}</span>)}
         </div>
-      </div>
+      </Step>
 
-      {/* ★ 표준화 방법 */}
-      <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot std" />표준화 방법<em>지도·차트가 바뀜</em></div>
+      <Step n="3" title="점수를 어떻게 매길까" plain="표준화 방법">
         <MethodPicker sector={sector} method={method} onMethod={onMethod} />
-      </div>
+      </Step>
 
-      {/* 지도 지표 */}
-      <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot metric" />지도에 그릴 값<em>색으로 표시</em></div>
+      <Step n="4" title="지도를 무엇으로 칠할까" plain="지도 색 기준">
         <div className="mlist">
           {Object.entries(groups).map(([g, items]) => (
             <div key={g} className="mgrp">
               <div className="mgrp-h">{g}</div>
               {items.map((m) => (
                 <button key={m.key} className={`mitem${metricKey === m.key ? ' active' : ''}`}
-                  onClick={() => onMetric(m.key)}>
-                  <span className="mi-name">{m.label}{m.dynamic && <i className="mi-dyn" title="표준화 방법에 따라 값이 바뀜">◆</i>}</span>
-                  {metricKey === m.key && <span className="mi-desc">{m.desc}</span>}
+                  onClick={() => onMetric(m.key)} title={m.desc}>
+                  <span className="mi-name">{m.label}{m.dynamic && <i className="mi-dyn" title="점수 매기는 방식을 바꾸면 지도가 바뀜">◆</i>}</span>
                 </button>
               ))}
             </div>
@@ -56,46 +67,24 @@ export default function Sidebar({
           <div className={`lg-bar ${metric.scale}`} />
           <span>{metric.scale === 'rank' ? '상위' : metric.scale === 'div' ? '하락' : '높음'}</span>
         </div>
-        <div className="sb-hint">◆ 표시는 표준화 방법을 바꾸면 지도가 바뀌는 항목입니다.</div>
-      </div>
+      </Step>
 
-      {/* 민감 지역 필터 */}
-      <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot warn" />민감 지역<em>경고 대상</em></div>
-        <button className={`grid-toggle${onlyHigh ? ' on' : ''}`} onClick={() => onOnlyHigh(!onlyHigh)}>
-          <span className="gt-txt">
-            <b>민감(high) 지역만</b>
-            <em>SSI_camp 부문 상위 20% — 방법 선택에 순위가 크게 흔들림</em>
-          </span>
-          <span className="gt-sw"><i /></span>
-        </button>
-      </div>
-
-      {/* 두 진영 비교 지도 */}
-      <div className="sb-group">
-        <div className="sb-group-head"><i className="sg-dot panel" />보기 모드<em>A/B · 통계창</em></div>
+      <Step n="5" title="어떻게 보여줄까" plain="보기 옵션">
         <button className={`grid-toggle${compare ? ' on' : ''}`} onClick={() => onCompare(!compare)}>
-          <span className="gt-txt">
-            <b>간격보존형 ↔ 순위전용형 나란히</b>
-            <em>같은 지표를 MinMax·PctRank 두 지도로 동시에 그려 차이를 눈으로 확인</em>
-          </span>
+          <span className="gt-txt"><b>두 방식 지도 나란히</b><em>Min-Max ↔ 백분위순위</em></span>
           <span className="gt-sw"><i /></span>
         </button>
-        <button className={`grid-toggle${!panelOpen ? ' on' : ''}`} style={{ marginTop: 8 }}
-          onClick={() => onPanelOpen(!panelOpen)}>
-          <span className="gt-txt">
-            <b>통계창 접기</b>
-            <em>가운데 판독 카드를 접고 지도를 조작부 바로 옆까지 넓힌다</em>
-          </span>
+        <button className={`grid-toggle${onlyHigh ? ' on' : ''}`} onClick={() => onOnlyHigh(!onlyHigh)}>
+          <span className="gt-txt"><b>민감 지역만</b><em>순위가 크게 흔들리는 상위 20%</em></span>
           <span className="gt-sw"><i /></span>
         </button>
-      </div>
+      </Step>
 
       <div className="sb-summary">
-        <div><span>시군구</span><b>{s.n}개</b></div>
-        <div><span>SSI 평균</span><b>{s.avg.toFixed(1)}</b></div>
-        <div><span>10계단↑</span><b>{s.over10}개</b></div>
-        <div><span>민감(high)</span><b>{s.high}개</b></div>
+        <div><span>시군구</span><b>{s.n}</b></div>
+        <div><span>평균 이동</span><b>{s.avg.toFixed(1)}계단</b></div>
+        <div><span>10계단↑</span><b>{s.over10}</b></div>
+        <div><span>민감</span><b>{s.high}</b></div>
       </div>
     </aside>
   )

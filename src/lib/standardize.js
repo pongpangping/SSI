@@ -44,6 +44,7 @@ export function logistic(v) {
 }
 
 export const FN = { minmax, distance, pctrank, logistic }
+export const standardize = (values, method) => FN[method](values)
 
 // 지표 1개를 방향 반영해 표준화
 export function standardizeInd(values, dir, method) {

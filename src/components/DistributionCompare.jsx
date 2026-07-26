@@ -30,11 +30,6 @@ export default function DistributionCompare({ sector, selectedRow, method }) {
 
   return (
     <div className="dist">
-      <div className="card-sub">
-        같은 원자료라도 표준화 방법에 따라 <b>CI 값의 분포 모양 자체</b>가 달라진다 →
-        같은 색 범례를 써도 지도에 칠해지는 등급이 달라진다.
-      </div>
-
       <div className="dist-grid">
         {cards.map(({ m, b, peak, lo, hi, sv, selBin }) => (
           <div key={m.key} className={`dist-card${m.key === method ? ' on' : ''}`}
@@ -58,20 +53,23 @@ export default function DistributionCompare({ sector, selectedRow, method }) {
 
       {/* 지침서 6.4 — 간격보존형 vs 순위전용형이 갈리는 이유 */}
       <div className="demo">
-        <div className="demo-h">왜 갈리는가 · 10개 값 예시 (지침서 6.4)</div>
+        <div className="demo-h">값 10개 예시 <em>지침서 6.4</em></div>
         <div className="demo-tbl">
-          <div className="demo-r demo-hd"><span>원자료</span>{DEMO.map((v) => <b key={v}>{v}</b>)}</div>
+          <div className="demo-r demo-hd"><span>원자료</span>
+            {DEMO.map((v, i) => <b key={v} className={i === 2 ? 'pick' : ''}>{v}</b>)}</div>
           <div className="demo-r"><span style={{ color: CAMP['간격보존형'].color }}>Min-Max</span>
-            {demoMM.map((v, i) => <b key={i}>{Math.round(v)}</b>)}</div>
+            {demoMM.map((v, i) => <b key={i} className={i === 2 ? 'pick' : ''}>{Math.round(v)}</b>)}</div>
           <div className="demo-r"><span style={{ color: CAMP['순위전용형'].color }}>백분위순위</span>
-            {demoPR.map((v, i) => <b key={i}>{Math.round(v)}</b>)}</div>
+            {demoPR.map((v, i) => <b key={i} className={i === 2 ? 'pick' : ''}>{Math.round(v)}</b>)}</div>
         </div>
-        <p className="demo-note">
-          값 88은 Min-Max에서 {Math.round(demoMM[2])}점(최댓값 100에 가까움)이지만
-          백분위순위에서는 {Math.round(demoPR[2])}점(아래에서 세 번째)이다.
-          간격보존형은 “실제 값이 얼마나 큰가”를, 순위전용형은 “몇 등인가”를 본다.
-          이 차이가 지표를 합칠 때 누적되어 CI 순위를 흔든다.
-        </p>
+        <div className="demo-pick" title="간격보존형은 값의 크기를, 순위전용형은 등수를 본다">
+          <span className="dp-raw">88</span>
+          <span className="dp-arw">→</span>
+          <span className="dp-v" style={{ borderColor: CAMP['간격보존형'].color }}>
+            값 크기<b style={{ color: CAMP['간격보존형'].color }}>{Math.round(demoMM[2])}점</b></span>
+          <span className="dp-v" style={{ borderColor: CAMP['순위전용형'].color }}>
+            등수<b style={{ color: CAMP['순위전용형'].color }}>{Math.round(demoPR[2])}점</b></span>
+        </div>
       </div>
     </div>
   )

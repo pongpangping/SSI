@@ -14,6 +14,29 @@ export const methodOf = (k) => METHODS.find((m) => m.key === k)
 export const keyOf = (sido, name) => `${sido}|${name}`
 export const rowKey = (r) => keyOf(r.sido, r.name)
 
+// ── 행정구역 ─────────────────────────────────────────────────────────────
+export const SIDOS = (() => {
+  const seen = []
+  ROWS.forEach((r) => { if (!seen.includes(r.sido)) seen.push(r.sido) })
+  return seen.sort((a, b) => a.localeCompare(b, 'ko'))
+})()
+const SIDO_ABBR = {
+  서울특별시: '서울', 부산광역시: '부산', 대구광역시: '대구', 인천광역시: '인천',
+  광주광역시: '광주', 대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종',
+  경기도: '경기', 강원도: '강원', 강원특별자치도: '강원',
+  충청북도: '충북', 충청남도: '충남', 전라북도: '전북', 전북특별자치도: '전북',
+  전라남도: '전남', 경상북도: '경북', 경상남도: '경남',
+  제주도: '제주', 제주특별자치도: '제주',
+}
+export const shortSido = (s) => SIDO_ABBR[s] || (s || '')
+  .replace('특별자치도', '').replace('특별자치시', '').replace('광역시', '')
+  .replace('특별시', '').replace(/도$/, '')
+export function rowsOfSido(sido) {
+  return (sido ? ROWS.filter((r) => r.sido === sido) : ROWS)
+    .slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+}
+export const sidoCount = (sido) => ROWS.reduce((n, r) => n + (r.sido === sido ? 1 : 0), 0)
+
 // 두 진영 — 지침서 8장
 export const CAMP = {
   간격보존형: { color: '#0B93EE', rep: 'minmax', methods: ['minmax', 'distance', 'logistic'],

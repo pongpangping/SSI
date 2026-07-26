@@ -3,7 +3,7 @@ import { METHODS, CAMP, SECTORS, stdSeries, indRank, rowIndex, rowKey } from '..
 // 원자료 → (방향반전) → 표준화 → 동일가중 평균 → CI → 순위
 // 지표 1개 단위 순위는 4개 방법이 모두 같고, CI 단계에서만 갈린다는 점을 표로 증명한다.
 export default function StdTransform({ row, sector, method, onMethod }) {
-  if (!row) return <div className="empty-hint">시군구를 선택하면 표준화 계산 과정을 단계별로 보여줍니다.</div>
+  if (!row) return <div className="empty-hint">시군구를 선택하세요</div>
   const i = rowIndex(rowKey(row))
   const inds = SECTORS[sector].inds
   const d = row[sector]
@@ -58,9 +58,16 @@ export default function StdTransform({ row, sector, method, onMethod }) {
           </tr>
         </tbody>
       </table>
-      <div className="ri-note">
-        지표 1개 단위 순위는 4개 방법이 <b>항상 같다</b>(단조변환). 방법에 따라 달라지는 것은 지표를 합치는 CI 단계다 —
-        각 방법이 값 간격을 서로 다르게 압축·신장하기 때문. 방향 −1 지표는 x′ = max + min − x 로 반전한 뒤 표준화한다.
+      <div className="fact-row">
+        <span className="fact" title="표준화는 값의 순서를 바꾸지 않으므로 지표 1개 순위는 4개 방법이 항상 같다">
+          지표 순위<b>4방법 동일</b>
+        </span>
+        <span className="fact hot" title="각 방법이 값 간격을 다르게 압축·신장하므로 지표를 합칠 때 차이가 생긴다">
+          갈리는 지점<b>CI 합산</b>
+        </span>
+        <span className="fact" title="방향 −1(낮을수록 좋음) 지표는 x′ = max + min − x 로 반전한 뒤 표준화">
+          ↓좋음 지표<b>반전 후 표준화</b>
+        </span>
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, GeoJSON, ZoomControl } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
-import { ROWS, rowKey, keyOf, rowIndex, colorFn, valuesOf, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
+import { ROWS, rowKey, keyOf, rowIndex, colorFn, valuesOf, shortSido, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
 
 const okRing = (r) => Array.isArray(r) && r.length >= 4 &&
   r.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]))
@@ -25,7 +25,7 @@ export function geoData() {
 const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }
 
 export default function NationalMap({
-  sector, metric, onlyHigh, selected, hovered, onSelect, onHover,
+  sector, metric, onlyHigh, selected, hovered, onSelect, onHover, sido = null,
   compact = false, title = null, subtitle = null, onMapReady = null,
 }) {
   const geoRef = useRef(null)
@@ -49,13 +49,14 @@ export default function NationalMap({
     const row = byKey[k]
     const isSel = k === selected, isHov = k === hovered
     const high = row && row[sector].flag === 'high'
-    const dim = onlyHigh && !high
+    const outSido = sido && row && row.sido !== sido
+    const dim = (onlyHigh && !high) || outSido
     return {
       fillColor: color(valOf(k)),
       fillOpacity: dim ? 0.06 : isSel ? 0.95 : isHov ? 0.88 : 0.82,
       color: isSel ? '#0F172A' : isHov ? '#334155' : (high && !dim) ? '#B91C1C' : '#ffffff',
-      weight: isSel ? 2.4 : isHov ? 1.8 : (high && !dim) ? 1.1 : 0.5,
-      opacity: dim ? 0.35 : 1,
+      weight: isSel ? 2.6 : isHov ? 1.8 : (high && !dim) ? 1.1 : 0.5,
+      opacity: dim ? 0.3 : 1,
     }
   }
 
@@ -63,7 +64,7 @@ export default function NationalMap({
     <div class="mpop">
       <div class="mpop-h">${row.sido} ${row.name}</div>
       <div class="mtip-row"><span>${metric.label}</span><b>${metric.fmt(valOf(k))}</b></div>
-      <div class="mtip-row"><span>SSI_camp</span><b>${row[sector].ssiCamp}계단${row[sector].flag === 'high' ? ' · 민감' : ''}</b></div>
+      <div class="mtip-row"><span>순위 이동</span><b>${row[sector].ssiCamp}계단${row[sector].flag === 'high' ? ' · 민감' : ''}</b></div>
     </div>`
 
   const onEach = (f, layer) => {
@@ -85,6 +86,20 @@ export default function NationalMap({
     })
   })
 
+  // ── 지도 이동 조작 ──────────────────────────────────────────────────────
+  const boundsOf = (pred) => {
+    if (!geoRef.current) return null
+    let b = null
+    geoRef.current.eachLayer((l) => {
+      if (!pred(featKey(l.feature))) return
+      b = b ? b.extend(l.getBounds()) : l.getBounds()
+    })
+    return b && b.isValid() ? b : null
+  }
+  const fitAll = () => { const b = boundsOf(() => true); if (b && map) map.flyToBounds(b, { padding: [12, 12], duration: 0.6 }) }
+  const fitSido = (s) => { const b = boundsOf((k) => byKey[k]?.sido === s); if (b && map) map.flyToBounds(b, { padding: [24, 24], duration: 0.7 }) }
+  const fitSel = () => { const b = boundsOf((k) => k === selected); if (b && map) map.flyToBounds(b, { padding: [70, 70], duration: 0.7 }) }
+
   const firstRef = useRef(true)
   useEffect(() => {
     if (!map) return
@@ -93,6 +108,14 @@ export default function NationalMap({
     firstRef.current = false
     try { map.fitBounds(geoRef.current.getBounds(), { padding: [12, 12] }) } catch (e) { /* noop */ }
   }, [map])
+
+  // 시도를 고르면 그 권역으로, 전국으로 되돌리면 전국으로 이동
+  const sidoRef = useRef(sido)
+  useEffect(() => {
+    if (!map || compact || sidoRef.current === sido) return
+    sidoRef.current = sido
+    try { sido ? fitSido(sido) : fitAll() } catch (e) { /* noop */ }
+  }, [sido, map])
 
   // 통계창 접기/펼치기·창 크기 변화로 지도 폭이 바뀌면 Leaflet에 알린다
   useEffect(() => {
@@ -112,6 +135,10 @@ export default function NationalMap({
   const hiLab = metric.scale === 'rank' ? '상위(1위)'
     : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
 
+  const selRow = selected ? byKey[selected] : null
+  const hovRow = hovered ? byKey[hovered] : null
+  const shown = hovRow || selRow
+
   return (
     <div ref={wrapRef} className={`map-canvas${compact ? ' map-compact' : ''}`}>
       {title && <div className="map-cap"><b>{title}</b>{subtitle && <em>{subtitle}</em>}</div>}
@@ -124,17 +151,33 @@ export default function NationalMap({
         {!compact && <ZoomControl position="topright" />}
       </MapContainer>
 
+      {/* 지도 조작 도구 */}
+      {!compact && (
+        <div className="map-tools">
+          <button onClick={fitAll} title="전국이 한 화면에 들어오도록">전국</button>
+          <button onClick={() => sido && fitSido(sido)} disabled={!sido}
+            title="선택한 시·도로 이동">{sido ? shortSido(sido) : '시·도'}</button>
+          <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대">확대</button>
+        </div>
+      )}
+
+      {/* 커서 아래 / 선택 지역 실시간 표시 — 지도와 통계창을 잇는 고리 */}
+      {!compact && shown && (
+        <div className={`map-live${hovRow ? ' hov' : ''}`}>
+          <b>{shown.sido} {shown.name}</b>
+          <span>{metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>
+          <span>순위 이동<i>{shown[sector].ssiCamp}계단</i></span>
+          {shown[sector].flag === 'high' && <em className="ml-high">민감</em>}
+        </div>
+      )}
+
       {!tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
 
       <div className={`maplegend${compact ? ' lg-mini' : ''}`}>
         <h4>{metric.label}</h4>
         <div className="ml-scale">{ramp.map((c, i) => <i key={i} style={{ background: c }} />)}</div>
         <div className="ml-ends"><span>{lowLab}</span><span>{hiLab}</span></div>
-        {!compact && <div className="ml-note">
-          {metric.scale === 'rank' ? '진할수록 상위. ' : ''}빨간 테두리 = 민감(high) 지역
-        </div>}
       </div>
-      {!compact && <div className="map-tip static">클릭 = 상세 진단 · 스크롤 = 확대 · 좌측에서 표준화 방법을 바꾸면 색이 바뀝니다</div>}
     </div>
   )
 }
