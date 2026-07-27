@@ -20,7 +20,6 @@ function parseHash() {
   if (g && SIDOS.includes(g)) o.sido = g
   if (h.get('c') === '1') o.compare = true
   if (h.get('p') === '0') o.panelOpen = false
-  if (h.get('o') === '0') o.sideOpen = false
   return o
 }
 
@@ -30,8 +29,8 @@ export default function App() {
   const [method, setMethod] = useState(init.method || 'minmax')
   const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
   const [compare, setCompare] = useState(!!init.compare)
+  // 조작부는 항상 열려 있다. 접을 수 있는 것은 통계 패널 하나뿐.
   const [panelOpen, setPanelOpen] = useState(init.panelOpen !== false)
-  const [sideOpen, setSideOpen] = useState(init.sideOpen !== false)
   const [onlyHigh, setOnlyHigh] = useState(false)
   const [sido, setSido] = useState(init.sido || null)
   const [selected, setSelected] = useState(init.selected || null)
@@ -60,9 +59,8 @@ export default function App() {
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
     if (!panelOpen) p.set('p', '0')
-    if (!sideOpen) p.set('o', '0')
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [sector, method, metric.key, sido, sel, compare, panelOpen, sideOpen])
+  }, [sector, method, metric.key, sido, sel, compare, panelOpen])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
 
@@ -70,23 +68,20 @@ export default function App() {
     <div className="shell">
       <Header onTable={() => setTableOpen(true)} />
       <div className="body body-3col">
-        {sideOpen && (
-          <Sidebar
-            sector={sector} onSector={setSector}
-            method={method} onMethod={setMethod}
-            metric={metric} metricKey={metric.key} onMetric={setMetricKey}
-            onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
-            compare={compare} onCompare={setCompare}
-            sido={sido} onSido={setSido}
-            selected={sel} onSelect={setSelected}
-          />
-        )}
-        <PanelTab open={sideOpen} label="조작" onToggle={() => setSideOpen(!sideOpen)} />
+        <Sidebar
+          sector={sector} onSector={setSector}
+          method={method} onMethod={setMethod}
+          metric={metric} metricKey={metric.key} onMetric={setMetricKey}
+          onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
+          compare={compare} onCompare={setCompare}
+          sido={sido} onSido={setSido}
+          selected={sel} onSelect={setSelected}
+        />
         {panelOpen && (
           <CenterPanel sector={sector} method={method} metric={metric}
             selectedRow={selectedRow} link={link} />
         )}
-        <PanelTab open={panelOpen} label="판독" onToggle={() => setPanelOpen(!panelOpen)} />
+        <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
         {compare
           ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
               onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />

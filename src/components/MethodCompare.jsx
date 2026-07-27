@@ -20,7 +20,7 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
       <div className="camp-cmp">
         <div className="camp-row">
           <span className="camp-tag" style={{ background: CAMP['간격보존형'].color }}>간격보존형</span>
-          <span className="camp-mth">MinMax 대표</span>
+          <span className="camp-mth">대표 · Min-Max</span>
           <b className="camp-rank">{rMin}위</b>
         </div>
         <div className="camp-gap">
@@ -29,7 +29,7 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
         </div>
         <div className="camp-row">
           <span className="camp-tag" style={{ background: CAMP['순위전용형'].color }}>순위전용형</span>
-          <span className="camp-mth">PctRank 대표</span>
+          <span className="camp-mth">대표 · 백분위순위</span>
           <b className="camp-rank">{rPct}위</b>
         </div>
       </div>

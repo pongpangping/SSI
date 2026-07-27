@@ -18,7 +18,7 @@ export default function StdTransform({ row, sector, method, onMethod }) {
               <th key={m.key} className={m.key === method ? 'on' : ''}
                 title={`${m.label} — ${m.formula}`}
                 onClick={() => onMethod?.(m.key)}>
-                <i style={{ background: CAMP[m.camp].color }} />{m.short}
+                <i style={{ background: CAMP[m.camp].color }} />{m.label}
               </th>
             ))}
           </tr>

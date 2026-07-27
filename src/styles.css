@@ -1101,9 +1101,74 @@ button { font-family: inherit; }
 .abm-mapsw { bottom: 10px; left: 50%; right: auto; transform: translateX(-50%); }
 
 /* 지표 목록이 길어도 조작부 아래 단계(조건 · 주 행동)가 화면 밖으로 밀리지 않게 */
-.acc2-body { max-height: 300px; overflow-y: auto; }
+.acc2-body { max-height: 186px; overflow-y: auto; }
 /* 나란히 보기: 가운데 옵션 막대와 겹치지 않도록 각 지도의 범례를 올린다 */
 .abm-maps .map-compact .maplegend { bottom: 48px; }
 .sb2-tip { font-size: 9.5px; color: var(--ink3); line-height: 1.5; padding: 0 2px; }
 .sb2-tip b { color: var(--ink2); font-weight: 700; }
 .sb2-tip em { font-style: normal; color: #C2410C; font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   4차 개편 — 조작부는 고정, 통계 패널만 접힌다 / 표준화 방법은 '갈래' 목록
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 통계 패널 손잡이 : 지도 왼쪽 모서리에 붙은 짧은 세로 탭 ─────────── */
+.ptab { align-self: center; width: 24px; padding: 11px 0 13px; gap: 5px;
+  border-radius: 0 10px 10px 0; border-left-color: transparent;
+  margin-left: -1px; box-shadow: 0 2px 10px rgba(15,23,42,.10); }
+.ptab-ar { font-size: 13px; font-weight: 700; color: var(--ink3); line-height: 1; }
+.ptab-tx { font-size: 10.5px; font-weight: 650; letter-spacing: .05em; color: var(--ink2); }
+.ptab:hover { background: var(--surface); border-color: var(--accent); }
+.ptab:hover .ptab-ar, .ptab:hover .ptab-tx { color: var(--accent-strong); }
+/* 접혀 있을 때도 흰 탭 그대로 — 다만 글자·화살표에 색을 넣어 눈에 띄게 */
+.ptab:not(.open) { background: var(--surface); border-color: var(--line);
+  border-left-color: var(--line); margin-left: 0; border-radius: 10px; }
+.ptab:not(.open) .ptab-ar { color: var(--accent-strong); }
+.ptab:not(.open) .ptab-tx { color: var(--accent-strong); }
+.ptab:not(.open):hover { background: #F5FBFF; border-color: var(--accent); }
+
+/* ── 표준화 방법 : 계열로 묶은 라디오 목록 (단계처럼 보이지 않게) ────── */
+.mgrp { display: flex; flex-direction: column; gap: 8px; }
+.mg { border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 7px;
+  background: var(--surface); }
+.mg-h { display: flex; align-items: center; gap: 6px; padding: 0 2px 6px;
+  border-bottom: 1px dashed var(--line); margin-bottom: 5px; }
+.mg-dotc { flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.mg-h b { font-size: 10.5px; font-weight: 750; color: var(--ink); letter-spacing: -.01em; }
+.mg-h em { flex: 1; font-style: normal; font-size: 9.5px; color: var(--ink3);
+  text-align: right; word-break: keep-all; }
+.mg-op { display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left;
+  border: 0; background: transparent; border-radius: 8px; padding: 6px 7px; cursor: pointer;
+  font-family: inherit; transition: background .12s; }
+.mg-op:hover { background: var(--muted); }
+.mg-rd { flex: none; width: 14px; height: 14px; margin-top: 1px; border-radius: 50%;
+  border: 1.5px solid var(--line-strong); background: #fff; position: relative;
+  transition: border-color .12s; }
+.mg-op:hover .mg-rd { border-color: var(--c); }
+.mg-op.on .mg-rd { border-color: var(--c); border-width: 4.5px; }
+.mg-tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mg-tx b { font-size: 12px; font-weight: 650; color: var(--ink2); letter-spacing: -.01em; }
+.mg-tx em { font-style: normal; font-size: 9.5px; color: var(--ink3); line-height: 1.45;
+  word-break: keep-all; }
+.mg-op.on { background: color-mix(in srgb, var(--c) 8%, #fff); }
+.mg-op.on .mg-tx b { color: var(--ink); font-weight: 800; }
+.mg-op.on .mg-tx em { color: var(--ink2); }
+
+/* ── 방법을 바꿨을 때의 변화량 : 약어(MM→DI) 대신 방법 이름을 그대로 ── */
+.mp-chg-cap { font-size: 9.5px; line-height: 1.5; color: var(--ink3); padding: 2px 2px 1px; }
+.mp-chg-cap b { color: var(--ink2); font-weight: 700; }
+.mp-chg { gap: 6px; padding: 7px 9px; }
+.mc-nm { flex: 1; min-width: 0; font-size: 10.5px; font-weight: 650; color: var(--ink2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-nm i { font-style: normal; color: var(--ink3); margin: 0 1px; }
+.mp-chg > span.mc-nm { flex: 1; color: var(--ink2); font-weight: 650; }
+.mp-chg em { flex: none; text-align: right; }
+
+/* 계열 머리글의 보조 설명은 줄바꿈 없이 한 줄로 — 잘리면 통째로 감춘다 */
+.mg-h em { font-size: 9px; white-space: nowrap; overflow: hidden; }
+.mg { padding: 7px 8px 6px; }
+.mg-op { padding: 5px 7px; }
+
+/* 계산 과정 표: 방법 이름을 줄이지 않고 쓰므로 열 머리글을 어절 단위로 접는다 */
+.stt-tbl thead th { font-size: 9.5px; line-height: 1.3; word-break: keep-all; padding: 6px 4px; }
+.stt-tbl thead th i { margin-right: 3px; }

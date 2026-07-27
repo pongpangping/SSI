@@ -6,9 +6,9 @@ import RegionPicker from './RegionPicker.jsx'
 const SECTOR_KEYS = ['S1', 'S8']
 const SECTOR_ICON = { S1: '◫', S8: '✚' }
 
-// 조작부 = 제품의 조작 패널.
-// 위쪽은 "무엇을 볼 것인가"(부문 → 지도 색 기준)를 접었다 펴는 아코디언,
-// 아래쪽은 늘 보이는 조건 줄(행정구역 · 표준화 방법 · 보기 옵션),
+// 조작부 = 제품의 조작 패널. 접히지 않고 늘 열려 있다.
+// 위쪽 [지표 선택]은 부문 아코디언 안에 지도 색 기준을 담고,
+// 아래쪽 [조건 선택]은 행정구역 범위와 표준화 방법을 늘 보이게 둔다.
 // 맨 아래는 이 화면에서 가장 중요한 행동 하나(두 방식 나란히 비교).
 export default function Sidebar({
   sector, onSector, method, onMethod, metric, metricKey, onMetric,
@@ -23,8 +23,8 @@ export default function Sidebar({
   return (
     <aside className="sidebar sb2">
       <div className="sb2-scroll">
-        {/* ── 1. 무엇을 볼까 — 부문 아코디언 + 그 안의 지도 색 기준 ── */}
-        <div className="sb2-cap"><b>1</b>무엇을 볼까<em>부문 · 지도 색 기준</em></div>
+        {/* ── 1. 지표 선택 — 부문 아코디언 + 그 안의 지도 색 기준 ── */}
+        <div className="sb2-cap"><b>1</b>지표 선택<em>부문 · 지도 색 기준</em></div>
         <div className="acc2">
           {SECTOR_KEYS.map((k) => {
             const on = openSect === k
@@ -63,8 +63,8 @@ export default function Sidebar({
           })}
         </div>
 
-        {/* ── 2. 어떤 조건으로 — 늘 보이는 조작 줄 ── */}
-        <div className="sb2-cap"><b>2</b>어떤 조건으로<em>범위 · 점수 매기는 법</em></div>
+        {/* ── 2. 조건 선택 — 늘 보이는 조작 줄 ── */}
+        <div className="sb2-cap"><b>2</b>조건 선택<em>지역 범위 · 표준화 방법</em></div>
         <div className="sb2-block">
           <RegionPicker sido={sido} onSido={onSido} selected={selected} onSelect={onSelect} />
           <div className="sb2-sub">표준화 방법</div>

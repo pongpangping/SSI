@@ -23,18 +23,18 @@ export default function SensitivityScatter({ sector, selected, onSelect }) {
       <ResponsiveContainer width="100%" height={300}>
         <ScatterChart margin={{ left: 6, right: 14, top: 8, bottom: 16 }}>
           <CartesianGrid strokeDasharray="2 4" />
-          <XAxis type="number" dataKey="x" name="MinMax 순위" domain={[0, 230]} reversed
+          <XAxis type="number" dataKey="x" name="Min-Max 순위" domain={[0, 230]} reversed
             tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#9aa0ac' }}
-            label={{ value: '← MinMax(간격보존형) 순위 · 우측=상위', position: 'insideBottom', offset: -6, fill: '#8a909c', fontSize: 10 }} />
-          <YAxis type="number" dataKey="y" name="PctRank 순위" domain={[0, 230]} reversed
+            label={{ value: '← Min-Max(간격보존형) 순위 · 오른쪽으로 갈수록 상위', position: 'insideBottom', offset: -6, fill: '#8a909c', fontSize: 10 }} />
+          <YAxis type="number" dataKey="y" name="백분위순위 순위" domain={[0, 230]} reversed
             tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#9aa0ac' }}
-            label={{ value: 'PctRank 순위 · 상=상위', angle: -90, position: 'insideLeft', fill: '#8a909c', fontSize: 10 }} />
+            label={{ value: '백분위순위(순위전용형) 순위 · 위쪽이 상위', angle: -90, position: 'insideLeft', fill: '#8a909c', fontSize: 10 }} />
           <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 230, y: 230 }]} stroke="#CBD5E1" strokeDasharray="5 4" />
           <Tooltip cursor={{ strokeDasharray: '3 3' }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null
               const d = payload[0].payload
-              return <div className="rc-tip"><b>{d.sido} {d.name}</b><br />MinMax {d.x}위 · PctRank {d.y}위<br />SSI_camp {d.camp}계단{d.high ? ' · 민감' : ''}</div>
+              return <div className="rc-tip"><b>{d.sido} {d.name}</b><br />Min-Max {d.x}위 · 백분위순위 {d.y}위<br />순위 이동 {d.camp}계단{d.high ? ' · 민감' : ''}</div>
             }} />
           <Scatter data={data} isAnimationActive={false} onClick={(d) => onSelect(d.key)}>
             {data.map((d) => (

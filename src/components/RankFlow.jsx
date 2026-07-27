@@ -24,7 +24,7 @@ export default function RankFlow({ sector, selectedRow, onSelect }) {
   return (
     <div className="chart-bare">
       <div className="card-sub">
-        SSI_camp 상위 8개 지역 + 선택 지역의 순위가 표준화 방법에 따라 어떻게 이동하는지. 선이 가파를수록 방법에 민감.
+        순위 이동 폭이 큰 상위 8개 지역과 선택 지역. 선이 가파를수록 표준화 방법에 따라 순위가 크게 달라진다.
       </div>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ left: 4, right: 62, top: 10, bottom: 6 }}>
@@ -60,7 +60,7 @@ export default function RankFlow({ sector, selectedRow, onSelect }) {
       </ResponsiveContainer>
       <div className="type-legend">
         <span><i style={{ background: '#0F172A' }} />선택 지역</span>
-        <span><i style={{ background: '#F5760D' }} />SSI_camp 상위 8</span>
+        <span><i style={{ background: '#F5760D' }} />순위 이동 상위 8</span>
       </div>
     </div>
   )

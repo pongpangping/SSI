@@ -50,7 +50,7 @@ export default function CenterPanel({ sector, method, metric, selectedRow, link 
         </div>
       </div>
 
-      <Sect k="A" title="이 지역은 어떤가" plain="선택한 시군구">
+      <Sect k="A" title="선택 지역" plain="시군구 단위 결과">
         <Card title="표준화 방법별 점수와 순위">
           <MethodCompare row={selectedRow} sector={sector} method={method} onMethod={link.onMethod} />
         </Card>
@@ -59,20 +59,20 @@ export default function CenterPanel({ sector, method, metric, selectedRow, link 
         </Card>
       </Sect>
 
-      <Sect k="B" title="방법이 만든 차이" plain="왜 순위가 흔들리나">
+      <Sect k="B" title="표준화 방법 비교" plain="방법별 점수 · 순위 차이">
         <Card title="계산 과정" sub="원자료 → 표준화 → CI → 순위">
           <StdTransform row={selectedRow} sector={sector} method={method} onMethod={link.onMethod} />
         </Card>
-        <Card title="같은 자료, 다른 모양" sub="방법별 CI 분포">
+        <Card title="방법별 CI 분포" sub="동일 원자료 기준">
           <DistributionCompare sector={sector} selectedRow={selectedRow} method={method} />
         </Card>
-        <Card title="방법을 바꿀 때 순위 이동" sub="범프 차트">
+        <Card title="방법 간 순위 이동" sub="범프 차트">
           <RankFlow sector={sector} selectedRow={selectedRow} onSelect={link.onSelect} />
         </Card>
       </Sect>
 
-      <Sect k="C" title="전국 속 위치" plain="229개 시군구 안에서">
-        <Card title="민감도 산점도" sub="MinMax 순위 × 백분위순위 순위">
+      <Sect k="C" title="전국 분포" plain="229개 시군구 기준">
+        <Card title="민감도 산점도" sub="Min-Max 순위 × 백분위순위 순위">
           <SensitivityScatter sector={sector} selected={link.selected} onSelect={link.onSelect} />
         </Card>
         <Card title="순위 이동이 큰 시군구">
