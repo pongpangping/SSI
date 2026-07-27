@@ -26,7 +26,8 @@ const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }
 
 export default function NationalMap({
   sector, metric, onlyHigh, selected, hovered, onSelect, onHover, sido = null,
-  compact = false, title = null, subtitle = null, onMapReady = null,
+  compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
+  autoFit = true,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -100,10 +101,19 @@ export default function NationalMap({
   const fitSido = (s) => { const b = boundsOf((k) => byKey[k]?.sido === s); if (b && map) map.flyToBounds(b, { padding: [24, 24], duration: 0.7 }) }
   const fitSel = () => { const b = boundsOf((k) => k === selected); if (b && map) map.flyToBounds(b, { padding: [70, 70], duration: 0.7 }) }
 
+  // 조작 함수 묶음 — 나란히 보기(듀얼)에서 부모가 공용 도구막대로 쓴다.
+  const apiRef = useRef({})
+  apiRef.current = {
+    fitAll, fitSido, fitSel,
+    zoomIn: () => map && map.zoomIn(),
+    zoomOut: () => map && map.zoomOut(),
+  }
+
   const firstRef = useRef(true)
   useEffect(() => {
     if (!map) return
     onMapReady?.(map)
+    onToolsReady?.(apiRef)
     if (!geoRef.current || !firstRef.current) return
     firstRef.current = false
     try { map.fitBounds(geoRef.current.getBounds(), { padding: [12, 12] }) } catch (e) { /* noop */ }
@@ -112,7 +122,7 @@ export default function NationalMap({
   // 시도를 고르면 그 권역으로, 전국으로 되돌리면 전국으로 이동
   const sidoRef = useRef(sido)
   useEffect(() => {
-    if (!map || compact || sidoRef.current === sido) return
+    if (!map || !autoFit || sidoRef.current === sido) return
     sidoRef.current = sido
     try { sido ? fitSido(sido) : fitAll() } catch (e) { /* noop */ }
   }, [sido, map])
@@ -143,7 +153,7 @@ export default function NationalMap({
     <div ref={wrapRef} className={`map-canvas${compact ? ' map-compact' : ''}`}>
       {title && <div className="map-cap"><b>{title}</b>{subtitle && <em>{subtitle}</em>}</div>}
       <MapContainer ref={setMap} center={[36.4, 127.8]} zoom={compact ? 6 : 7} zoomControl={false}
-        preferCanvas={true} scrollWheelZoom={!compact} style={{ height: '100%', width: '100%' }}>
+        preferCanvas={true} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
         <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; OpenStreetMap &copy; CARTO' subdomains="abcd" maxZoom={19}
           eventHandlers={{ load: () => setTilesReady(true) }} />
