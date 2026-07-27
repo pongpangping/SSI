@@ -1,18 +1,20 @@
 import { useMemo, useState } from 'react'
-import { ROWS, rowKey, SHEET_ORDER, COLMETA, flatValue, toCSV, META } from '../lib/ssi.js'
+import { ROWS, rowKey, SHEET_ORDER, COLMETA, flatValue, toCSV, META, SECTORS, SECTOR_KEYS } from '../lib/ssi.js'
 
-const GROUPS = ['전체', 'S1 공간구조효율성', 'S8 지역사회건강도']
+// 부문 묶음은 데이터에서 만든다 — 부문이 8개로 늘어나면 단추도 8개가 된다.
+const GROUPS = ['전체', ...SECTOR_KEYS.map((k) => `${k} ${SECTORS[k].name.replace(/\s/g, '')}`)]
+const SECT_RE = new RegExp(`^(${SECTOR_KEYS.join('|')})_`)
 
 export default function DataTable({ sector, onClose, selected, onSelect }) {
   const [q, setQ] = useState('')
-  const [grp, setGrp] = useState(sector === 'S8' ? 'S8 지역사회건강도' : 'S1 공간구조효율성')
+  const [grp, setGrp] = useState(GROUPS.find((g) => g.startsWith(sector)) || GROUPS[0])
   const [sortCol, setSortCol] = useState(`${sector}_SSI_camp`)
   const [desc, setDesc] = useState(true)
   const [onlyHigh, setOnlyHigh] = useState(false)
 
   const cols = useMemo(() => {
     if (grp === '전체') return SHEET_ORDER
-    const p = grp.slice(0, 2)
+    const p = grp.split(' ')[0]
     return SHEET_ORDER.filter((c) => c === '시도' || c === '시군구' || c.startsWith(p + '_'))
   }, [grp])
 
@@ -77,7 +79,7 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
                   <th key={c} title={head(c)}
                     className={`${sortCol === c ? 'on' : ''}${c === '시도' || c === '시군구' ? ' stick' : ''}`}
                     onClick={() => { if (sortCol === c) setDesc(!desc); else { setSortCol(c); setDesc(true) } }}>
-                    {c.replace(/^S[18]_/, '')}
+                    {c.replace(SECT_RE, '')}
                     {sortCol === c && <i>{desc ? '▼' : '▲'}</i>}
                   </th>
                 ))}

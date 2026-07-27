@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ROWS, metricFor, rowKey, METHOD_KEYS, SIDOS } from './lib/ssi.js'
+import { ROWS, metricFor, rowKey, METHOD_KEYS, SECTOR_KEYS, SIDOS } from './lib/ssi.js'
 import Header from './components/Header.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import NationalMap from './components/NationalMap.jsx'
@@ -13,7 +13,7 @@ import CursorFx from './components/CursorFx.jsx'
 function parseHash() {
   const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
   const o = {}
-  if (h.get('s') === 'S1' || h.get('s') === 'S8') o.sector = h.get('s')
+  if (SECTOR_KEYS.includes(h.get('s'))) o.sector = h.get('s')
   if (METHOD_KEYS.includes(h.get('m'))) o.method = h.get('m')
   if (h.get('k')) o.metricKey = h.get('k')
   if (h.get('r')) o.selected = decodeURIComponent(h.get('r'))
@@ -26,8 +26,8 @@ function parseHash() {
 
 export default function App() {
   const init = useMemo(parseHash, [])
-  const [sector, setSector] = useState(init.sector || 'S1')
-  const [method, setMethod] = useState(init.method || 'minmax')
+  const [sector, setSector] = useState(init.sector || SECTOR_KEYS[0])
+  const [method, setMethod] = useState(init.method || METHOD_KEYS[0])
   const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
   const [compare, setCompare] = useState(!!init.compare)
   // 조작부는 항상 열려 있다. 접을 수 있는 것은 통계 패널 하나뿐.
@@ -95,7 +95,7 @@ export default function App() {
             맞닿는 왼쪽 변만 지워, 덱에서 그대로 뻗어 나온 것처럼 보이게 한다. */}
         <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
         {compare
-          ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
+          ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
               onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
           : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} sido={sido}
               padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}

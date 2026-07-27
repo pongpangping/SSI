@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { SECTORS, metricsFor, sectorSummary } from '../lib/ssi.js'
+import { SECTORS, SECTOR_KEYS, metricsFor, sectorSummary } from '../lib/ssi.js'
 import MethodPicker from './MethodPicker.jsx'
 import RegionPicker from './RegionPicker.jsx'
 
-const SECTOR_KEYS = ['S1', 'S8']
-const SECTOR_ICON = { S1: '◫', S8: '✚' }
+// 8개 부문이 모두 들어와도 각자 다른 표식을 갖도록 미리 자리를 잡아둔다.
+const SECTOR_ICON = { S1: '◫', S2: '◈', S3: '◐', S4: '▤', S5: '◇', S6: '◍', S7: '△', S8: '✚' }
+const iconOf = (k) => SECTOR_ICON[k] || '●'
 
 // 조작부 = 제품의 조작 패널. 접히지 않고 늘 열려 있다.
 // 위쪽 [지표 선택]은 부문 아코디언 안에 지도 색 기준을 담고,
@@ -21,7 +22,10 @@ export default function Sidebar({
   const [openGrp, setOpenGrp] = useState({})
   const s = sectorSummary(sector)
 
+  // 이름을 누르면 그 부문으로 바꾸며 펼친다.
+  // 오른쪽 −/+ 는 '보고 있는 부문은 그대로 둔 채' 목록만 접었다 편다.
   const pick = (k) => { onSector(k); setOpenSect(k) }
+  const toggleSect = (k, on) => setOpenSect(on ? null : k)
   const grpOpen = (id, hasCur) => (openGrp[id] === undefined ? hasCur : openGrp[id])
   const toggleGrp = (id, hasCur) => setOpenGrp((o) => ({ ...o, [id]: !grpOpen(id, hasCur) }))
 
@@ -37,12 +41,15 @@ export default function Sidebar({
             const groups = items.reduce((a, m) => { (a[m.group] ||= []).push(m); return a }, {})
             return (
               <div key={k} className={`acc2-card${on ? ' open' : ''}${sector === k ? ' cur' : ''}`}>
-                <button className="acc2-head" onClick={() => pick(on && sector === k ? k : k)}
-                  aria-expanded={on}>
-                  <span className="acc2-ic">{SECTOR_ICON[k]}</span>
-                  <span className="acc2-t"><b>{SECTORS[k].name}</b><em>{k}</em></span>
-                  <span className="acc2-sign">{on ? '−' : '+'}</span>
-                </button>
+                <div className="acc2-head">
+                  <button className="acc2-main" onClick={() => pick(k)} aria-expanded={on}>
+                    <span className="acc2-ic">{iconOf(k)}</span>
+                    <span className="acc2-t"><b>{SECTORS[k].name}</b><em>{k} · 지표 {SECTORS[k].inds.length}개</em></span>
+                  </button>
+                  <button className="acc2-sign" onClick={() => toggleSect(k, on)}
+                    aria-expanded={on} aria-label={on ? '목록 접기' : '목록 펼치기'}
+                    title={on ? '목록 접기' : '목록 펼치기'}>{on ? '−' : '+'}</button>
+                </div>
                 {on && (
                   <div className="acc2-body">
                     <div className="acc2-chips">

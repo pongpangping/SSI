@@ -1,10 +1,12 @@
-import { METHODS, CAMP } from '../lib/ssi.js'
+import { METHODS, CAMP, CAMP_NAMES, CAMP_REPS, methodOf } from '../lib/ssi.js'
 
 export default function MethodCompare({ row, sector, method, onMethod }) {
   if (!row) return <div className="empty-hint">지도에서 시군구 클릭</div>
   const d = row[sector]
   const camp = d.ssiCamp
-  const rMin = d.rank.minmax, rPct = d.rank.pctrank
+  const [cA, cB] = CAMP_NAMES
+  const [repA, repB] = CAMP_REPS
+  const rMin = d.rank[repA], rPct = d.rank[repB]
   const worseInPct = rPct > rMin
 
   return (
@@ -19,8 +21,8 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
       {/* 두 진영 대표순위 비교 (SSI_camp = 두 순위 차) */}
       <div className="camp-cmp">
         <div className="camp-row">
-          <span className="camp-tag" style={{ background: CAMP['간격보존형'].color }}>간격보존형</span>
-          <span className="camp-mth">대표 · Min-Max</span>
+          <span className="camp-tag" style={{ background: CAMP[cA].color }}>{cA}</span>
+          <span className="camp-mth">대표 · {methodOf(repA).label}</span>
           <b className="camp-rank">{rMin}위</b>
         </div>
         <div className="camp-gap">
@@ -28,8 +30,8 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
           <span className="gap-val">순위 차 {camp}계단{worseInPct ? ' ↓' : rPct < rMin ? ' ↑' : ''}</span>
         </div>
         <div className="camp-row">
-          <span className="camp-tag" style={{ background: CAMP['순위전용형'].color }}>순위전용형</span>
-          <span className="camp-mth">대표 · 백분위순위</span>
+          <span className="camp-tag" style={{ background: CAMP[cB].color }}>{cB}</span>
+          <span className="camp-mth">대표 · {methodOf(repB).label}</span>
           <b className="camp-rank">{rPct}위</b>
         </div>
       </div>
@@ -52,10 +54,10 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
         <span className={`mcf ${d.flag === 'high' ? 'high' : 'ok'}`}>
           {d.flag === 'high' ? '방법에 민감' : '방법에 안정'}
         </span>
-        {sector === 'S1' && d.tradeoff && <span className="mcf trade" title="부문 내 두 지표의 백분위 순위 차가 30%p 초과">지표 엇갈림 30%p↑</span>}
+        {d.tradeoff && <span className="mcf trade" title="부문 안 지표들의 백분위 순위 차가 30%p 초과">지표 엇갈림 30%p↑</span>}
       </div>
 
-      <div className="mc-chips" title="4개 방법 순위의 폭·표준편차, 그리고 순위 이동 검산">
+      <div className="mc-chips" title={`${METHODS.length}개 방법 순위의 폭·표준편차, 그리고 순위 이동 검산`}>
         <span><em>순위 폭</em><b>{d.ssiRange}</b></span>
         <span><em>표준편차</em><b>{d.ssiStd}</b></span>
         <span><em>검산</em><b>|{d.repMinmax}−{d.repPctrank}|={Math.abs(d.repMinmax - d.repPctrank)}</b></span>

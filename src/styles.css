@@ -888,8 +888,12 @@ button { font-family: inherit; }
 .acc2-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
   overflow: hidden; transition: border-color .14s, box-shadow .14s; }
 .acc2-card.open { border-color: var(--active); box-shadow: var(--shadow-card); }
-.acc2-head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 11px 12px;
-  background: transparent; border: 0; cursor: pointer; font-family: inherit; text-align: left; }
+/* 머리줄은 버튼 두 개를 나란히 담는 그릇이다.
+   왼쪽(이름)은 '이 부문을 본다', 오른쪽(−/+)은 '목록만 접는다' — 하는 일이 달라 버튼을 나눈다. */
+.acc2-head { width: 100%; display: flex; align-items: stretch; padding-right: 8px; }
+.acc2-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px;
+  padding: 11px 4px 11px 12px; background: transparent; border: 0; cursor: pointer;
+  font-family: inherit; text-align: left; }
 .acc2-card.open .acc2-head { background: var(--active); }
 .acc2-ic { flex: none; width: 22px; height: 22px; border-radius: 7px; background: var(--muted);
   color: var(--ink2); font-size: 12px; display: grid; place-items: center; }
@@ -899,11 +903,13 @@ button { font-family: inherit; }
 .acc2-t em { font-style: normal; font-size: 9.5px; font-weight: 600; color: var(--ink3); }
 .acc2-card.open .acc2-t b { color: #fff; }
 .acc2-card.open .acc2-t em { color: rgba(255,255,255,.6); }
-.acc2-sign { flex: none; width: 18px; height: 18px; border-radius: 5px; font-size: 13px;
-  line-height: 1; display: grid; place-items: center; color: var(--ink3); }
+.acc2-sign { flex: none; align-self: center; width: 22px; height: 22px; border: 0;
+  border-radius: 6px; font-size: 14px; line-height: 1; font-family: inherit;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--muted); color: var(--ink3); transition: background .12s, color .12s; }
 .acc2-card.open .acc2-sign { background: rgba(255,255,255,.18); color: #fff; }
-.acc2-head:hover .acc2-sign { color: var(--accent); }
-.acc2-card.open .acc2-head:hover .acc2-sign { color: #fff; }
+.acc2-sign:hover { background: var(--accent); color: #fff; }
+.acc2-card.open .acc2-sign:hover { background: rgba(255,255,255,.34); color: #fff; }
 
 .acc2-body { padding: 10px 11px 12px; display: flex; flex-direction: column; gap: 9px;
   border-top: 1px solid var(--line); }
@@ -1540,3 +1546,150 @@ html.fx-map.fx-down .fxc-tk { background: rgba(0,138,224,.9); }
 @media (prefers-reduced-motion: reduce) {
   .fxc-ring, .fxc-dot, .fxc-tk { transition: none; }
 }
+
+/* ── 성적표 (모의고사 성적표 형식) ───────────────────────────── */
+.rp { display: flex; flex-direction: column; gap: 9px; }
+.rp-top { display: flex; align-items: center; gap: 9px; }
+.rp-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rp-who b { font-size: 13.5px; font-weight: 750; color: var(--ink); letter-spacing: -.01em; }
+.rp-who em { font-style: normal; font-size: 10px; font-weight: 600; color: var(--ink3); }
+.rp-big { flex: none; display: flex; flex-direction: column; align-items: center; gap: 0;
+  min-width: 74px; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 10px;
+  background: var(--surface); }
+.rp-big span { font-size: 9px; font-weight: 700; color: var(--ink3); }
+.rp-big b { font-size: 16px; font-weight: 800; color: var(--ink); line-height: 1.15;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rp-big em { font-style: normal; font-size: 10px; font-weight: 750; }
+
+.rp-tbl { display: flex; flex-direction: column; gap: 6px; }
+.rp-r { border: 1px solid var(--line); border-radius: 10px; padding: 8px 9px 9px;
+  background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.rp-r.total { border-color: var(--active); background: #FBFDFF; }
+.rp-r1 { display: flex; align-items: center; gap: 6px; }
+.rp-r1 b { font-size: 11.5px; font-weight: 750; color: var(--ink); }
+.rp-r1 em { flex: 1; min-width: 0; font-style: normal; font-size: 9px; font-weight: 600;
+  color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-gd { flex: none; font-size: 9.5px; font-weight: 750; color: #fff; border-radius: 5px;
+  padding: 2px 6px; letter-spacing: -.01em; }
+.rp-r2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.rp-r2 span { display: flex; flex-direction: column; gap: 1px; padding: 4px 5px;
+  border-radius: 7px; background: var(--muted); cursor: help; }
+.rp-r2 em { font-style: normal; font-size: 8.5px; font-weight: 700; color: var(--ink3); }
+.rp-r2 b { font-size: 11px; font-weight: 750; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.rp-bar { position: relative; height: 14px; border-radius: 999px; background: var(--muted);
+  overflow: hidden; cursor: help; }
+.rp-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px;
+  transition: width .25s ease; }
+.rp-bar u { position: absolute; right: 6px; top: 0; line-height: 14px; text-decoration: none;
+  font-size: 8.5px; font-weight: 750; color: var(--ink2); font-variant-numeric: tabular-nums; }
+
+.rp-sw { border: 1px solid var(--line); border-radius: 10px; padding: 7px 8px 8px;
+  display: flex; flex-direction: column; gap: 5px; background: var(--surface); }
+.rp-sw-c { font-size: 9.5px; font-weight: 750; color: var(--ink3); }
+.rp-sw-l { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.rp-sw-b { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 3px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  font-family: inherit; cursor: pointer; transition: border-color .12s, background .12s; }
+.rp-sw-b:hover { border-color: var(--accent); background: var(--accent-weak); }
+.rp-sw-b.on { border-color: var(--active); background: var(--active); }
+.rp-sw-b em { font-style: normal; font-size: 8.5px; font-weight: 700; color: var(--ink3); }
+.rp-sw-b b { font-size: 11px; font-weight: 800; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.rp-sw-b i { font-style: normal; font-size: 8px; font-weight: 800; color: #fff;
+  min-width: 14px; text-align: center; border-radius: 4px; padding: 1px 0; }
+.rp-sw-b.on em { color: rgba(255,255,255,.6); }
+.rp-sw-b.on b { color: #fff; }
+
+.rp-foot { display: flex; flex-direction: column; gap: 6px; }
+.rp-foot span { font-size: 9.5px; line-height: 1.55; color: var(--ink3); }
+.rp-dl { align-self: flex-start; font-family: inherit; font-size: 10px; font-weight: 700;
+  color: var(--ink2); background: var(--muted); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 9px; cursor: pointer; transition: background .12s, color .12s; }
+.rp-dl:hover { background: var(--active); color: #fff; border-color: var(--active); }
+
+/* ── 순위 이동 범프 차트 ───────────────────────────────────────────── */
+.rf { display: flex; flex-direction: column; gap: 8px; }
+.rf-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rf-seg { display: inline-flex; background: var(--muted); border-radius: 8px; padding: 2px; gap: 2px; }
+.rf-sg { border: 0; background: transparent; font-family: inherit; font-size: 11.5px;
+  color: var(--ink2); padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  transition: background .12s, color .12s; }
+.rf-sg:hover:not(:disabled) { background: var(--accent-weak); color: var(--accent-strong); }
+.rf-sg.on { background: var(--surface); color: var(--ink); font-weight: 700;
+  box-shadow: var(--shadow-card); }
+.rf-sg:disabled { opacity: .4; cursor: default; }
+.rf-desc { font-size: 11px; color: var(--ink3); }
+
+.rf-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.rf-ax { font-size: 10.5px; fill: var(--ink3); font-variant-numeric: tabular-nums; }
+.rf-cap { font-size: 11px; fill: var(--ink3); }
+.rf-mx { font-size: 12.5px; fill: var(--ink2); font-weight: 700; }
+.rf-bg { font-size: 10px; fill: #fff; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rf-nm { font-size: 12px; font-weight: 600; }
+.rf-nm.on { font-weight: 800; }
+.rf-dl { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.rf-lg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  font-size: 11px; color: var(--ink2); }
+.rf-lg i { display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+  margin-right: 5px; vertical-align: -1px; }
+.rf-lg em { color: var(--ink3); font-style: normal; font-size: 10.5px; margin-left: auto; }
+
+/* ── 나란히 보기: 조합 선택 + 커서 팝업 ────────────────────────────── */
+/* 주의: .cmp-* 는 통계창의 '평균 대비' 막대가 이미 쓰고 있다. 여기서는 .cv-* 를 쓴다. */
+.cv-bar { flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 7px 12px; box-shadow: var(--shadow-card); }
+.cv-seg { display: inline-flex; background: var(--muted); border-radius: 8px; padding: 2px; gap: 2px; }
+.cv-sg { border: 0; background: transparent; font-family: inherit; font-size: 11.5px;
+  color: var(--ink2); padding: 5px 11px; border-radius: 6px; cursor: pointer;
+  transition: background .12s, color .12s; }
+.cv-sg:hover { background: var(--accent-weak); color: var(--accent-strong); }
+.cv-sg.on { background: var(--surface); color: var(--ink); font-weight: 700;
+  box-shadow: var(--shadow-card); }
+.cv-desc { font-size: 11px; color: var(--ink3); }
+
+.cv-free { flex: none; display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 7px 12px; box-shadow: var(--shadow-card); }
+.cv-pick { flex: 1; min-width: 0; display: flex; gap: 5px; }
+.cv-pick select { flex: 1; min-width: 0; font-family: inherit; font-size: 11px;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 7px; padding: 5px 6px; cursor: pointer; }
+.cv-pick select:hover { border-color: var(--line-strong); }
+.cv-pick select:focus { outline: none; border-color: var(--accent); }
+.cv-vs { flex: none; font-size: 10.5px; color: var(--ink3); font-weight: 700; }
+
+.cv-pop { position: fixed; z-index: 900; pointer-events: none;
+  min-width: 208px; max-width: 260px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-float);
+  padding: 9px 11px; font-size: 11.5px; color: var(--ink); }
+.cv-pop .cp-h { font-weight: 800; font-size: 12.5px; margin-bottom: 6px;
+  padding-bottom: 5px; border-bottom: 1px solid var(--line); }
+.cv-pop .cp-r { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.cv-pop .cp-r i { flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.cv-pop .cp-r span { flex: 1; min-width: 0; color: var(--ink2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-pop .cp-r b { flex: none; font-variant-numeric: tabular-nums; }
+.cv-pop .cp-f { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--line);
+  font-size: 10.5px; color: var(--ink3); }
+.cv-pop .cp-f em { font-style: normal; margin-left: 6px; padding: 1px 5px;
+  border-radius: 4px; background: #FEE2E2; color: #B91C1C; font-weight: 700; }
+
+/* ── 범례: 구간 경계 눈금 + 분류 방식 전환 ─────────────────────────── */
+.ml-tk { position: relative; height: 11px; width: 148px; }
+.ml-tk span { position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 8.5px; color: var(--ink3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ml-cls { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); width: 148px; }
+.mlc-seg { display: flex; gap: 2px; background: var(--muted); border-radius: 7px; padding: 2px; }
+.mlc-seg button { flex: 1; border: 0; background: transparent; font-family: inherit;
+  font-size: 9.5px; color: var(--ink3); padding: 4px 2px; border-radius: 5px; cursor: pointer;
+  white-space: nowrap; transition: background .12s, color .12s; }
+.mlc-seg button:hover { background: var(--accent-weak); color: var(--accent-strong); }
+.mlc-seg button.on { background: var(--surface); color: var(--ink); font-weight: 700;
+  box-shadow: var(--shadow-card); }
+.maplegend .ml-note { line-height: 1.5; margin-top: 6px; }
+.maplegend .ml-note b { color: var(--ink2); font-weight: 700; }
+.maplegend.lg-mini .ml-tk { width: 100px; }
+.maplegend.lg-mini .ml-tk span { font-size: 8px; }

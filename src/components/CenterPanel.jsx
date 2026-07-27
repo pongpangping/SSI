@@ -1,3 +1,4 @@
+import ReportCard from './ReportCard.jsx'
 import MethodCompare from './MethodCompare.jsx'
 import StdTransform from './StdTransform.jsx'
 import RankFlow from './RankFlow.jsx'
@@ -51,6 +52,9 @@ export default function CenterPanel({ sector, method, metric, selectedRow, link 
       </div>
 
       <Sect k="A" title="선택 지역" plain="시군구 단위 결과">
+        <Card title="성적표" sub="원점수 · 표준점수(T) · 백분위 · 등급">
+          <ReportCard row={selectedRow} sector={sector} method={method} onMethod={link.onMethod} />
+        </Card>
         <Card title="표준화 방법별 점수와 순위">
           <MethodCompare row={selectedRow} sector={sector} method={method} onMethod={link.onMethod} />
         </Card>

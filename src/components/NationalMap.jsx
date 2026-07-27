@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
-import { ROWS, rowKey, keyOf, rowIndex, colorFn, valuesOf, shortSido, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
+import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
+import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 
 const okRing = (r) => Array.isArray(r) && r.length >= 4 &&
   r.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]))
@@ -28,7 +29,7 @@ const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }
 export default function NationalMap({
   sector, metric, onlyHigh, selected, hovered, onSelect, onHover, sido = null,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
-  autoFit = true, onlyHighToggle = null, padLeft = 0,
+  autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -39,11 +40,25 @@ export default function NationalMap({
   const byKey = useMemo(() => Object.fromEntries(ROWS.map((r) => [rowKey(r), r])), [])
 
   const vals = useMemo(() => valuesOf(metric), [metric])
-  const [min, max] = useMemo(() => {
-    const v = vals.filter((x) => x != null && !Number.isNaN(x))
-    return [Math.min(...v), Math.max(...v)]
-  }, [vals])
-  const color = useMemo(() => colorFn(metric.scale, min, max), [metric.scale, min, max])
+
+  // ── 색 구간 나누기 ─────────────────────────────────────────────────────
+  // 같은 값이라도 어디서 끊느냐에 따라 지도가 다르게 보인다.
+  // 지표마다 분포 모양이 다르므로 기본값은 분포를 보고 자동으로 고르고,
+  // 사용자가 등간격·분위수·자연분류·표준편차로 직접 바꿀 수 있게 둔다.
+  const [cmode, setCmode] = useState('auto')
+  const auto = useMemo(() => autoMode(vals, metric.scale), [vals, metric.scale])
+  const eff = cmode === 'auto' ? auto : cmode
+  const breaks = useMemo(() => breaksOf(vals, eff, 7), [vals, eff])
+  const ramp = RAMP[metric.scale] || BLUE
+  const color = useMemo(() => {
+    const at = classOf(breaks)
+    const rev = metric.scale === 'rank'          // 1위가 가장 진하게
+    return (v) => {
+      const i = at(v)
+      if (i < 0) return '#E9ECF1'
+      return ramp[rev ? ramp.length - 1 - i : Math.min(ramp.length - 1, i)]
+    }
+  }, [breaks, metric.scale, ramp])
   const valOf = (k) => { const i = rowIndex(k); return i == null ? null : vals[i] }
 
   const styleFor = (f) => {
@@ -71,7 +86,9 @@ export default function NationalMap({
 
   const onEach = (f, layer) => {
     const k = featKey(f); const row = byKey[k]
-    if (row) layer.bindTooltip(tipHtml(k, row), { sticky: true, direction: 'top', opacity: 1, className: 'm-tip' })
+    // 나란히 보기에서는 지도마다 말풍선이 뜨면 두 번 겹친다.
+    // 그때는 부모가 커서를 따라다니는 팝업 하나로 두 지도의 값을 함께 보여 준다.
+    if (row && tips) layer.bindTooltip(tipHtml(k, row), { sticky: true, direction: 'top', opacity: 1, className: 'm-tip' })
     layer.on({
       click: () => onSelect(k),
       mouseover: () => onHover?.(k),
@@ -192,11 +209,16 @@ export default function NationalMap({
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [map])
 
-  const ramp = RAMP[metric.scale] || BLUE
-  const lowLab = metric.scale === 'rank' ? '하위(229위)'
+  const lowLab = metric.scale === 'rank' ? `하위(${ROWS.length}위)`
     : metric.scale === 'div' ? '◀ 순위 상승' : '낮음'
   const hiLab = metric.scale === 'rank' ? '상위(1위)'
     : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
+
+  // 범례 눈금 — 구간 경계값. 순위 지표는 색이 뒤집혀 있으므로 경계도 함께 뒤집는다.
+  const showBreaks = metric.scale === 'rank' ? [...breaks].reverse() : breaks
+  const bSpan = breaks.length ? Math.abs(breaks[breaks.length - 1] - breaks[0]) : 1
+  const fmtB = (v) => (bSpan >= 20 ? String(Math.round(v)) : v.toFixed(1))
+  const tickTitle = `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
 
   const selRow = selected ? byKey[selected] : null
   const hovRow = hovered ? byKey[hovered] : null
@@ -256,8 +278,33 @@ export default function NationalMap({
 
       <div className={`maplegend${compact ? ' lg-mini' : ''}`}>
         <h4>{metric.label}</h4>
-        <div className="ml-scale">{ramp.map((c, i) => <i key={i} style={{ background: c }} />)}</div>
+        <div className="ml-scale" title={tickTitle}>
+          {ramp.map((c, i) => <i key={i} style={{ background: c }} />)}
+        </div>
+        <div className="ml-tk">
+          {showBreaks.map((b, i) => (i % 2 === 1
+            ? <span key={i} style={{ left: `${((i + 1) / 7) * 100}%` }}>{fmtB(b)}</span>
+            : null))}
+        </div>
         <div className="ml-ends"><span>{lowLab}</span><span>{hiLab}</span></div>
+
+        {/* 구간을 어떻게 끊었는지 — 지도가 달라 보이는 진짜 이유의 절반이 여기 있다 */}
+        {!compact && (
+          <div className="ml-cls">
+            <div className="mlc-seg">
+              <button className={cmode === 'auto' ? 'on' : ''} onClick={() => setCmode('auto')}
+                title={`분포를 보고 자동으로 고릅니다 — 지금은 ${modeOf(auto).label}`}>자동</button>
+              {CLASS_MODES.map((m) => (
+                <button key={m.key} className={cmode === m.key ? 'on' : ''}
+                  onClick={() => setCmode(m.key)} title={m.desc}>{m.short}</button>
+              ))}
+            </div>
+            <p className="ml-note">
+              <b>{modeOf(eff).label}</b>
+              {cmode === 'auto' ? ` — ${autoReason(vals, metric.scale)}` : ` — ${modeOf(eff).desc}`}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

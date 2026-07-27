@@ -1,17 +1,19 @@
-import { METHODS, CAMP, methodOf, binChangeCount } from '../lib/ssi.js'
+import { METHODS, CAMP, CAMP_NAMES, methodOf, binChangeCount } from '../lib/ssi.js'
 import { standardize } from '../lib/standardize.js'
 
 // 표준화 방법 선택 — 네 방법은 '단계'가 아니라 '갈래'다.
 // 그래서 축·슬라이더 대신, 계열(간격보존형 / 순위전용형)로 묶은 라디오 목록으로 둔다.
 // 위에서 아래로 순서가 있는 것처럼 보이지 않아야 지표 선택과 헷갈리지 않는다.
-const CAMPS = ['간격보존형', '순위전용형']
+const CAMPS = CAMP_NAMES
 const CAMP_NOTE = { 간격보존형: '값 간격 유지', 순위전용형: '등수만 사용' }
-// 한 줄 요약 — 목록에서 바로 고를 수 있게 방법마다 성격을 한 문장으로
+// 한 줄 요약 — 목록에서 바로 고를 수 있게 방법마다 성격을 한 문장으로.
+// 목록에 없는 방법(예: 나중에 들어올 LQ)은 데이터의 note를 그대로 쓴다.
 const ONELINE = {
   minmax: '가장 낮은 곳 0점, 가장 높은 곳 100점',
   distance: '전국 평균이 100점',
   logistic: '평균 근처를 넓게, 양극단을 좁게',
   pctrank: '등수를 그대로 0~100점으로',
+  lq: '전국 평균 대비 특화 정도(=1이 평균)',
 }
 const DEMO = [12, 15, 88, 90, 91, 92, 93, 94, 96, 99]
 
@@ -34,7 +36,7 @@ export default function MethodPicker({ sector, method, onMethod }) {
     <div className="mp2">
       {/* ── 계열별 라디오 목록 ───────────────────────────── */}
       <div className="mgrp">
-        {CAMPS.map((camp) => (
+        {CAMPS.filter((c) => CAMP[c].methods.length).map((camp) => (
           <div key={camp} className="mg" style={{ '--c': CAMP[camp].color }}>
             <div className="mg-h">
               <span className="mg-dotc" />
@@ -48,7 +50,7 @@ export default function MethodPicker({ sector, method, onMethod }) {
                 <button key={k} className={`mg-op${on ? ' on' : ''}`} onClick={() => onMethod(k)}
                   role="radio" aria-checked={on} title={x.note} data-mk={k}>
                   <span className="mg-rd" />
-                  <span className="mg-tx"><b>{x.label}</b><em>{ONELINE[k]}</em></span>
+                  <span className="mg-tx"><b>{x.label}</b><em>{ONELINE[k] || x.note}</em></span>
                 </button>
               )
             })}
