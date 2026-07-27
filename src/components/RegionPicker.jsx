@@ -3,7 +3,9 @@ import { SIDOS, rowsOfSido, rowKey, shortSido, sidoCount, ROWS } from '../lib/ss
 
 // 행정구역 선택 — "제품 조작부" 방식.
 // 한 줄에 [라벨 ······ 현재값 ∨] 만 보이고, 누르면 그 줄 아래에서 목록이 펼쳐진다.
-// 두 줄은 대등하지 않다. 위(시·도)가 정해져야 아래(시·군·구)가 열린다.
+// 두 줄은 언제나 같은 범위를 가리킨다. 시·도가 '전국'이면 시·군·구 목록도 229곳 전부다.
+// (전에는 시·도가 전국인데 아래 칸에 특정 시군구가 차 있어, 고르지도 않은 시도를 고른
+//  것처럼 읽혔다. 위가 전국이면 아래도 전국에서 고른다 — 어긋날 자리를 없앤다.)
 function Row({ id, open, onOpen, label, value, placeholder, locked, hint, children }) {
   return (
     <div className={`ctl-row${open ? ' open' : ''}${locked ? ' locked' : ''}`} data-ctl={id}>
@@ -25,16 +27,32 @@ export default function RegionPicker({ sido, onSido, selected, onSelect }) {
   const boxRef = useRef(null)
 
   const cur = useMemo(() => ROWS.find((r) => rowKey(r) === selected), [selected])
-  // 시군구 목록의 범위 — 고른 시도, 없으면 지도에서 클릭한 지역의 시도
-  const scope = sido || cur?.sido || null
-  const list = useMemo(() => (scope ? rowsOfSido(scope) : []), [scope])
-  const locked = !scope
+  // 시군구 목록의 범위 — 고른 시도가 있으면 그 안, 없으면 전국 229곳
+  const scope = sido || null
+  const list = useMemo(() => (scope ? rowsOfSido(scope) : ROWS), [scope])
+  // 전국 목록에는 같은 이름이 여럿이다(중구·동구…). 시도 이름으로도 찾히게 한다.
   const shown = useMemo(
-    () => (q ? list.filter((r) => r.name.includes(q)) : list),
+    () => (q ? list.filter((r) => r.name.includes(q) || shortSido(r.sido).includes(q)) : list),
     [list, q],
   )
 
   useEffect(() => { setQ('') }, [open, scope])
+  // 펼친 목록이 조작부 아래로 잘리지 않게 그만큼 끌어올린다
+  useEffect(() => {
+    if (!open) return
+    const t = setTimeout(() => {
+      const row = boxRef.current?.querySelector('.ctl-row.open')
+      // 229곳 목록이면 지금 고른 곳이 화면 밖에 있다 — 목록 안에서 먼저 찾아 놓는다
+      const lst = row?.querySelector('.opt-list')
+      const on = lst?.querySelector('.opt-li.on')
+      if (lst && on) {
+        lst.scrollTop += on.getBoundingClientRect().top - lst.getBoundingClientRect().top
+          - lst.clientHeight / 2 + on.offsetHeight / 2
+      }
+      row?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+    }, 40)
+    return () => clearTimeout(t)
+  }, [open])
   // 바깥을 누르면 닫는다 — 조작부가 계속 열려 있어 시야를 먹지 않도록
   useEffect(() => {
     if (!open) return
@@ -61,16 +79,15 @@ export default function RegionPicker({ sido, onSido, selected, onSelect }) {
         </div>
       </Row>
 
-      <div className={`ctl-link${locked ? ' locked' : ''}`} aria-hidden="true"><i /></div>
+      <div className="ctl-link" aria-hidden="true"><i /></div>
 
-      <Row id="sgg" open={open === 'sgg'} onOpen={setOpen} locked={locked}
+      <Row id="sgg" open={open === 'sgg'} onOpen={setOpen}
         label="시 · 군 · 구"
-        value={cur && cur.sido === scope ? cur.name : null}
-        placeholder={locked ? '시 · 도부터' : `${shortSido(scope)} 안에서`}
-        hint={locked ? '시 · 도를 먼저 고르세요' : null}>
+        value={cur ? cur.name : null}
+        placeholder={scope ? `${shortSido(scope)} 안에서` : '전국에서'}>
         {list.length > 8 && (
           <input className="opt-find" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder={`${shortSido(scope)} ${list.length}곳 중 찾기`} autoFocus />
+            placeholder={`${scope ? shortSido(scope) : '전국'} ${list.length}곳 중 찾기`} autoFocus />
         )}
         <div className="opt-list">
           {shown.map((r) => (
@@ -78,20 +95,20 @@ export default function RegionPicker({ sido, onSido, selected, onSelect }) {
               className={`opt-li${rowKey(r) === selected ? ' on' : ''}`}
               onClick={() => { onSelect(rowKey(r)); setOpen(null) }}>
               {r.name}
+              {!scope && <em className="opt-sd">{shortSido(r.sido)}</em>}
             </button>
           ))}
           {!shown.length && <div className="opt-none">찾는 이름이 없습니다</div>}
         </div>
       </Row>
 
-      {sido && (
-        <button className="ctl-reset" onClick={() => onSido(null)}>
-          지도 <b>{shortSido(sido)}</b>만 보는 중 · 전국으로
-        </button>
-      )}
-      {!sido && scope && (
-        <div className="ctl-note">지도는 전국 · 목록은 <b>{shortSido(scope)}</b> 기준</div>
-      )}
+      {sido
+        ? (
+          <button className="ctl-reset" onClick={() => onSido(null)}>
+            지도 <b>{shortSido(sido)}</b>만 보는 중 · 전국으로
+          </button>
+        )
+        : cur && <div className="ctl-note">지도 · 목록 모두 <b>전국</b> 기준 · 고른 곳은 <b>{shortSido(cur.sido)} {cur.name}</b></div>}
     </div>
   )
 }

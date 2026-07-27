@@ -977,6 +977,11 @@ button { font-family: inherit; }
 .opt-li:hover { background: var(--muted); color: var(--ink); }
 .opt-li.on { background: var(--accent-weak); color: var(--accent-strong); font-weight: 750; }
 .opt-li.on::before { background: var(--accent-strong); }
+/* 전국 목록에는 같은 이름이 여럿이라(중구·동구…) 시도를 오른쪽에 붙여 구분한다 */
+.opt-li { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.opt-sd { flex: none; font-style: normal; font-size: 9.5px; font-weight: 600; color: var(--ink3);
+  background: var(--muted); border-radius: 4px; padding: 1px 5px; }
+.opt-li.on .opt-sd { background: #fff; color: var(--accent-strong); }
 .opt-none { padding: 12px; text-align: center; font-size: 10.5px; color: var(--ink3);
   border: 1px dashed var(--line-strong); border-radius: 8px; }
 
