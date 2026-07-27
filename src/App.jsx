@@ -7,6 +7,7 @@ import CompareMaps from './components/CompareMaps.jsx'
 import CenterPanel from './components/CenterPanel.jsx'
 import PanelTab from './components/PanelTab.jsx'
 import DataTable from './components/DataTable.jsx'
+import CursorFx from './components/CursorFx.jsx'
 
 // ── URL 해시 상태 공유 (#s=S1&m=minmax&k=rank&g=경기도&r=경기도|성남시) ────────
 function parseHash() {
@@ -65,9 +66,9 @@ export default function App() {
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
 
   // 지도 위에 떠 있는 조작·통계 덱의 실제 폭(px).
-  // 왼쪽 여백 14 + 덱 테두리 2 + 조작부 300 + (칸 사이 선 1 + 통계창 366) + 지도와의 간격 14
-  // 손잡이는 덱 '안쪽'에 들어가 있어 따로 자리를 차지하지 않는다.
-  const deckW = 14 + 302 + (panelOpen ? 367 : 0) + 14
+  // 왼쪽 여백 14 + 덱 테두리 2 + 조작부 300 + (칸 사이 선 1 + 통계창 366)
+  // + 덱 밖으로 물린 손잡이 25 + 지도와의 간격 14
+  const deckW = 14 + 302 + (panelOpen ? 367 : 0) + 25 + 14
 
   return (
     <div className="shell">
@@ -89,14 +90,17 @@ export default function App() {
             <CenterPanel sector={sector} method={method} metric={metric}
               selectedRow={selectedRow} link={link} />
           )}
-          <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
         </div>
+        {/* 손잡이는 덱 밖으로 물려 나온 책갈피 — 덱과 같은 바탕·테두리를 쓰고
+            맞닿는 왼쪽 변만 지워, 덱에서 그대로 뻗어 나온 것처럼 보이게 한다. */}
+        <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
         {compare
           ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
               onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
           : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} sido={sido}
               padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
       </div>
+      <CursorFx />
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
         selected={sel} onSelect={setSelected} />}
     </div>

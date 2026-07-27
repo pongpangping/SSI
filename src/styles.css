@@ -1424,3 +1424,119 @@ button { font-family: inherit; }
   .deck:not(.open) > .sidebar .sb2-scroll > .sb2-cap:first-child { padding-right: 2px; }
   .body-3col > .map-canvas, .body-3col > .abm-wrap { order: 2; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   8-1차 — 손잡이를 다시 덱 밖으로 (안에 넣으니 눈에 띄지 않는다)
+   · 덱과 같은 바탕·테두리·모서리 계열을 쓰고, 맞닿는 왼쪽 변만 지운다.
+   · 덱보다 한 층 아래에 두어 이음매를 덱이 덮는다 → 이어진 한 장처럼 보인다.
+   · 위치는 덱 모서리 곡선을 피해 조금 내려 붙인다. 위쪽에 붙던 예전 자리 그대로.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 손잡이가 다시 밖으로 나오므로 안쪽에 비워 둔 자리는 되돌린다 */
+.deck > .center .flowbar { padding: 9px 12px; }
+.deck:not(.open) > .sidebar .sb2-scroll > .sb2-cap:first-child { padding-right: 2px; }
+
+.body-3col > .ptab {
+  position: relative; flex: none; align-self: flex-start; z-index: 19;
+  margin: 46px 0 0 -1px; width: 26px; height: 78px; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong); border-left: 0;
+  border-radius: 0 14px 14px 0;
+  /* 덱의 그림자를 오른쪽으로 이어 받는다 — 왼쪽에는 그림자를 두지 않는다 */
+  box-shadow: 14px 12px 28px -16px rgba(15,23,42,.36),
+              4px 3px 9px -6px rgba(15,23,42,.18);
+  color: var(--ink2); cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.body-3col > .ptab .ptab-ar {
+  writing-mode: horizontal-tb; font-size: 13px; font-weight: 800; line-height: 1; color: var(--ink3);
+}
+.body-3col > .ptab .ptab-tx {
+  writing-mode: vertical-rl; text-orientation: upright;
+  font-size: 11px; font-weight: 750; letter-spacing: .04em; color: var(--ink2);
+}
+.body-3col > .ptab:hover { background: #F5FBFF; border-color: var(--accent); }
+.body-3col > .ptab:hover .ptab-ar, .body-3col > .ptab:hover .ptab-tx { color: var(--accent-strong); }
+/* 접혀 있을 땐 파란 톤으로 — "여기 눌러 펴라"가 멀리서도 보이게 */
+.body-3col > .ptab:not(.open) {
+  margin-left: -1px; border-radius: 0 14px 14px 0;
+  background: var(--accent-weak); border-color: #A9D6F7; border-left: 0;
+}
+.body-3col > .ptab:not(.open) .ptab-ar,
+.body-3col > .ptab:not(.open) .ptab-tx { color: var(--accent-strong); }
+.body-3col > .ptab:not(.open):hover { background: #D5EBFF; border-color: var(--accent); }
+
+@media (max-width: 1180px) {
+  .body-3col > .ptab, .body-3col > .ptab:not(.open) {
+    order: 1; align-self: flex-end; margin: 0; width: auto; height: 28px;
+    flex-direction: row; gap: 5px; padding: 0 12px;
+    border: 1px solid var(--line-strong); border-radius: 10px;
+    box-shadow: var(--shadow-card);
+  }
+  .body-3col > .ptab .ptab-tx { writing-mode: horizontal-tb; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   마우스 포인터 — 있는 자리에 따라 모양이 바뀐다
+   · 지도 위     : 조준점 (가는 원 + 사방 눈금 + 가운데 점)
+   · 조작·통계창 : 동그란 점 (누를 수 있는 것 위에서는 고리가 벌어진다)
+   · 입력칸 위   : 손대지 않고 브라우저 기본 커서로 되돌린다
+   바깥 고리만 한 박자 늦게 따라와서 움직임에 무게가 생긴다.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 기본 커서를 감추는 것은 '켜졌을 때'만. 손가락·펜 기기에서는 아무 일도 없다 */
+html.fx-cursor, html.fx-cursor body, html.fx-cursor * { cursor: none; }
+html.fx-cursor input, html.fx-cursor textarea, html.fx-cursor select,
+html.fx-cursor [contenteditable="true"] { cursor: auto; }
+
+.fxc { position: fixed; top: 0; left: 0; z-index: 9999; pointer-events: none;
+  opacity: 0; will-change: transform; }
+html.fx-in .fxc { opacity: 1; }
+/* 입력칸 위에서는 기본 커서에 자리를 내준다 */
+html.fx-off .fxc { opacity: 0; }
+
+/* ── 가운데 점 : 포인터 끝을 정확히 짚는다 ─────────────────────────── */
+.fxc-dot { margin: -3px 0 0 -3px; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent-strong);
+  transition: width .16s ease, height .16s ease, margin .16s ease, background .16s ease; }
+html.fx-hit .fxc-dot { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
+html.fx-map .fxc-dot { width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #0F172A; }
+html.fx-down .fxc-dot { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+
+/* ── 바깥 고리 : 늦게 따라오는 몸통 ───────────────────────────────── */
+.fxc-ring { margin: -13px 0 0 -13px; width: 26px; height: 26px; border-radius: 50%;
+  border: 1.6px solid rgba(0,138,224,.55);
+  background: rgba(51,168,255,.10);
+  transition: width .18s cubic-bezier(.2,.8,.3,1), height .18s cubic-bezier(.2,.8,.3,1),
+              margin .18s cubic-bezier(.2,.8,.3,1), border-color .18s, background .18s,
+              border-radius .18s, border-width .18s; }
+/* 누를 수 있는 것 위 : 고리가 넓어지고 옅어진다 */
+html.fx-hit .fxc-ring { width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border-color: rgba(0,138,224,.85); background: rgba(51,168,255,.16); }
+/* 누르는 순간 : 한 번 오므린다 */
+html.fx-down .fxc-ring { width: 20px; height: 20px; margin: -10px 0 0 -10px;
+  background: rgba(51,168,255,.26); }
+
+/* ── 지도 위 : 조준점 ─────────────────────────────────────────────── */
+html.fx-map .fxc-ring { width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  border-width: 1.2px; border-color: rgba(15,23,42,.55); background: transparent; }
+html.fx-map.fx-down .fxc-ring { width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border-color: rgba(0,138,224,.9); background: rgba(51,168,255,.14); }
+
+/* 사방 눈금 — 지도 위에서만 고리 밖으로 뻗는다 */
+.fxc-tk { position: absolute; background: rgba(15,23,42,.6); opacity: 0;
+  transition: opacity .18s ease; }
+html.fx-map .fxc-tk { opacity: 1; }
+.fxc-tk.t, .fxc-tk.b { left: 50%; width: 1.2px; height: 7px; margin-left: -.6px; }
+.fxc-tk.l, .fxc-tk.r { top: 50%; height: 1.2px; width: 7px; margin-top: -.6px; }
+.fxc-tk.t { top: -10px; }
+.fxc-tk.b { bottom: -10px; }
+.fxc-tk.l { left: -10px; }
+.fxc-tk.r { right: -10px; }
+html.fx-map.fx-down .fxc-tk { background: rgba(0,138,224,.9); }
+
+/* 화면 폭이 좁거나 움직임을 줄이는 설정이면 애니메이션만 뺀다 */
+@media (prefers-reduced-motion: reduce) {
+  .fxc-ring, .fxc-dot, .fxc-tk { transition: none; }
+}
