@@ -65,27 +65,32 @@ export default function App() {
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
 
   // 지도 위에 떠 있는 조작·통계 덱의 실제 폭(px).
-  // 왼쪽 여백 14 + 조작부 300 + (통계창 366) + 손잡이 24 + 지도와의 간격 14
-  const deckW = 14 + 300 + (panelOpen ? 366 : 0) + 24 + 14
+  // 왼쪽 여백 14 + 덱 테두리 2 + 조작부 300 + (칸 사이 선 1 + 통계창 366) + 지도와의 간격 14
+  // 손잡이는 덱 '안쪽'에 들어가 있어 따로 자리를 차지하지 않는다.
+  const deckW = 14 + 302 + (panelOpen ? 367 : 0) + 14
 
   return (
     <div className="shell">
       <Header onTable={() => setTableOpen(true)} />
       <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
-        <Sidebar
-          sector={sector} onSector={setSector}
-          method={method} onMethod={setMethod}
-          metric={metric} metricKey={metric.key} onMetric={setMetricKey}
-          onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
-          compare={compare} onCompare={setCompare}
-          sido={sido} onSido={setSido}
-          selected={sel} onSelect={setSelected}
-        />
-        {panelOpen && (
-          <CenterPanel sector={sector} method={method} metric={metric}
-            selectedRow={selectedRow} link={link} />
-        )}
-        <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
+        {/* 조작부 + 통계창 + 손잡이는 테두리 하나·모서리 하나를 함께 쓰는 한 덩어리다.
+            따로 놀던 상자 두 개가 맞물린 것처럼 보이지 않게 하기 위한 껍데기. */}
+        <div className={`deck${panelOpen ? ' open' : ''}`}>
+          <Sidebar
+            sector={sector} onSector={setSector}
+            method={method} onMethod={setMethod}
+            metric={metric} metricKey={metric.key} onMetric={setMetricKey}
+            onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
+            compare={compare} onCompare={setCompare}
+            sido={sido} onSido={setSido}
+            selected={sel} onSelect={setSelected}
+          />
+          {panelOpen && (
+            <CenterPanel sector={sector} method={method} metric={metric}
+              selectedRow={selectedRow} link={link} />
+          )}
+          <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
+        </div>
         {compare
           ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
               onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />

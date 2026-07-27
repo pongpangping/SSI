@@ -1332,3 +1332,95 @@ button { font-family: inherit; }
 @media (max-width: 1180px) {
   .sb2-scroll, .center { -webkit-mask-image: none; mask-image: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   8차 개편 — 덱을 한 덩어리로, 손잡이는 덱 '안쪽'으로
+   · 지금까지는 조작부와 통계창이 각자 테두리·모서리·그림자를 갖고 옆구리만
+     맞대고 있어서, 사각형 두 개를 억지로 이어 붙인 것처럼 보였다.
+   · 이제 바깥 상자(.deck) 하나가 테두리·모서리·그림자를 전부 갖고,
+     안쪽 두 칸은 실선 한 줄로만 나뉜다. 실루엣이 하나가 된다.
+   · 접기 버튼도 밖으로 튀어나온 혹이 아니라 덱 오른쪽 위 안쪽에 들어간다.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 바깥 상자: 이 덩어리만 테두리·모서리·그림자를 갖는다 ──────────── */
+.body-3col > .deck {
+  position: relative; z-index: 20; flex: none;
+  display: flex; align-items: stretch; min-height: 0;
+  margin: 14px 0 14px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 44px -16px rgba(15,23,42,.34),
+              0 6px 16px -8px rgba(15,23,42,.18),
+              0 1px 2px rgba(15,23,42,.06);
+}
+
+/* ── 안쪽 칸: 테두리도 모서리도 그림자도 스스로 갖지 않는다 ───────── */
+.deck > .sidebar.sb2 {
+  z-index: 2; min-height: 0; margin: 0;
+  border: 0; border-right: 1px solid var(--line);
+  border-radius: 0;
+  /* 층위는 두꺼운 그림자 대신 경계선 옆으로 아주 옅게만 흘린다 */
+  box-shadow: 7px 0 14px -12px rgba(15,23,42,.32);
+}
+.deck > .center {
+  z-index: 1; min-height: 0; margin: 0;
+  border: 0; border-radius: 0;
+  background: #EEF2F7;
+  box-shadow: inset 9px 0 12px -10px rgba(15,23,42,.13);
+  padding: 0 9px 10px;
+}
+/* 흐름 막대는 통계창의 머리 — 안쪽에 또 하나의 모서리를 만들지 않는다.
+   오른쪽은 손잡이 자리만큼 비워 둔다. */
+.deck > .center .flowbar {
+  margin: 0 -9px; border-width: 0 0 1px 0; border-radius: 0;
+  box-shadow: none; background: var(--surface);
+  padding: 9px 66px 9px 12px;
+}
+
+/* ── 손잡이: 덱 오른쪽 위 안쪽에 눕혀 놓은 작은 단추 ──────────────── */
+.deck > .ptab {
+  position: absolute; top: 8px; right: 10px; z-index: 40;
+  align-self: auto; margin: 0;
+  width: auto; height: 26px; padding: 0 7px 0 9px;
+  display: flex; flex-direction: row; align-items: center; gap: 3px;
+  background: var(--muted); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: none; color: var(--ink2); cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.deck > .ptab:hover {
+  background: var(--accent-weak); border-color: var(--accent); color: var(--accent-strong);
+}
+.deck > .ptab .ptab-tx {
+  writing-mode: horizontal-tb; text-orientation: mixed;
+  font-size: 10.5px; font-weight: 700; letter-spacing: -.01em; color: inherit;
+}
+.deck > .ptab .ptab-ar { font-size: 12px; font-weight: 800; line-height: 1; color: inherit; }
+/* 접혀 있을 땐 '여기 뭔가 더 있다'가 보이게 색만 살짝 올린다 */
+.deck > .ptab:not(.open) {
+  margin: 0; border-radius: 8px;
+  background: var(--accent-weak); border-color: #BFE0FA; color: var(--accent-strong);
+}
+.deck > .ptab:not(.open):hover { background: #D5EBFF; border-color: var(--accent); }
+/* 접혔을 땐 손잡이가 조작부 머리글 위에 오므로 그만큼 자리를 비운다 */
+.deck:not(.open) > .sidebar .sb2-scroll > .sb2-cap:first-child { padding-right: 62px; }
+.sb2-cap em { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── 세로 적층(1180px 미만): 덱을 위아래로 풀고 손잡이도 제자리로 ── */
+@media (max-width: 1180px) {
+  .body-3col > .deck {
+    order: 1; flex-direction: column; margin: 0; overflow: visible;
+    border-radius: var(--radius); border-color: var(--line);
+    box-shadow: var(--shadow-card);
+  }
+  .deck > .sidebar.sb2 { border-right: 0; border-bottom: 1px solid var(--line);
+    box-shadow: none; }
+  .deck > .center { padding: 12px; box-shadow: none; }
+  .deck > .center .flowbar { margin: 0; border-width: 1px; border-radius: 12px;
+    box-shadow: var(--shadow-card); padding: 8px 8px 8px 11px; }
+  .deck > .ptab { position: relative; top: auto; right: auto; align-self: flex-end;
+    margin: 8px 12px 12px; }
+  .deck:not(.open) > .sidebar .sb2-scroll > .sb2-cap:first-child { padding-right: 2px; }
+  .body-3col > .map-canvas, .body-3col > .abm-wrap { order: 2; }
+}
