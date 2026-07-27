@@ -1621,14 +1621,38 @@ html.fx-map.fx-down .fxc-tk { background: rgba(0,138,224,.9); }
 .rf-sg:disabled { opacity: .4; cursor: default; }
 .rf-desc { font-size: 11px; color: var(--ink3); }
 
+/* '크게 보기' — 좁은 패널에서 도면을 화면 크기로 펼친다 */
+.rf-zoom { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink2);
+  font-family: inherit; font-size: 11px; font-weight: 650; padding: 4px 9px;
+  border-radius: 7px; cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.rf-zoom:hover { background: var(--accent-weak); color: var(--accent-strong); border-color: var(--accent); }
+.rf-zoom svg { flex: none; }
+
 .rf-svg { display: block; width: 100%; height: auto; overflow: visible; }
-.rf-ax { font-size: 10.5px; fill: var(--ink3); font-variant-numeric: tabular-nums; }
-.rf-cap { font-size: 11px; fill: var(--ink3); }
-.rf-mx { font-size: 12.5px; fill: var(--ink2); font-weight: 700; }
-.rf-bg { font-size: 10px; fill: #fff; font-weight: 700; font-variant-numeric: tabular-nums; }
-.rf-nm { font-size: 12px; font-weight: 600; }
+.rf-ax { font-size: 10px; fill: var(--ink3); font-variant-numeric: tabular-nums; }
+.rf-cap { font-size: 10px; fill: var(--ink3); }
+.rf-mx { font-size: 11.5px; fill: var(--ink2); font-weight: 700; }
+.rf-bg { font-size: 9.5px; fill: #fff; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rf-nm { font-size: 11.5px; font-weight: 600; }
 .rf-nm.on { font-weight: 800; }
-.rf-dl { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rf-dl { font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 펼친 도면 — 도면 폭이 3배가 되므로 글자도 그만큼 키운다 */
+.rf-modal { width: min(1460px, 97vw); max-height: 94vh; }
+.rf-modal-b { padding: 14px 20px 20px; }
+.rf-big { gap: 10px; }
+.rf-big .rf-sg { font-size: 13px; padding: 6px 13px; }
+.rf-big .rf-desc { font-size: 12.5px; }
+.rf-big .rf-ax { font-size: 13px; }
+.rf-big .rf-cap { font-size: 13.5px; }
+.rf-big .rf-mx { font-size: 16px; }
+.rf-big .rf-bg { font-size: 13px; }
+.rf-big .rf-nm { font-size: 14px; }
+.rf-big .rf-dl { font-size: 13px; }
+.rf-big .rf-lg { font-size: 12.5px; gap: 16px; }
+.rf-big .rf-lg i { width: 11px; height: 11px; }
+.rf-big .rf-lg em { font-size: 12px; }
 
 .rf-lg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   font-size: 11px; color: var(--ink2); }
