@@ -1501,7 +1501,8 @@ html.fx-cursor, html.fx-cursor body, html.fx-cursor * { cursor: none; }
 html.fx-cursor input, html.fx-cursor textarea, html.fx-cursor select,
 html.fx-cursor [contenteditable="true"] { cursor: auto; }
 
-.fxc { position: fixed; top: 0; left: 0; z-index: 9999; pointer-events: none;
+/* 무엇보다 위 — 화면 뿌리로 띄운 창(.modal-back 4000)보다 확실히 앞에 선다 */
+.fxc { position: fixed; top: 0; left: 0; z-index: 100000; pointer-events: none;
   opacity: 0; will-change: transform; }
 html.fx-in .fxc { opacity: 1; }
 /* 입력칸 위에서는 기본 커서에 자리를 내준다 */

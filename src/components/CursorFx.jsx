@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 // 마우스 포인터 — 있는 자리에 따라 모양이 바뀐다.
 //   지도 위     : 조준점 (가는 원 + 사방 눈금 + 가운데 점)
@@ -67,7 +68,10 @@ export default function CursorFx() {
     }
   }, [])
 
-  return (
+  // 포인터는 화면 뿌리(body)에 그린다. 앱 안쪽에 두면, 화면 뿌리로 띄운 창
+  // ('크게 보기' 같은)이 나중에 그려지면서 포인터를 덮어 버린다 — 기본 커서는
+  // 이미 감춰 둔 터라, 그 창 안에서는 포인터가 통째로 사라진 것처럼 보인다.
+  return createPortal(
     <>
       <div className="fxc fxc-ring" ref={ring} aria-hidden="true">
         {/* 조준점의 사방 눈금 — 지도 위에서만 뻗어 나온다 */}
@@ -75,6 +79,7 @@ export default function CursorFx() {
         <i className="fxc-tk b" /><i className="fxc-tk l" />
       </div>
       <div className="fxc fxc-dot" ref={dot} aria-hidden="true" />
-    </>
+    </>,
+    document.body,
   )
 }
