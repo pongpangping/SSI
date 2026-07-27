@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, GeoJSON, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
 import { ROWS, rowKey, keyOf, rowIndex, colorFn, valuesOf, shortSido, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
@@ -27,7 +27,7 @@ const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }
 export default function NationalMap({
   sector, metric, onlyHigh, selected, hovered, onSelect, onHover, sido = null,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
-  autoFit = true,
+  autoFit = true, onlyHighToggle = null,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -158,16 +158,31 @@ export default function NationalMap({
           attribution='&copy; OpenStreetMap &copy; CARTO' subdomains="abcd" maxZoom={19}
           eventHandlers={{ load: () => setTilesReady(true) }} />
         <GeoJSON ref={geoRef} data={geo} style={styleFor} onEachFeature={onEach} />
-        {!compact && <ZoomControl position="topright" />}
       </MapContainer>
 
-      {/* 지도 조작 도구 */}
+      {/* 지도 조작 도구 — 오른쪽 위 세로 스택(＋ − ↺ ⤢) */}
       {!compact && (
-        <div className="map-tools">
-          <button onClick={fitAll} title="전국이 한 화면에 들어오도록">전국</button>
+        <div className="mapz">
+          <button onClick={() => map && map.zoomIn()} title="확대" aria-label="확대">＋</button>
+          <button onClick={() => map && map.zoomOut()} title="축소" aria-label="축소">－</button>
+          <span className="mapz-sep" />
+          <button onClick={fitAll} title="전국이 한 화면에 들어오도록" aria-label="전국 보기">↺</button>
           <button onClick={() => sido && fitSido(sido)} disabled={!sido}
-            title="선택한 시·도로 이동">{sido ? shortSido(sido) : '시·도'}</button>
-          <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대">확대</button>
+            title={sido ? `${shortSido(sido)}로 이동` : '시·도를 고르면 사용'}
+            aria-label="선택한 시·도로 이동">◎</button>
+          <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대"
+            aria-label="선택 지역 확대">⤢</button>
+        </div>
+      )}
+
+      {/* 보기 옵션 — 오른쪽 아래. 지도를 보는 중에도 손이 닿는 자리 */}
+      {!compact && onlyHighToggle && (
+        <div className="mapsw">
+          <button className={`msw-t${onlyHigh ? ' on' : ''}`} onClick={onlyHighToggle}
+            aria-pressed={onlyHigh} title="순위 이동이 큰 상위 20%만 남기고 나머지는 흐리게">
+            <i /><span>{onlyHigh ? 'ON' : 'OFF'} · 민감 지역만</span>
+          </button>
+          <button className="msw-r" onClick={fitAll} title="지도 위치를 처음으로">초기화</button>
         </div>
       )}
 

@@ -15,3 +15,5 @@ _to_delete/
 # 산출물(legacy-incheon/src/data/incheonGeo.json)만 커밋한다. SHP 단독 185MB로 GitHub 100MB 한도 초과.
 legacy-incheon/data/raw/N3A_G0110000/
 data/raw/N3A_G0110000/
+_to_delete/
+*.zip

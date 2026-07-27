@@ -4,7 +4,8 @@ import Header from './components/Header.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import NationalMap from './components/NationalMap.jsx'
 import CompareMaps from './components/CompareMaps.jsx'
-import CenterPanel, { CenterRail } from './components/CenterPanel.jsx'
+import CenterPanel from './components/CenterPanel.jsx'
+import PanelTab from './components/PanelTab.jsx'
 import DataTable from './components/DataTable.jsx'
 
 // ── URL 해시 상태 공유 (#s=S1&m=minmax&k=rank&g=경기도&r=경기도|성남시) ────────
@@ -19,6 +20,7 @@ function parseHash() {
   if (g && SIDOS.includes(g)) o.sido = g
   if (h.get('c') === '1') o.compare = true
   if (h.get('p') === '0') o.panelOpen = false
+  if (h.get('o') === '0') o.sideOpen = false
   return o
 }
 
@@ -29,6 +31,7 @@ export default function App() {
   const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
   const [compare, setCompare] = useState(!!init.compare)
   const [panelOpen, setPanelOpen] = useState(init.panelOpen !== false)
+  const [sideOpen, setSideOpen] = useState(init.sideOpen !== false)
   const [onlyHigh, setOnlyHigh] = useState(false)
   const [sido, setSido] = useState(init.sido || null)
   const [selected, setSelected] = useState(init.selected || null)
@@ -57,8 +60,9 @@ export default function App() {
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
     if (!panelOpen) p.set('p', '0')
+    if (!sideOpen) p.set('o', '0')
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [sector, method, metric.key, sido, sel, compare, panelOpen])
+  }, [sector, method, metric.key, sido, sel, compare, panelOpen, sideOpen])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
 
@@ -66,22 +70,28 @@ export default function App() {
     <div className="shell">
       <Header onTable={() => setTableOpen(true)} />
       <div className="body body-3col">
-        <Sidebar
-          sector={sector} onSector={setSector}
-          method={method} onMethod={setMethod}
-          metric={metric} metricKey={metric.key} onMetric={setMetricKey}
-          onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
-          compare={compare} onCompare={setCompare}
-          sido={sido} onSido={setSido}
-          selected={sel} onSelect={setSelected}
-        />
-        {panelOpen
-          ? <CenterPanel sector={sector} method={method} metric={metric}
-              selectedRow={selectedRow} link={link} onCollapse={() => setPanelOpen(false)} />
-          : <CenterRail onOpen={() => setPanelOpen(true)} />}
+        {sideOpen && (
+          <Sidebar
+            sector={sector} onSector={setSector}
+            method={method} onMethod={setMethod}
+            metric={metric} metricKey={metric.key} onMetric={setMetricKey}
+            onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
+            compare={compare} onCompare={setCompare}
+            sido={sido} onSido={setSido}
+            selected={sel} onSelect={setSelected}
+          />
+        )}
+        <PanelTab open={sideOpen} label="조작" onToggle={() => setSideOpen(!sideOpen)} />
+        {panelOpen && (
+          <CenterPanel sector={sector} method={method} metric={metric}
+            selectedRow={selectedRow} link={link} />
+        )}
+        <PanelTab open={panelOpen} label="판독" onToggle={() => setPanelOpen(!panelOpen)} />
         {compare
-          ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido} {...link} />
-          : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} sido={sido} {...link} />}
+          ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
+              onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
+          : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} sido={sido}
+              onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
       </div>
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
         selected={sel} onSelect={setSelected} />}

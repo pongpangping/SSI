@@ -4,7 +4,7 @@ import { metricFor, methodOf, binChangeCount, ROWS, shortSido } from '../lib/ssi
 
 // 같은 지표를 간격보존형(MinMax) · 순위전용형(PctRank) 두 지도로 동시에 그린다.
 // 두 지도의 시점(pan/zoom)은 동기화되고, 확대·축소는 아래 공용 도구막대 하나로 조작한다.
-export default function CompareMaps({ sector, metricKey, onlyHigh, selected, hovered, onSelect, onHover, sido = null }) {
+export default function CompareMaps({ sector, metricKey, onlyHigh, selected, hovered, onSelect, onHover, sido = null, onlyHighToggle = null }) {
   const maps = useRef([])
   const lock = useRef(false)
   const api = useRef(null) // 왼쪽 지도의 조작 함수 묶음 (오른쪽은 동기화로 따라온다)
@@ -48,16 +48,28 @@ export default function CompareMaps({ sector, metricKey, onlyHigh, selected, hov
           compact title={methodOf('pctrank').label} subtitle={right.label}
           onMapReady={register} autoFit={false} />
 
-        {/* 두 지도를 함께 조작하는 공용 도구막대 */}
-        <div className="map-tools abm-tools" title="두 지도가 함께 움직입니다">
-          <button onClick={() => run('zoomOut')} className="mt-z" title="축소">−</button>
-          <button onClick={() => run('zoomIn')} className="mt-z" title="확대">＋</button>
-          <i className="mt-sep" />
-          <button onClick={() => run('fitAll')} title="전국이 한 화면에 들어오도록">전국</button>
+        {/* 두 지도를 함께 조작하는 공용 도구 — 단일 지도와 같은 자리(오른쪽 위) */}
+        <div className="mapz abm-mapz" title="두 지도가 함께 움직입니다">
+          <button onClick={() => run('zoomIn')} title="확대" aria-label="확대">＋</button>
+          <button onClick={() => run('zoomOut')} title="축소" aria-label="축소">－</button>
+          <span className="mapz-sep" />
+          <button onClick={() => run('fitAll')} title="전국이 한 화면에 들어오도록" aria-label="전국 보기">↺</button>
           <button onClick={() => sido && run('fitSido', sido)} disabled={!sido}
-            title="선택한 시·도로 이동">{sido ? shortSido(sido) : '시·도'}</button>
-          <button onClick={() => run('fitSel')} disabled={!selected} title="선택한 시군구를 확대">선택 지역</button>
+            title={sido ? `${shortSido(sido)}로 이동` : '시·도를 고르면 사용'}
+            aria-label="선택한 시·도로 이동">◎</button>
+          <button onClick={() => run('fitSel')} disabled={!selected} title="선택한 시군구를 확대"
+            aria-label="선택 지역 확대">⤢</button>
         </div>
+
+        {onlyHighToggle && (
+          <div className="mapsw abm-mapsw">
+            <button className={`msw-t${onlyHigh ? ' on' : ''}`} onClick={onlyHighToggle}
+              aria-pressed={onlyHigh} title="순위 이동이 큰 상위 20%만 남기고 나머지는 흐리게">
+              <i /><span>{onlyHigh ? 'ON' : 'OFF'} · 민감 지역만</span>
+            </button>
+            <button className="msw-r" onClick={() => run('fitAll')} title="지도 위치를 처음으로">초기화</button>
+          </div>
+        )}
       </div>
     </div>
   )

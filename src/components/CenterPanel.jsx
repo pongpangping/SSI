@@ -31,18 +31,7 @@ function Sect({ k, title, plain, children }) {
   )
 }
 
-// 접힘 상태 — 세로 글씨 없이 지도 왼쪽에 붙는 얇은 손잡이.
-export function CenterRail({ onOpen }) {
-  return (
-    <button className="panel-tab" onClick={onOpen}
-      title="판독창 펼치기" aria-label="판독창 펼치기">
-      <span className="pt-ico">›</span>
-      <span className="pt-bar" />
-    </button>
-  )
-}
-
-export default function CenterPanel({ sector, method, metric, selectedRow, link, onCollapse }) {
+export default function CenterPanel({ sector, method, metric, selectedRow, link }) {
   const m = methodOf(method)
   const name = selectedRow ? `${selectedRow.sido} ${selectedRow.name}` : '—'
 
@@ -59,10 +48,6 @@ export default function CenterPanel({ sector, method, metric, selectedRow, link,
           <span className="fb-arw">›</span>
           <span className="fb-step on"><i>4</i><b>{metric.label}</b></span>
         </div>
-        {onCollapse && (
-          <button className="center-collapse" title="판독창 접기 — 지도를 넓게 봅니다"
-            aria-label="판독창 접기" onClick={onCollapse}>‹</button>
-        )}
       </div>
 
       <Sect k="A" title="이 지역은 어떤가" plain="선택한 시군구">
