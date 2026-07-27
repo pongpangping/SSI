@@ -64,10 +64,14 @@ export default function App() {
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
 
+  // 지도 위에 떠 있는 조작·통계 덱의 실제 폭(px).
+  // 왼쪽 여백 14 + 조작부 300 + (통계창 366) + 손잡이 24 + 지도와의 간격 14
+  const deckW = 14 + 300 + (panelOpen ? 366 : 0) + 24 + 14
+
   return (
     <div className="shell">
       <Header onTable={() => setTableOpen(true)} />
-      <div className="body body-3col">
+      <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
         <Sidebar
           sector={sector} onSector={setSector}
           method={method} onMethod={setMethod}
@@ -86,7 +90,7 @@ export default function App() {
           ? <CompareMaps sector={sector} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
               onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
           : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} sido={sido}
-              onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
+              padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
       </div>
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
         selected={sel} onSelect={setSelected} />}

@@ -1242,3 +1242,93 @@ button { font-family: inherit; }
   .ptab, .ptab:not(.open) { margin: 0; border-radius: 10px;
     border-left-color: var(--line); box-shadow: var(--shadow-card); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   6차 개편 — 지도를 배경으로 깔고, 조작·통계 덱을 그 위에 띄운다
+   · 지도: 화면 전체(모서리 각짐 없음). 패널이 지도 위에 뜬 것처럼 읽힌다
+   · 부문 안의 묶음(표준화 결과 / 민감도 / 원자료 지표)도 +/− 로 접힌다
+   · 접기 손잡이는 통계창 '상단'에 물린다
+   · 안쪽 스크롤바는 감춘다 (스크롤은 되지만 막대는 보이지 않는다)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 지도 = 배경. 패널은 그 위에 뜬 판이다 ────────────────────────── */
+.body-3col { position: relative; padding: 0; gap: 0; }
+/* 단일 지도만 배경으로 깐다 — 나란히 보기의 두 지도는 그리드 안에 그대로 둔다 */
+.body-3col > .map-canvas { position: absolute; inset: 0; width: auto; min-width: 0; flex: none;
+  border: 0; border-radius: 0; box-shadow: none; z-index: 0; }
+/* 나란히 보기는 두 지도를 다 봐야 하므로 덱 폭만큼 비켜 놓는다 */
+.abm-wrap { position: absolute; inset: 0 0 0 var(--deck, 718px); width: auto; flex: none;
+  border-radius: 0; }
+
+/* ── 떠 있는 덱: 조작부 + 통계창 + 손잡이 ─────────────────────────── */
+.sidebar.sb2 { position: relative; z-index: 30; margin: 14px 0 14px 14px;
+  border-radius: var(--radius) 0 0 var(--radius); border-right: 0;
+  box-shadow: 0 10px 30px -8px rgba(15,23,42,.28), 10px 0 22px -12px rgba(15,23,42,.22),
+              0 1px 3px rgba(15,23,42,.10); }
+.center { position: relative; z-index: 20; margin: 14px 0; background: #E9EEF5;
+  border: 1px solid var(--line-strong); border-left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  box-shadow: 0 10px 30px -10px rgba(15,23,42,.24), inset 7px 0 9px -6px rgba(15,23,42,.16); }
+
+/* ── 손잡이: 통계창(접히면 조작부) 오른쪽 '위'에 물린다 ───────────── */
+.ptab { align-self: flex-start; margin-top: 14px; margin-right: 14px; z-index: 25; }
+
+/* ── 스크롤바는 감춘다 — 세로 막대가 화면을 갈라 보이던 문제 ──────── */
+.sb2-scroll, .center, .acc2-body, .gb-body, .rp-list, .dt-scroll {
+  scrollbar-width: none; -ms-overflow-style: none; }
+.sb2-scroll::-webkit-scrollbar, .center::-webkit-scrollbar,
+.acc2-body::-webkit-scrollbar, .gb-body::-webkit-scrollbar,
+.rp-list::-webkit-scrollbar, .dt-scroll::-webkit-scrollbar { width: 0; height: 0; }
+/* 묶음이 접히므로 부문 본문에 높이 제한을 둘 필요가 없어졌다 */
+.acc2-body { max-height: none; overflow: visible; }
+
+/* ── 부문 안의 묶음 상자 : 부문 카드와 같은 방식으로 열고 닫는다 ──── */
+.acc2-grp.gbox { gap: 0; border: 1px solid var(--line); border-radius: 9px;
+  background: #FBFCFE; overflow: hidden; transition: border-color .12s; }
+.acc2-grp.gbox.cur { border-color: var(--accent); background: #FAFDFF; }
+.acc2-grp.gbox .acc2-grp-h { display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 7px 8px; border: 0; background: transparent; cursor: pointer; font-family: inherit;
+  text-align: left; transition: background .12s; }
+.acc2-grp.gbox .acc2-grp-h:hover { background: var(--muted); }
+.acc2-grp.gbox.open .acc2-grp-h { border-bottom: 1px solid var(--line); }
+.gb-t { flex: 1; min-width: 0; font-size: 10.5px; font-weight: 750; color: var(--ink2);
+  letter-spacing: -.01em; }
+.acc2-grp.gbox.cur .gb-t { color: var(--accent-strong); }
+.gb-n { flex: none; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 5px;
+  background: var(--muted); color: var(--ink3); font-size: 9px; font-weight: 750;
+  display: grid; place-items: center; }
+.acc2-grp.gbox.cur .gb-n { background: var(--accent-weak); color: var(--accent-strong); }
+.gb-sign { flex: none; width: 15px; height: 15px; border-radius: 4px; font-size: 12px;
+  line-height: 1; color: var(--ink3); display: grid; place-items: center; }
+.acc2-grp-h:hover .gb-sign { color: var(--accent-strong); }
+.gb-body { display: flex; flex-direction: column; gap: 2px; padding: 5px 5px 6px; }
+
+/* ── 세로 적층(1180px 미만)에서는 겹침 배치를 풀고 흐름 배치로 ────── */
+@media (max-width: 1180px) {
+  .body-3col { position: static; padding: 12px; gap: 12px; }
+  .body-3col > .map-canvas { position: relative; inset: auto; width: auto; }
+  .abm-wrap { position: relative; inset: auto; }
+  .sidebar.sb2 { margin: 0; }
+  .center { margin: 0; }
+  .ptab { align-self: auto; margin: 0; }
+}
+
+/* 커서·선택 지역 실시간 띠는 지도의 왼쪽 아래 — 이제 그 자리는 덱이 덮으므로
+   덱 오른쪽으로 밀어 놓는다 (--deck 은 App 이 실제 덱 폭으로 넣어 준다) */
+.map-live { left: calc(var(--deck, 718px) + 4px); }
+@media (max-width: 1180px) { .map-live { left: 14px; } }
+
+/* 지도가 화면 끝까지 깔리면서 오른쪽 아래에 지도 출처·범례·보기옵션이 겹친다.
+   출처 줄(16px)을 피해 두 요소를 위로 올린다 */
+.body-3col > .map-canvas .mapsw { bottom: 24px; }
+.body-3col > .map-canvas:not(.map-compact) .maplegend { bottom: 76px; }
+.body-3col > .map-canvas .map-live { bottom: 24px; }
+
+/* 스크롤바를 감춘 대신, 아래쪽을 옅게 흐려 "더 있다"는 것을 보인다 */
+.sb2-scroll { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent); }
+.center { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); }
+@media (max-width: 1180px) {
+  .sb2-scroll, .center { -webkit-mask-image: none; mask-image: none; }
+}

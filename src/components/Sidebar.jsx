@@ -16,9 +16,14 @@ export default function Sidebar({
   sido, onSido, selected, onSelect,
 }) {
   const [openSect, setOpenSect] = useState(sector)
+  // 부문 안의 묶음(표준화 결과 / 민감도 / 원자료 지표 …)도 각각 접힌다.
+  // 기록이 없으면 '지금 보고 있는 지표가 들어 있는 묶음'만 펼친 상태로 둔다.
+  const [openGrp, setOpenGrp] = useState({})
   const s = sectorSummary(sector)
 
   const pick = (k) => { onSector(k); setOpenSect(k) }
+  const grpOpen = (id, hasCur) => (openGrp[id] === undefined ? hasCur : openGrp[id])
+  const toggleGrp = (id, hasCur) => setOpenGrp((o) => ({ ...o, [id]: !grpOpen(id, hasCur) }))
 
   return (
     <aside className="sidebar sb2">
@@ -43,19 +48,33 @@ export default function Sidebar({
                     <div className="acc2-chips">
                       {SECTORS[k].inds.map((i) => <span key={i.label}>{i.label}</span>)}
                     </div>
-                    {Object.entries(groups).map(([g, list]) => (
-                      <div key={g} className="acc2-grp">
-                        <div className="acc2-grp-h">{g}</div>
-                        {list.map((m) => (
-                          <button key={m.key}
-                            className={`acc2-item${sector === k && metricKey === m.key ? ' on' : ''}`}
-                            onClick={() => { onSector(k); onMetric(m.key) }} title={m.desc}>
-                            {m.label}
-                            {m.dynamic && <i title="표준화 방법을 바꾸면 지도가 바뀜">◆</i>}
+                    {Object.entries(groups).map(([g, list]) => {
+                      const id = `${k}|${g}`
+                      const hasCur = sector === k && list.some((m) => m.key === metricKey)
+                      const gon = grpOpen(id, hasCur)
+                      return (
+                        <div key={g} className={`acc2-grp gbox${gon ? ' open' : ''}${hasCur ? ' cur' : ''}`}>
+                          <button className="acc2-grp-h" onClick={() => toggleGrp(id, hasCur)}
+                            aria-expanded={gon} data-grp={g}>
+                            <span className="gb-t">{g}</span>
+                            <span className="gb-n">{list.length}</span>
+                            <span className="gb-sign">{gon ? '−' : '+'}</span>
                           </button>
-                        ))}
-                      </div>
-                    ))}
+                          {gon && (
+                            <div className="gb-body">
+                              {list.map((m) => (
+                                <button key={m.key}
+                                  className={`acc2-item${sector === k && metricKey === m.key ? ' on' : ''}`}
+                                  onClick={() => { onSector(k); onMetric(m.key) }} title={m.desc}>
+                                  {m.label}
+                                  {m.dynamic && <i title="표준화 방법을 바꾸면 지도가 바뀜">◆</i>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
