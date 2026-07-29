@@ -8,11 +8,11 @@ const SORTS = [
 ]
 
 // 민감도 상위 시군구 — 정렬 기준을 3개 민감도 컬럼 사이에서 바꿀 수 있다.
-export default function SensitiveList({ sector, selected, onSelect }) {
+export default function SensitiveList({ sector, selected, onSelect, ver = 0 }) {
   const [by, setBy] = useState('ssiCamp')
   const ranked = useMemo(() =>
-    [...ROWS].filter((r) => r[sector][by] != null)
-      .sort((a, b) => b[sector][by] - a[sector][by]).slice(0, 15), [sector, by])
+    [...ROWS].filter((r) => r[sector]?.[by] != null)
+      .sort((a, b) => b[sector][by] - a[sector][by]).slice(0, 15), [sector, by, ver])
   const maxV = ranked[0]?.[sector][by] || 1
 
   return (

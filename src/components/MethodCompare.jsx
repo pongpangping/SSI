@@ -59,7 +59,7 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
 
       <div className="mc-chips" title={`${METHODS.length}개 방법 순위의 폭·표준편차, 그리고 순위 이동 검산`}>
         <span><em>순위 폭</em><b>{d.ssiRange}</b></span>
-        <span><em>표준편차</em><b>{d.ssiStd}</b></span>
+        <span><em>표준편차</em><b>{d.ssiStd == null ? '—' : d.ssiStd.toFixed(1)}</b></span>
         <span><em>검산</em><b>|{d.repMinmax}−{d.repPctrank}|={Math.abs(d.repMinmax - d.repPctrank)}</b></span>
       </div>
     </div>

@@ -1,10 +1,15 @@
 // 성적표 셈법 — 모의고사 성적표와 같은 방식으로 점수를 읽는다.
-//   원점수  : 표준화한 값 그대로 (0~100)
-//   표준점수: T점수 = 50 + 10z  (전국 평균 50, 표준편차 10)
+//   원값    : 자료에 들어 있는 값 그대로
+//   표준화  : 방법에 따라 0~100 눈금 위로 옮긴 값
+//   표준점수: T점수 = 50 + 10z.  전국 평균이 50, 표준편차가 10이다.
+//             50이 한가운데, 60이면 평균보다 1 표준편차 위, 40이면 1 표준편차 아래.
 //   백분위  : 나보다 낮은 점수를 받은 지역의 비율(%) — 100에 가까울수록 상위
-//   등급    : 상위 누적비율 기준 9등급
-// 표준화 방법을 바꾸면 z가 달라지므로 T점수·등급도 함께 달라진다.
-// 바로 그 차이를 보여주는 것이 이 화면의 목적이다.
+//
+// 표준화 방법을 바꾸면 z가 달라지므로 T점수도 함께 달라진다. 바로 그 차이를 보여주는
+// 것이 이 화면의 목적이다.
+//
+// 9등급 표기는 두지 않는다. 등급은 백분위를 아홉 칸으로 자른 것뿐이라 백분위와
+// 겹치는 데다, 경계선 근처에서 0.1%p 차이가 한 등급 차이로 보이게 만든다.
 
 const num = (x) => x != null && Number.isFinite(x)
 
@@ -21,21 +26,36 @@ export function tScore(values) {
 // 순위(1 = 최상위) → 백분위
 export const pctFromRank = (rank, n) => (num(rank) ? (n - rank) / n * 100 : null)
 
-// 수능·모의고사 9등급 구분선(상위 누적 %)
-export const GRADE_CUT = [4, 11, 23, 40, 60, 77, 89, 96]
-export function gradeFromRank(rank, n) {
-  if (!num(rank)) return null
-  const top = rank / n * 100
-  for (let i = 0; i < GRADE_CUT.length; i++) if (top <= GRADE_CUT[i]) return i + 1
-  return 9
-}
-// 1~3등급 파랑 / 4~6등급 회색 / 7~9등급 주황 — 지도 색과 같은 계열
-export const GRADE_COLOR = ['#0A6FB3', '#0B93EE', '#5FB6F5', '#8894A4', '#8894A4', '#8894A4',
-  '#FDA35A', '#F5760D', '#C85B06']
-export const gradeColor = (g) => GRADE_COLOR[(g || 1) - 1] || '#8894A4'
+// T점수 눈금 — 성적표 막대의 눈금선 자리. 30·40·50·60·70
+export const T_TICKS = [30, 40, 50, 60, 70]
+export const T_MIN = 20
+export const T_MAX = 80
+// T점수를 막대 위 위치(0~1)로. 20~80 바깥은 끝에 붙인다.
+export const tPos = (t) => (num(t) ? Math.min(1, Math.max(0, (t - T_MIN) / (T_MAX - T_MIN))) : null)
 
-// 등급 구간이 전체에서 차지하는 위치(0~1) — 성적표 막대 그리기용
-export const GRADE_BAND = GRADE_CUT.map((c) => c / 100)
+// 평균에서 얼마나 떨어져 있나 — 색 하나로 읽는 눈금
+// 파랑 = 평균 위, 회색 = 평균 언저리, 주황 = 평균 아래
+export function tColor(t) {
+  if (!num(t)) return '#8894A4'
+  if (t >= 65) return '#0A6FB3'
+  if (t >= 57) return '#0B93EE'
+  if (t >= 53) return '#5FB6F5'
+  if (t > 47) return '#8894A4'
+  if (t > 43) return '#FDA35A'
+  if (t > 35) return '#F5760D'
+  return '#C85B06'
+}
+// 평균과 견준 한 마디
+export function tWord(t) {
+  if (!num(t)) return '—'
+  if (t >= 65) return '전국 평균보다 크게 높음'
+  if (t >= 57) return '전국 평균보다 높음'
+  if (t >= 53) return '전국 평균보다 조금 높음'
+  if (t > 47) return '전국 평균 수준'
+  if (t > 43) return '전국 평균보다 조금 낮음'
+  if (t > 35) return '전국 평균보다 낮음'
+  return '전국 평균보다 크게 낮음'
+}
 
 export const fmtT = (v) => (num(v) ? v.toFixed(1) : '—')
 export const fmtPct = (v) => (num(v) ? `${v.toFixed(1)}%` : '—')

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ROWS, metricFor, rowKey, METHOD_KEYS, SECTOR_KEYS, SIDOS } from './lib/ssi.js'
+import {
+  ROWS, metricFor, rowKey, METHOD_KEYS, SECTOR_KEYS, SIDOS,
+  applyPicks, defaultPicks, picksOf, picksToHash, picksFromHash,
+} from './lib/ssi.js'
 import Header from './components/Header.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import NationalMap from './components/NationalMap.jsx'
@@ -7,9 +10,12 @@ import CompareMaps from './components/CompareMaps.jsx'
 import CenterPanel from './components/CenterPanel.jsx'
 import PanelTab from './components/PanelTab.jsx'
 import DataTable from './components/DataTable.jsx'
+import IndicatorPicker from './components/IndicatorPicker.jsx'
 import CursorFx from './components/CursorFx.jsx'
 
-// ── URL 해시 상태 공유 (#s=S1&m=minmax&k=rank&g=경기도&r=경기도|성남시) ────────
+// ── URL 해시 상태 공유 ────────────────────────────────────────────────
+// #s=S8&m=minmax&k=rank&g=경기도&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT
+// i(담은 지표)까지 담기 때문에, 링크를 받은 사람은 '같은 조합으로 계산한 화면'을 본다.
 function parseHash() {
   const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
   const o = {}
@@ -21,8 +27,14 @@ function parseHash() {
   if (g && SIDOS.includes(g)) o.sido = g
   if (h.get('c') === '1') o.compare = true
   if (h.get('p') === '0') o.panelOpen = false
+  if (h.get('i')) o.picks = picksFromHash(h.get('i'))
+  if (h.get('x')) o.xKey = h.get('x')
+  if (h.get('y')) o.yKey = h.get('y')
   return o
 }
+
+// 부문별 기본 조합 = 그 부문의 모든 지표를 가장 최근 연도로.
+const basePicks = () => Object.fromEntries(SECTOR_KEYS.map((k) => [k, defaultPicks(k)]))
 
 export default function App() {
   const init = useMemo(parseHash, [])
@@ -37,6 +49,35 @@ export default function App() {
   const [selected, setSelected] = useState(init.selected || null)
   const [hovered, setHovered] = useState(null)
   const [tableOpen, setTableOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [xKey, setXKey] = useState(init.xKey || null)
+  const [yKey, setYKey] = useState(init.yKey || null)
+
+  // 담은 지표. 링크로 받은 조합이 있으면 그 부문만 갈아 끼운다.
+  const [picksBy, setPicksBy] = useState(() => {
+    const base = basePicks()
+    if (init.picks && init.sector) {
+      base[init.sector] = init.picks
+      applyPicks(init.sector, init.picks)
+    }
+    return base
+  })
+  // 계산 결과는 ROWS 위에 덮어써지므로 참조가 바뀌지 않는다.
+  // 화면이 다시 그려지도록 판올림 번호를 하나 둔다.
+  const [pickVer, setPickVer] = useState(0)
+
+  const applyDraft = (draft, cur) => {
+    SECTOR_KEYS.forEach((k) => {
+      const a = draft[k] || [], b = picksBy[k] || []
+      const same = a.length === b.length && a.every((p, i) => p.id === b[i].id && p.year === b[i].year)
+      if (!same) applyPicks(k, a)
+    })
+    setPicksBy(draft)
+    setPickVer((v) => v + 1)
+    // 지표가 바뀌면 산점도 축 이름도 바뀐다. 기본 축으로 되돌린다.
+    setXKey(null); setYKey(null)
+    if (cur && cur !== sector && SECTOR_KEYS.includes(cur)) setSector(cur)
+  }
 
   const metric = metricFor(sector, method, metricKey)
   const byKey = useMemo(() => Object.fromEntries(ROWS.map((r) => [rowKey(r), r])), [])
@@ -44,9 +85,9 @@ export default function App() {
   // 기본 선택: (시도를 골랐으면 그 안에서) 순위 이동이 가장 큰 시군구
   const topKey = useMemo(() => {
     const pool = sido ? ROWS.filter((r) => r.sido === sido) : ROWS
-    const r = [...pool].sort((a, b) => (b[sector].ssiCamp || 0) - (a[sector].ssiCamp || 0))[0]
+    const r = [...pool].sort((a, b) => (b[sector]?.ssiCamp || 0) - (a[sector]?.ssiCamp || 0))[0]
     return r ? rowKey(r) : null
-  }, [sector, sido])
+  }, [sector, sido, pickVer])
 
   // 시도를 바꾸면 선택 시군구도 그 시도 안으로 자동 정렬된다
   const ok = selected && byKey[selected] && (!sido || byKey[selected].sido === sido)
@@ -60,10 +101,17 @@ export default function App() {
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
     if (!panelOpen) p.set('p', '0')
+    const cur = picksOf(sector)
+    const base = defaultPicks(sector)
+    const same = cur.length === base.length && cur.every((q, i) => q.id === base[i].id && q.year === base[i].year)
+    if (!same) p.set('i', picksToHash(cur))       // 기본 조합이면 굳이 적지 않는다
+    if (xKey) p.set('x', xKey)
+    if (yKey) p.set('y', yKey)
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [sector, method, metric.key, sido, sel, compare, panelOpen])
+  }, [sector, method, metric.key, sido, sel, compare, panelOpen, pickVer, xKey, yKey])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
+  const onAxis = (which, key) => (which === 'x' ? setXKey(key) : setYKey(key))
 
   // 지도 위에 떠 있는 조작·통계 덱의 실제 폭(px).
   // 왼쪽 여백 14 + 덱 테두리 2 + 조작부 300 + (칸 사이 선 1 + 통계창 366)
@@ -85,10 +133,13 @@ export default function App() {
             compare={compare} onCompare={setCompare}
             sido={sido} onSido={setSido}
             selected={sel} onSelect={setSelected}
+            picksBy={picksBy} onOpenPicker={() => setPickerOpen(true)}
           />
           {panelOpen && (
             <CenterPanel sector={sector} method={method} metric={metric}
-              selectedRow={selectedRow} link={link} />
+              selectedRow={selectedRow} link={link} ver={pickVer}
+              xKey={xKey} yKey={yKey} onAxis={onAxis}
+              onOpenPicker={() => setPickerOpen(true)} />
           )}
         </div>
         {/* 손잡이는 덱 밖으로 물려 나온 책갈피 — 덱과 같은 바탕·테두리를 쓰고
@@ -96,13 +147,15 @@ export default function App() {
         <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
         {compare
           ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh} sido={sido}
-              onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
+              ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
           : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh} sido={sido}
-              padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
+              ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
       </div>
       <CursorFx />
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
-        selected={sel} onSelect={setSelected} />}
+        selected={sel} onSelect={setSelected} ver={pickVer} />}
+      {pickerOpen && <IndicatorPicker sector={sector} picksBy={picksBy}
+        onApply={applyDraft} onClose={() => setPickerOpen(false)} />}
     </div>
   )
 }

@@ -1,24 +1,54 @@
+// 자료 파일과 화면 사이의 다리.
+//
+// v1에서는 이 파일이 '이미 계산이 끝난 표'를 읽어 나눠 주는 일만 했다. v2는 사용자가
+// 지표와 연도를 골라 오므로, 고른 조합을 compute.js에 넘겨 계산한 뒤 그 결과를 각 행에
+// 얹어 준다(applyPicks). 그래서 지도·표·성적표는 예전처럼 row[부문].ci[방법] 하나만
+// 알면 되고, 조합이 바뀌었다는 사실을 따로 알 필요가 없다.
+
 import data from '../data/ssi.json'
-import { standardizeInd, rankDesc } from './standardize.js'
-import { tScore, pctFromRank, gradeFromRank } from './report.js'
+import {
+  ROWS, N, SERIES, METHODS, METHOD_KEYS, CAMP_REPS,
+  computeSet, standardizeSeries, rankDesc, tScore, pctFromRank, spearman, pearson,
+} from './compute.js'
+
+export { ROWS, N, SERIES, METHODS, METHOD_KEYS, CAMP_REPS, spearman, pearson, rankDesc, tScore }
 
 export const META = data.meta
-export const COLUMNS = data.columns          // 컬럼메타데이터 시트 40행 전체
 export const SECTORS = data.sectors
-export const METHODS = data.methods          // [{key,label,camp,short,formula,range,note}]
-export const ROWS = data.rows
-export const N = ROWS.length
+export const INDICATORS = data.indicators
+export const IND = Object.fromEntries(INDICATORS.map((i) => [i.id, i]))
 
-// 부문·방법 목록은 언제나 데이터에서 읽는다.
-// 8개 부문 · 부문당 10개 지표로 늘어나도, LQ가 들어오고 로지스틱이 빠져도
-// 데이터 파일만 바꾸면 화면 전체가 따라오도록 하기 위한 것.
-export const SECTOR_KEYS = Object.keys(SECTORS)
-export const METHOD_KEYS = METHODS.map((m) => m.key)
+// 열 개 부문 전부 / 자료가 들어온 부문만
+export const ALL_SECTOR_KEYS = data.sectorKeys
+export const SECTOR_KEYS = ALL_SECTOR_KEYS.filter((k) => SECTORS[k].ready)
+export const isReady = (k) => !!SECTORS[k]?.ready
+
+// 원값 적기 — 출처마다 소수 자릿수가 제각각이라 그대로 찍으면 4339647.152095 같은
+// 숫자가 그대로 화면에 나온다. 크기에 따라 읽을 만큼만 남기고, 큰 수는 자릿점을 찍는다.
+const trimZero = (s) => (s.indexOf('.') < 0 ? s : s.replace(/\.?0+$/, ''))
+export function fmtRaw(v) {
+  if (v == null || Number.isNaN(v)) return '—'
+  const a = Math.abs(v)
+  if (a === 0) return '0'
+  if (a >= 10000) return Math.round(v).toLocaleString('ko-KR')
+  if (a >= 1000) return trimZero(v.toFixed(1))
+  if (a >= 100) return trimZero(v.toFixed(2))
+  if (a >= 1) return trimZero(v.toFixed(2))
+  if (a >= 0.01) return trimZero(v.toFixed(3))
+  return trimZero(Number(v.toPrecision(3)).toString())
+}
+
 export const methodOf = (k) => METHODS.find((m) => m.key === k) || METHODS[0]
-export const indsOf = (sector) => SECTORS[sector]?.inds || []
-
 export const keyOf = (sido, name) => `${sido}|${name}`
 export const rowKey = (r) => keyOf(r.sido, r.name)
+
+// 계열 이름(S8_1_23) → 지표·연도 되찾기. 주소창 해시를 읽을 때 쓴다.
+const COL2PICK = (() => {
+  const m = {}
+  INDICATORS.forEach((i) => Object.entries(i.cols).forEach(([y, c]) => { m[c] = { id: i.id, year: +y } }))
+  return m
+})()
+export const pickOfCol = (col) => COL2PICK[col] || null
 
 // ── 행정구역 ─────────────────────────────────────────────────────────────
 export const SIDOS = (() => {
@@ -44,8 +74,6 @@ export function rowsOfSido(sido) {
 export const sidoCount = (sido) => ROWS.reduce((n, r) => n + (r.sido === sido ? 1 : 0), 0)
 
 // 두 진영 — 지침서 8장
-// 소속 방법 목록과 대표 방법은 데이터에서 채운다.
-// 로지스틱이 빠지고 LQ가 들어와도 이 표를 손댈 필요가 없게 하기 위한 것.
 export const CAMP = {
   간격보존형: { color: '#0B93EE', rep: 'minmax', methods: [],
     desc: '값의 간격을 선형·단조로 보존한다.' },
@@ -59,12 +87,6 @@ Object.keys(CAMP).forEach((n) => {
 })
 export const campOf = (mk) => methodOf(mk)?.camp
 export const CAMP_NAMES = Object.keys(CAMP)
-// 각 진영의 대표 방법 — 데이터에 실제로 살아 있는 것만.
-export const CAMP_REPS = (() => {
-  const reps = CAMP_NAMES.map((n) => CAMP[n].rep).filter((k) => METHOD_KEYS.includes(k))
-  return reps.length >= 2 ? reps : [METHOD_KEYS[0], METHOD_KEYS[1] || METHOD_KEYS[0]]
-})()
-// 지금 보는 방법과 '가장 다른' 방법 = 반대 진영의 대표. 진영이 하나뿐이면 다른 아무 방법.
 export function otherMethodOf(mk) {
   const c = campOf(mk)
   const rep = CAMP_NAMES.filter((n) => n !== c).map((n) => CAMP[n].rep)
@@ -72,53 +94,117 @@ export function otherMethodOf(mk) {
   return rep || METHOD_KEYS.find((k) => k !== mk) || mk
 }
 
-// ── 지표 원자료 · 표준화값 캐시 ───────────────────────────────────────────
-const rawCache = {}
-export function rawSeries(sector, label) {
-  const k = `${sector}|${label}`
-  if (!rawCache[k]) rawCache[k] = ROWS.map((r) => r[sector].raw[label])
-  return rawCache[k]
+// ── 담은 조합 ────────────────────────────────────────────────────────────
+// pick = { id: 'S8_1', year: 2023 }.  담은 순서가 화면에 나오는 순서다.
+export const indicatorsOf = (sector) => (SECTORS[sector]?.inds || []).map((id) => IND[id]).filter(Boolean)
+export const latestYear = (ind) => ind.years[ind.years.length - 1]
+export const defaultPicks = (sector) => indicatorsOf(sector).map((i) => ({ id: i.id, year: latestYear(i) }))
+export const colOfPick = (p) => IND[p.id]?.cols[p.year] || null
+
+// 담은 것들이 한 해로 맞춰져 있으면 이름만, 여러 해가 섞였으면 이름 뒤에 연도를 붙인다.
+function entriesOf(sector, picks) {
+  const years = []
+  picks.forEach((p) => { if (!years.includes(p.year)) years.push(p.year) })
+  const mixed = years.length > 1
+  return picks.map((p) => {
+    const ind = IND[p.id]
+    if (!ind) return null
+    return {
+      id: ind.id, sector, year: p.year, col: ind.cols[p.year], no: ind.no,
+      label: mixed ? `${ind.label} (${p.year})` : ind.label,
+      name: ind.label, dir: ind.dir, unit: ind.unit || '',
+      desc: ind.desc || '', formula: ind.formula || '', source: ind.source || '', note: ind.note || '',
+    }
+  }).filter((e) => e && e.col)
 }
-const stdCache = {}
-export function stdSeries(sector, label, method) {
-  const k = `${sector}|${label}|${method}`
-  if (!stdCache[k]) {
-    const ind = SECTORS[sector].inds.find((i) => i.label === label)
-    stdCache[k] = standardizeInd(rawSeries(sector, label), ind.dir, method)
+
+// 지금 부문별로 담겨 있는 것 — 계산 결과와 함께 여기 둔다.
+const CUR = {}
+let VER = 0
+export const picksVersion = () => VER
+
+const byMethod = (obj, i) => Object.fromEntries(METHOD_KEYS.map((m) => [m, obj[m][i]]))
+
+// 고른 조합으로 부문 하나를 다시 계산하고 결과를 각 행에 얹는다.
+export function applyPicks(sector, picks) {
+  const entries = entriesOf(sector, picks || [])
+  if (!entries.length) {
+    CUR[sector] = { entries: [], set: null }
+    ROWS.forEach((r) => { r[sector] = null })
+    VER += 1
+    return CUR[sector]
   }
-  return stdCache[k]
+  const set = computeSet(entries.map((e) => ({ col: e.col, dir: e.dir })))
+  const [ra, rb] = CAMP_REPS
+  ROWS.forEach((r, i) => {
+    const raw = {}
+    entries.forEach((e) => { raw[e.label] = SERIES[e.col] ? SERIES[e.col][i] : null })
+    r[sector] = {
+      ci: byMethod(set.ci, i),
+      rank: byMethod(set.rank, i),
+      ssiCamp: set.camp[i], ssiRange: set.range[i], ssiStd: set.rstd[i],
+      flag: set.flag[i], tradeoff: set.tradeoff[i],
+      repMinmax: set.rank[ra][i], repPctrank: set.rank[rb][i],
+      raw,
+    }
+  })
+  CUR[sector] = { entries, set }
+  VER += 1
+  return CUR[sector]
 }
+
+// 화면이 열리기 전에도 row[부문]이 비어 있지 않도록 기본 조합으로 한 번 채워 둔다.
+SECTOR_KEYS.forEach((k) => applyPicks(k, defaultPicks(k)))
+
+export const indsOf = (sector) => CUR[sector]?.entries || []
+export const setOf = (sector) => CUR[sector]?.set || null
+export const picksOf = (sector) => (CUR[sector]?.entries || []).map((e) => ({ id: e.id, year: e.year }))
+// 담은 조합을 한 줄로: "S8_1_23.S8_2_23"
+export const picksToHash = (picks) => picks.map(colOfPick).filter(Boolean).join('.')
+export function picksFromHash(s) {
+  if (!s) return null
+  const out = s.split('.').map((c) => COL2PICK[c]).filter(Boolean)
+  return out.length ? out : null
+}
+
+const entryIdx = (sector, label) => (CUR[sector]?.entries || []).findIndex((e) => e.label === label)
+
+export function rawSeries(sector, label) {
+  const j = entryIdx(sector, label)
+  if (j < 0) return ROWS.map(() => null)
+  const col = CUR[sector].entries[j].col
+  return SERIES[col] || ROWS.map(() => null)
+}
+export function stdSeries(sector, label, method) {
+  const j = entryIdx(sector, label)
+  const set = setOf(sector)
+  if (j < 0 || !set) return ROWS.map(() => null)
+  return set.std[method][j]
+}
+export function indRank(sector, label, method) {
+  const j = entryIdx(sector, label)
+  const set = setOf(sector)
+  if (j < 0 || !set) return ROWS.map(() => null)
+  return set.indRank[method][j]
+}
+export function indT(sector, label, method) {
+  const j = entryIdx(sector, label)
+  const set = setOf(sector)
+  if (j < 0 || !set) return ROWS.map(() => null)
+  return set.indT[method][j]
+}
+export function ciT(sector, method) {
+  const set = setOf(sector)
+  return set ? set.ciT[method] : ROWS.map(() => null)
+}
+
 const idxCache = {}
 export function rowIndex(key) {
   if (!Object.keys(idxCache).length) ROWS.forEach((r, i) => { idxCache[rowKey(r)] = i })
   return idxCache[key]
 }
 
-// 지표 1개 단위 순위 (방법 무관하게 동일함을 증명하는 데 사용)
-const indRankCache = {}
-export function indRank(sector, label, method) {
-  const k = `${sector}|${label}|${method}`
-  if (!indRankCache[k]) indRankCache[k] = rankDesc(stdSeries(sector, label, method))
-  return indRankCache[k]
-}
-
-// ── 성적표용 파생값 (T점수 · 백분위 · 등급) ──────────────────────────────
-// 지표 1개: 표준화값 → T점수 / 순위 → 백분위 · 등급
-const indTCache = {}
-export function indT(sector, label, method) {
-  const k = `${sector}|${label}|${method}`
-  if (!indTCache[k]) indTCache[k] = tScore(stdSeries(sector, label, method))
-  return indTCache[k]
-}
-// 부문 CI: CI값 → T점수
-const ciTCache = {}
-export function ciT(sector, method) {
-  const k = `${sector}|${method}`
-  if (!ciTCache[k]) ciTCache[k] = tScore(ROWS.map((r) => r[sector].ci[method]))
-  return ciTCache[k]
-}
 export const pctOf = (rank) => pctFromRank(rank, N)
-export const gradeOf = (rank) => gradeFromRank(rank, N)
 
 // ── 색 스케일 ────────────────────────────────────────────────────────────
 export const HEAT = ['#FFF3E6', '#FFDDBC', '#FFC38C', '#FDA35A', '#F5760D', '#C85B06', '#8F3F03']
@@ -147,17 +233,17 @@ export function colorFn(scale, min, max) {
   }
 }
 
-// 값 → 7단계 등급 (지도 색 등급 비교용)
+// 값 → 7단계 색 구간 (지도가 실제로 얼마나 바뀌는지 셀 때 쓴다)
 export function binOf(values) {
   const v = values.filter((x) => x != null)
+  if (!v.length) return values.map(() => -1)
   const lo = Math.min(...v), hi = Math.max(...v), d = (hi - lo) || 1
   return values.map((x) => (x == null ? -1 : Math.min(6, Math.floor((x - lo) / d * 7))))
 }
 
-// ── 지도 지표 정의 (선택된 표준화 방법에 따라 값이 바뀐다) ─────────────────
-// 묶음 순서는 성적표를 읽는 순서 그대로다.
-//   ① 부문 종합 — 총점·전국순위·표준점수
-//   ② 지표 · ○○ — 지표 하나마다 원점수 → 표준화 → 표준점수 → 순위 (지표 수만큼 반복)
+// ── 지도 색 기준 ─────────────────────────────────────────────────────────
+//   ① 부문 종합 — 점수·순위·표준점수·백분위
+//   ② 담은 지표 — 담은 지표 하나마다 원값 → 표준화 → 표준점수 → 순위
 //   ③ 표준화 민감도 — 방법을 바꿨을 때 순위가 얼마나 흔들리는가
 //   ④ 참고 플래그
 export const GRP = { total: '부문 종합', sens: '표준화 민감도', flag: '참고 플래그' }
@@ -167,6 +253,7 @@ export function metricsFor(sector, method) {
   const m = methodOf(method)
   const other = otherMethodOf(method)
   const om = methodOf(other)
+  if (!setOf(sector)) return []
   const list = [
     { key: 'ci', group: GRP.total, scale: 'blue', dynamic: true,
       label: `부문 점수 (CI) · ${m.label}`,
@@ -178,17 +265,13 @@ export function metricsFor(sector, method) {
       fmt: (v) => (v == null ? '—' : `${v}위`), get: (r) => r[sector].rank[method] },
     { key: 'ciT', group: GRP.total, scale: 'blue', dynamic: true,
       label: `표준점수(T) · ${m.label}`,
-      desc: '전국 평균을 50, 표준편차를 10으로 맞춘 점수. 성적표의 표준점수와 같은 방식.',
+      desc: '전국 평균이 50, 표준편차가 10이 되도록 맞춘 점수. 50이 한가운데, 60이면 평균보다 1 표준편차 위다.',
       fmt: (v) => (v == null ? '—' : v.toFixed(1)), get: (r, i) => ciT(sector, method)[i] },
     { key: 'pct', group: GRP.total, scale: 'green', dynamic: true,
       label: `백분위 · ${m.label}`,
       desc: '나보다 점수가 낮은 지역의 비율(%). 100에 가까울수록 상위.',
       fmt: (v) => (v == null ? '—' : `${v.toFixed(1)}%`),
       get: (r) => pctOf(r[sector].rank[method]) },
-    { key: 'grade', group: GRP.total, scale: 'rank', dynamic: true,
-      label: `등급 (9등급) · ${m.label}`,
-      desc: '상위 누적비율 기준 9등급. 1등급 = 상위 4%.',
-      fmt: (v) => (v == null ? '—' : `${v}등급`), get: (r) => gradeOf(r[sector].rank[method]) },
     { key: 'shift', group: GRP.total, scale: 'div', dynamic: true,
       label: `순위 변화 · ${m.label} → ${om.label}`,
       desc: `${m.label} 순위에서 ${om.label} 순위로 갈 때의 변동. 파랑(음수) = ${om.label}에서 순위 상승.`,
@@ -196,27 +279,27 @@ export function metricsFor(sector, method) {
       get: (r) => r[sector].rank[other] - r[sector].rank[method] },
   ]
 
-  // ② 지표별 묶음 — 지표 하나가 상자 하나. 10개로 늘어나도 상자가 10개 될 뿐이다.
+  // ② 담은 지표 — 지표 하나가 상자 하나. 담은 만큼만 늘어난다.
   indsOf(sector).forEach((ind) => {
     const g = indGroup(ind.label)
     const up = ind.dir === '+'
     list.push({
       key: `raw:${ind.label}`, group: g, scale: up ? 'green' : 'heat',
-      label: `원점수 (${ind.unit || '원자료'})`,
-      desc: `${ind.desc} 방향 ${up ? '+1 (높을수록 좋음)' : '−1 (낮을수록 좋음)'}.`,
-      fmt: (v) => (v == null ? '—' : `${v}${ind.unit || ''}`), get: (r) => r[sector].raw[ind.label],
+      label: `원값 (${ind.unit || '원자료'})`,
+      desc: `${ind.desc} 방향 ${up ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}. ${ind.year}년 자료.`,
+      fmt: (v) => (v == null ? '—' : `${fmtRaw(v)}${ind.unit || ''}`), get: (r) => r[sector].raw[ind.label],
     })
     list.push({
       key: `std:${ind.label}`, group: g, scale: 'blue', dynamic: true,
-      label: `표준화 점수 · ${m.label}`,
-      desc: `원점수를 ${m.label}으로 표준화한 값(방향 반영). 지표 1개만 보면 어떤 방법을 써도 순위는 같다.`,
+      label: `표준화 값 · ${m.label}`,
+      desc: `원값을 ${m.label}(${m.formula})으로 옮긴 값. 방향도 반영한다. 지표 1개만 보면 어떤 방법을 써도 순위는 같다.`,
       fmt: (v) => (v == null ? '—' : v.toFixed(1)),
       get: (r, i) => stdSeries(sector, ind.label, method)[i],
     })
     list.push({
       key: `t:${ind.label}`, group: g, scale: 'blue', dynamic: true,
       label: `표준점수(T) · ${m.label}`,
-      desc: '전국 평균 50 · 표준편차 10 기준 점수. 표준화 방법을 바꾸면 이 값이 달라진다.',
+      desc: '전국 평균 50 · 표준편차 10 눈금. 표준화 방법을 바꾸면 이 값이 달라진다.',
       fmt: (v) => (v == null ? '—' : v.toFixed(1)),
       get: (r, i) => indT(sector, ind.label, method)[i],
     })
@@ -246,31 +329,41 @@ export function metricsFor(sector, method) {
       fmt: (v) => (v == null ? '—' : v.toFixed(2)), get: (r) => r[sector].ssiStd },
   )
 
-  // ④ 부문에 실제로 들어 있는 플래그만 노출한다
-  if (ROWS.some((r) => r[sector] && r[sector].tradeoff != null)) {
+  // ④ 지표가 둘 이상일 때만 뜻이 있는 플래그
+  if (indsOf(sector).length >= 2) {
     list.push({
       key: 'tradeoff', group: GRP.flag, scale: 'heat',
       label: '트레이드오프 지역',
-      desc: '지표 간 백분위 순위 차이가 30%p를 초과 — 한쪽은 앞서고 한쪽은 뒤처지는 지역.',
+      desc: '담은 지표 사이의 백분위 순위 차이가 30%p를 넘는 곳 — 한쪽은 앞서고 한쪽은 뒤처지는 지역.',
       fmt: (v) => (v ? '해당' : '해당 없음'), get: (r) => (r[sector].tradeoff ? 1 : 0),
     })
   }
   return list
 }
-export const metricFor = (sector, method, key) =>
-  metricsFor(sector, method).find((x) => x.key === key) || metricsFor(sector, method)[0]
+// 담은 지표가 하나도 없으면 그릴 값도 없다. 화면이 무너지지 않도록 빈 색 기준을 준다.
+const EMPTY_METRIC = {
+  key: 'none', group: '—', scale: 'blue', label: '표시할 값 없음',
+  desc: '담은 지표가 없어 계산된 값이 없습니다. [지표 고르기]에서 지표를 담아 주세요.',
+  fmt: () => '—', get: () => null,
+}
+export const metricFor = (sector, method, key) => {
+  const list = metricsFor(sector, method)
+  return list.find((x) => x.key === key) || list[0] || EMPTY_METRIC
+}
 
 export function valuesOf(metric) { return ROWS.map((r, i) => metric.get(r, i)) }
 
 export function extentOf(metric) {
   const v = valuesOf(metric).filter((x) => x != null && !Number.isNaN(x))
+  if (!v.length) return [0, 1]
   return [Math.min(...v), Math.max(...v)]
 }
 
 // ── 요약 통계 ────────────────────────────────────────────────────────────
 export function sectorSummary(sector) {
-  const c = ROWS.map((r) => r[sector].ssiCamp).filter((x) => x != null)
-  const high = ROWS.filter((r) => r[sector].flag === 'high').length
+  const c = ROWS.map((r) => r[sector]?.ssiCamp).filter((x) => x != null)
+  if (!c.length) return { n: ROWS.length, high: 0, over10: 0, avg: 0, max: 0, med: 0 }
+  const high = ROWS.filter((r) => r[sector]?.flag === 'high').length
   const over10 = c.filter((x) => x >= 10).length
   return {
     n: ROWS.length, high, over10,
@@ -280,16 +373,19 @@ export function sectorSummary(sector) {
   }
 }
 
-// ── 원본 40개 컬럼 그대로 되살리기 (데이터표 · CSV 내보내기용) ─────────────
-const MCOL = Object.fromEntries(METHODS.map((m) => [m.col, m.key]))
+// ── 전체 표 · CSV ────────────────────────────────────────────────────────
+const MCOL = Object.fromEntries(METHODS.map((m) => [m.short, m.key]))
+const SECT_HEAD = new RegExp(`^(${ALL_SECTOR_KEYS.join('|')})_`)
 
 export function flatValue(row, col) {
   if (col === '시도') return row.sido
   if (col === '시군구') return row.name
-  const s = col.slice(0, 2)
+  const mm = col.match(SECT_HEAD)
+  if (!mm) return null
+  const s = mm[1]
   const d = row[s]
   if (!d) return null
-  const rest = col.slice(3)
+  const rest = col.slice(s.length + 1)
   if (rest.startsWith('CI_')) return d.ci[MCOL[rest.slice(3)]]
   if (rest.startsWith('순위_')) return d.rank[MCOL[rest.slice(3)]]
   if (rest === 'SSI_range') return d.ssiRange
@@ -298,38 +394,70 @@ export function flatValue(row, col) {
   if (rest === '민감구분') return d.flag
   if (rest === 'MinMax대표순위') return d.repMinmax
   if (rest === 'PctRank대표순위') return d.repPctrank
-  if (rest.startsWith('원자료_')) return d.raw[rest.slice(4)]
+  if (rest.startsWith('원값_')) return d.raw[rest.slice(3)]
   if (rest === '트레이드오프_참고') return d.tradeoff ? 'Y' : 'N'
   return null
 }
 
-// 데이터표 기본 컬럼 순서 = 원본 시트 순서
-export const SHEET_ORDER = (() => {
+// 전체 표의 열 순서. 담은 조합이 바뀌면 원값 열도 따라 바뀐다.
+export function sheetOrder() {
   const out = ['시도', '시군구']
   for (const s of SECTOR_KEYS) {
-    METHODS.forEach((m) => out.push(`${s}_CI_${m.col}`))
-    METHODS.forEach((m) => out.push(`${s}_순위_${m.col}`))
+    METHODS.forEach((m) => out.push(`${s}_CI_${m.short}`))
+    METHODS.forEach((m) => out.push(`${s}_순위_${m.short}`))
     out.push(`${s}_SSI_range`, `${s}_SSI_std`, `${s}_SSI_camp`, `${s}_민감구분`,
       `${s}_MinMax대표순위`, `${s}_PctRank대표순위`)
-    indsOf(s).forEach((i) => out.push(`${s}_원자료_${i.label}`))
-  }
-  for (const s of SECTOR_KEYS) {
-    if (ROWS.some((r) => r[s] && r[s].tradeoff != null)) out.push(`${s}_트레이드오프_참고`)
+    indsOf(s).forEach((i) => out.push(`${s}_원값_${i.label}`))
+    if (indsOf(s).length >= 2) out.push(`${s}_트레이드오프_참고`)
   }
   return out
-})()
+}
 
-export const COLMETA = Object.fromEntries(COLUMNS.map((c) => [c.name, c]))
+// 열 머리글에 붙는 설명. 자료 파일의 메타데이터에서 그때그때 만든다.
+export function colMeta(col) {
+  if (col === '시도') return { desc: '광역시·도 이름', unit: '문자', how: '행정안전부 행정구역 경계' }
+  if (col === '시군구') return { desc: '시·군·구 이름', unit: '문자', how: '행정안전부 행정구역 경계' }
+  const mm = col.match(SECT_HEAD)
+  if (!mm) return null
+  const s = mm[1]
+  const sn = SECTORS[s]?.name || s
+  const rest = col.slice(s.length + 1)
+  const mlab = (sh) => methodOf(MCOL[sh])?.label || sh
+  const mfor = (sh) => methodOf(MCOL[sh])?.formula || ''
+  if (rest.startsWith('CI_')) {
+    const sh = rest.slice(3)
+    return { desc: `${sn} 부문 점수 — ${mlab(sh)}으로 표준화한 담은 지표들의 단순평균`,
+      unit: methodOf(MCOL[sh])?.range || '0~100', how: mfor(sh) }
+  }
+  if (rest.startsWith('순위_')) {
+    const sh = rest.slice(3)
+    return { desc: `${sn} 부문 점수 기준 전국 순위 — ${mlab(sh)}`, unit: `1~${N}위`,
+      how: '부문 점수 내림차순, 동점은 평균순위' }
+  }
+  if (rest === 'SSI_range') return { desc: `${sn} 순위의 최댓값 − 최솟값`, unit: '계단', how: `${METHODS.length}개 방법 순위의 범위` }
+  if (rest === 'SSI_std') return { desc: `${sn} 순위의 표준편차`, unit: '계단', how: `${METHODS.length}개 방법 순위의 표본표준편차` }
+  if (rest === 'SSI_camp') return { desc: `${sn} 두 진영 대표 방법의 순위 차이`, unit: '계단', how: '|Min-Max 순위 − 백분위순위 순위|', note: '지침서 9장의 최종 민감도 지표' }
+  if (rest === '민감구분') return { desc: '민감도 구간', unit: 'low / mid / high', how: '10계단 이상 high, 5계단 이상 mid' }
+  if (rest === 'MinMax대표순위') return { desc: '간격보존형 대표(Min-Max) 순위', unit: `1~${N}위`, how: '진영 대표 방법의 순위' }
+  if (rest === 'PctRank대표순위') return { desc: '순위전용형 대표(백분위순위) 순위', unit: `1~${N}위`, how: '진영 대표 방법의 순위' }
+  if (rest === '트레이드오프_참고') return { desc: '담은 지표 사이 성적 격차가 큰 지역', unit: 'Y / N', how: '지표 백분위 순위 차이 > 30%p' }
+  if (rest.startsWith('원값_')) {
+    const lab = rest.slice(3)
+    const e = indsOf(s).find((x) => x.label === lab)
+    if (!e) return { desc: lab, unit: '', how: '' }
+    return { desc: e.desc || e.name, unit: e.unit || '', how: e.formula || `${e.year}년 원자료`,
+      note: `${e.source}${e.note ? ` · ${e.note}` : ''} · 방향 ${e.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}` }
+  }
+  return null
+}
 
-// ── 부문 성적표 (229행 × 지표수) ─────────────────────────────────────────
-// 한 부문 · 한 표준화 방법에 대해 전 시군구 성적표를 통째로 만든다.
-// 지표가 10개로 늘면 열이 10×5개가 되고, 방법을 바꾸면 표 한 벌이 새로 나온다.
+// ── 부문 성적표 (229행 × 담은 지표) ──────────────────────────────────────
 export function reportTable(sector, method) {
   const inds = indsOf(sector)
   const cols = ['시도', '시군구']
   inds.forEach((i) => cols.push(
-    `${i.label}_원점수`, `${i.label}_표준화`, `${i.label}_T점수`, `${i.label}_순위`, `${i.label}_등급`))
-  cols.push('부문점수_CI', '부문_T점수', '부문_백분위', '부문_전국순위', '부문_등급')
+    `${i.label}_원값`, `${i.label}_표준화`, `${i.label}_T점수`, `${i.label}_순위`))
+  cols.push('부문점수_CI', '부문_T점수', '부문_백분위', '부문_전국순위')
 
   const std = inds.map((i) => stdSeries(sector, i.label, method))
   const tt = inds.map((i) => indT(sector, i.label, method))
@@ -341,36 +469,56 @@ export function reportTable(sector, method) {
     const d = r[sector]
     const o = { 시도: r.sido, 시군구: r.name }
     inds.forEach((ind, j) => {
-      o[`${ind.label}_원점수`] = d.raw[ind.label]
+      o[`${ind.label}_원값`] = d ? d.raw[ind.label] : null
       o[`${ind.label}_표준화`] = r1(std[j][i])
       o[`${ind.label}_T점수`] = r1(tt[j][i])
       o[`${ind.label}_순위`] = rk[j][i]
-      o[`${ind.label}_등급`] = gradeOf(rk[j][i])
     })
-    o['부문점수_CI'] = r1(d.ci[method])
+    o['부문점수_CI'] = r1(d?.ci[method])
     o['부문_T점수'] = r1(ct[i])
-    o['부문_백분위'] = r1(pctOf(d.rank[method]))
-    o['부문_전국순위'] = d.rank[method]
-    o['부문_등급'] = gradeOf(d.rank[method])
+    o['부문_백분위'] = r1(pctOf(d?.rank[method]))
+    o['부문_전국순위'] = d?.rank[method] ?? null
     return o
   })
   return { cols, rows }
 }
 
+const esc = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
+
 export function reportCSV(sector, method) {
   const { cols, rows } = reportTable(sector, method)
-  const esc = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
   return '﻿' + [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n')
 }
 
-export function toCSV(cols = SHEET_ORDER, rows = ROWS) {
-  const esc = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
-  return '﻿' + [cols.join(','), ...rows.map((r) => cols.map((c) => esc(flatValue(r, c))).join(','))].join('\n')
+export function toCSV(cols, rows = ROWS) {
+  const cs = cols || sheetOrder()
+  return '﻿' + [cs.join(','), ...rows.map((r) => cs.map((c) => esc(flatValue(r, c))).join(','))].join('\n')
 }
 
-// 방법 A→B 전환 시 색 등급(7단계)이 바뀌는 시군구 수 — "지도가 실제로 얼마나 바뀌나"
+// 방법 A→B 전환 시 색 구간(7단계)이 바뀌는 시군구 수 — "지도가 실제로 얼마나 바뀌나"
 export function binChangeCount(sector, from, to) {
-  const a = binOf(ROWS.map((r) => r[sector].rank[from]))
-  const b = binOf(ROWS.map((r) => r[sector].rank[to]))
+  const a = binOf(ROWS.map((r) => r[sector]?.rank[from] ?? null))
+  const b = binOf(ROWS.map((r) => r[sector]?.rank[to] ?? null))
   return a.reduce((n, x, i) => n + (x !== b[i] ? 1 : 0), 0)
+}
+
+// 산점도 축으로 고를 수 있는 것들 — 담은 지표 + 부문 종합
+export function axisOptions(sector, method) {
+  const out = [
+    { key: 'ci', label: `부문 점수 (CI)`, get: (r) => r[sector]?.ci[method] ?? null },
+    { key: 'ciT', label: '부문 표준점수(T)', get: (r, i) => ciT(sector, method)[i] },
+    { key: 'rank', label: '부문 전국 순위', get: (r) => r[sector]?.rank[method] ?? null, invert: true },
+    { key: 'ssiCamp', label: '표준화 민감도 (순위 이동 폭)', get: (r) => r[sector]?.ssiCamp ?? null },
+  ]
+  indsOf(sector).forEach((e) => {
+    out.push({ key: `raw:${e.label}`, label: `${e.label} 원값${e.unit ? ` (${e.unit})` : ''}`,
+      get: (r) => r[sector]?.raw[e.label] ?? null })
+    out.push({ key: `std:${e.label}`, label: `${e.label} 표준화 값`,
+      get: (r, i) => stdSeries(sector, e.label, method)[i] })
+  })
+  return out
+}
+export const axisFor = (sector, method, key) => {
+  const list = axisOptions(sector, method)
+  return list.find((a) => a.key === key) || list[0]
 }

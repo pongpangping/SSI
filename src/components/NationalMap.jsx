@@ -3,8 +3,9 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
-import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
+import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
+import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
 
 const okRing = (r) => Array.isArray(r) && r.length >= 4 &&
   r.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]))
@@ -26,15 +27,79 @@ export function geoData() {
 }
 const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }
 
+/* ── 이름표 자리 잡기 ───────────────────────────────────────────────────
+   시군구 이름을 지도 위에 직접 얹는다. 말풍선은 마우스를 올려야 보이니,
+   인쇄하거나 화면을 갈무리했을 때 어디가 어딘지 알 수 없기 때문이다.
+
+   자리는 '가장 넓은 조각의 무게중심'이다. 섬이 딸린 시군구는 본섬 위에 붙는다.
+   넓이 순으로 놓되 이미 놓인 이름표와 겹치면 건너뛴다. 확대할수록 자리가
+   넓어지므로, 같은 규칙만으로도 멀리서는 큰 지역만 · 가까이서는 전부 보인다. */
+function ringCentroid(ring) {
+  let a = 0, cx = 0, cy = 0
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x0, y0] = ring[i], [x1, y1] = ring[i + 1]
+    const f = x0 * y1 - x1 * y0
+    a += f; cx += (x0 + x1) * f; cy += (y0 + y1) * f
+  }
+  a /= 2
+  if (!a) return null
+  return { x: cx / (6 * a), y: cy / (6 * a), a: Math.abs(a) }
+}
+
+let LABS = null
+function labelData() {
+  if (LABS) return LABS
+  const sgg = []
+  geoData().features.forEach((f) => {
+    const g = f.geometry
+    const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates
+    let best = null, span = 0
+    polys.forEach((poly) => {
+      const c = ringCentroid(poly[0])
+      if (!c || (best && c.a <= best.a)) return
+      best = c
+      let x0 = Infinity, x1 = -Infinity
+      poly[0].forEach((p) => { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0] })
+      span = x1 - x0
+    })
+    if (best) sgg.push({
+      key: featKey(f), name: f.properties.name, sido: f.properties.sido,
+      lat: best.y, lng: best.x, a: best.a, span,
+    })
+  })
+  sgg.sort((p, q) => q.a - p.a)
+
+  // 시도 이름표는 그 안 시군구들의 넓이 가중 평균 자리에 놓는다.
+  const bag = {}
+  sgg.forEach((o) => { (bag[o.sido] ||= []).push(o) })
+  const sido = Object.entries(bag).map(([s, list]) => {
+    const A = list.reduce((t, o) => t + o.a, 0) || 1
+    return {
+      key: `sido:${s}`, name: shortSido(s), sido: s, a: A, span: 999,
+      lat: list.reduce((t, o) => t + o.lat * o.a, 0) / A,
+      lng: list.reduce((t, o) => t + o.lng * o.a, 0) / A,
+    }
+  }).sort((p, q) => q.a - p.a)
+
+  LABS = { sgg, sido }
+  return LABS
+}
+
+// 경도 1도가 이 확대 배율에서 몇 px인지 — 지도를 만지지 않고도 셈할 수 있다.
+const pxPerDeg = (z) => (256 * Math.pow(2, z)) / 360
+
 export default function NationalMap({
-  sector, metric, onlyHigh, selected, hovered, onSelect, onHover, sido = null,
+  sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover, sido = null,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
-  autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true,
+  autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
   const [map, setMap] = useState(null)
   const [tilesReady, setTilesReady] = useState(false)
+  const [labelsOn, setLabelsOn] = useState(true)
+  const [dlOpen, setDlOpen] = useState(false)
+  const [dlMsg, setDlMsg] = useState('')
 
   const geo = useMemo(geoData, [])
   const byKey = useMemo(() => Object.fromEntries(ROWS.map((r) => [rowKey(r), r])), [])
@@ -65,7 +130,7 @@ export default function NationalMap({
     const k = featKey(f)
     const row = byKey[k]
     const isSel = k === selected, isHov = k === hovered
-    const high = row && row[sector].flag === 'high'
+    const high = row && row[sector]?.flag === 'high'
     const outSido = sido && row && row.sido !== sido
     const dim = (onlyHigh && !high) || outSido
     return {
@@ -81,7 +146,7 @@ export default function NationalMap({
     <div class="mpop">
       <div class="mpop-h">${row.sido} ${row.name}</div>
       <div class="mtip-row"><span>${metric.label}</span><b>${metric.fmt(valOf(k))}</b></div>
-      <div class="mtip-row"><span>순위 이동</span><b>${row[sector].ssiCamp}계단${row[sector].flag === 'high' ? ' · 민감' : ''}</b></div>
+      <div class="mtip-row"><span>순위 이동</span><b>${row[sector]?.ssiCamp}계단${row[sector]?.flag === 'high' ? ' · 민감' : ''}</b></div>
     </div>`
 
   const onEach = (f, layer) => {
@@ -197,6 +262,74 @@ export default function NationalMap({
     try { sido ? fitSido(sido) : fitAll() } catch (e) { /* noop */ }
   }, [sido, map])
 
+  // ── 시군구 이름표 ──────────────────────────────────────────────────────
+  // 확대 배율이 정해지면 화면 위 거리도 정해지므로, 겹침 계산은 확대할 때만 다시 한다.
+  // 지도를 끌어 옮기는 동안에는 Leaflet이 이름표 판을 통째로 밀어 주기만 하면 된다.
+  useEffect(() => {
+    if (!map) return
+    const pane = map.getPane('sgLabel') || map.createPane('sgLabel')
+    pane.style.zIndex = 640
+    pane.style.pointerEvents = 'none'
+    const group = L.layerGroup([], { pane: 'sgLabel' }).addTo(map)
+
+    const draw = () => {
+      group.clearLayers()
+      if (!labelsOn) return
+      const z = map.getZoom()
+      const LB = labelData()
+      // 나란히 보기의 작은 지도는 폭이 절반이라 같은 배율에서도 글씨가 빽빽해진다.
+      // 그래서 시군구 이름으로 넘어가는 문턱과 최소 폭을 조금 더 높게 잡는다.
+      const wide = z < (compact ? 8.2 : 7.4)
+      const per = pxPerDeg(z)
+      let list = wide ? LB.sido : LB.sgg
+      if (!wide) {
+        // 이름표가 얹힐 만큼 넓게 그려진 곳만. 선택한 곳은 크기와 무관하게 항상 붙인다.
+        list = list.filter((o) => {
+          const row = byKey[o.key]
+          if (!row) return false
+          if (o.key === selected) return true
+          if (sido && row.sido !== sido) return false
+          if (onlyHigh && row[sector]?.flag !== 'high') return false
+          return o.span * per >= (compact ? 46 : 30)
+        })
+        // 선택한 지역이 맨 앞에 와야 겹침 다툼에서 이긴다
+        list = [...list].sort((p, q) => (q.key === selected) - (p.key === selected))
+      }
+
+      // 자리가 겹치면 바로 버리지 않고 한두 칸 밀어 본다.
+      // 서울처럼 경기 한가운데 들어앉은 곳은 밀어 주지 않으면 매번 진다.
+      const NUDGE = wide
+        ? [[0, 0], [0, -1.2], [0, 1.2], [-0.9, 0], [0.9, 0], [-0.9, -1.2], [0.9, 1.2], [0, -2.4], [0, 2.4]]
+        : [[0, 0], [0, -1.1], [0, 1.1]]
+
+      const put = []
+      list.forEach((o) => {
+        const p = map.project([o.lat, o.lng], z)
+        const w = o.name.length * (wide ? 11 : 9.4) + 8
+        const h = wide ? 17 : 14
+        let box = null
+        for (let i = 0; i < NUDGE.length; i++) {
+          const cx = p.x + NUDGE[i][0] * w, cy = p.y + NUDGE[i][1] * h
+          const b = [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2]
+          if (!put.some((q) => !(b[2] < q[0] || b[0] > q[2] || b[3] < q[1] || b[1] > q[3]))) { box = b; break }
+        }
+        if (!box) return
+        put.push(box)
+        const ox = (box[0] + box[2]) / 2 - p.x
+        const oy = (box[1] + box[3]) / 2 - p.y
+        const cls = `sgl${wide ? ' sgl-sido' : ''}${o.key === selected ? ' sgl-on' : ''}`
+        L.marker([o.lat, o.lng], {
+          pane: 'sgLabel', interactive: false, keyboard: false,
+          icon: L.divIcon({ className: cls, html: `<span>${o.name}</span>`, iconSize: [0, 0], iconAnchor: [-ox, -oy] }),
+        }).addTo(group)
+      })
+    }
+
+    draw()
+    map.on('zoomend', draw)
+    return () => { map.off('zoomend', draw); group.remove() }
+  }, [map, labelsOn, sido, onlyHigh, selected, sector, byKey, compact, ver])
+
   // 통계창 접기/펼치기·창 크기 변화로 지도 폭이 바뀌면 Leaflet에 알린다
   useEffect(() => {
     if (!map || !wrapRef.current || typeof ResizeObserver === 'undefined') return
@@ -219,6 +352,24 @@ export default function NationalMap({
   const bSpan = breaks.length ? Math.abs(breaks[breaks.length - 1] - breaks[0]) : 1
   const fmtB = (v) => (bSpan >= 20 ? String(Math.round(v)) : v.toFixed(1))
   const tickTitle = `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
+
+  // ── 내보내기 ────────────────────────────────────────────────────────────
+  // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 시도를 골라 둔 상태면 그 권역만 나간다.
+  const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표' }
+  const doExport = (kind) => {
+    setDlOpen(false)
+    let n = 0
+    try {
+      const o = { geo, byKey, sector, method, metric, valOf, sido }
+      n = kind === 'shp' ? exportShapefile(o) : kind === 'geojson' ? exportGeoJSON(o) : exportCSV(o)
+    } catch (e) {
+      setDlMsg('내보내는 중 문제가 생겼습니다')
+      setTimeout(() => setDlMsg(''), 3200)
+      return
+    }
+    setDlMsg(n ? `${sido || '전국'} ${n}개 시군구 · ${DL[kind]} 내려받음` : '내보낼 지역이 없습니다')
+    setTimeout(() => setDlMsg(''), 3400)
+  }
 
   const selRow = selected ? byKey[selected] : null
   const hovRow = hovered ? byKey[hovered] : null
@@ -250,8 +401,42 @@ export default function NationalMap({
             aria-label="선택한 시·도로 이동">◎</button>
           <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대"
             aria-label="선택 지역 확대">⤢</button>
+          <span className="mapz-sep" />
+          <button className={labelsOn ? 'on' : ''} onClick={() => setLabelsOn(!labelsOn)}
+            aria-pressed={labelsOn} title={labelsOn ? '시군구 이름표 끄기' : '시군구 이름표 켜기'}
+            aria-label="시군구 이름표">가</button>
+          <button className={dlOpen ? 'on' : ''} onClick={() => setDlOpen(!dlOpen)}
+            aria-expanded={dlOpen} title="지금 지도를 파일로 내보내기" aria-label="내보내기">⤓</button>
         </div>
       )}
+
+      {/* 내보내기 차림표 — 지금 화면에 칠해진 값과 범위를 그대로 담는다 */}
+      {!compact && dlOpen && (
+        <>
+          <div className="mapdl-veil" onClick={() => setDlOpen(false)} />
+          <div className="mapdl">
+            <div className="mapdl-h">
+              내보내기
+              <em>{SECTORS[sector]?.name} · {metric.label} · {sido || '전국'}</em>
+            </div>
+            <button onClick={() => doExport('shp')}>
+              <b>Shapefile (.zip)</b><span>QGIS·ArcGIS에서 바로 열립니다 · EPSG:4326</span>
+            </button>
+            <button onClick={() => doExport('geojson')}>
+              <b>GeoJSON (.geojson)</b><span>웹 지도·파이썬에서 쓰기 좋습니다</span>
+            </button>
+            <button onClick={() => doExport('csv')}>
+              <b>표 (.csv)</b><span>도형 없이 값만 · 엑셀에서 바로 열립니다</span>
+            </button>
+            <p className="mapdl-n">
+              시도·시군구·지도 색 기준 값·부문점수·순위·표준점수(T)·백분위·순위 이동이 함께 들어갑니다.
+              항목 이름 풀이는 압축 파일 안 <b>읽어보기.txt</b>에 있습니다.
+            </p>
+          </div>
+        </>
+      )}
+
+      {dlMsg && <div className="map-toast">{dlMsg}</div>}
 
       {/* 보기 옵션 — 오른쪽 아래. 지도를 보는 중에도 손이 닿는 자리 */}
       {!compact && onlyHighToggle && (
@@ -269,8 +454,8 @@ export default function NationalMap({
         <div className={`map-live${hovRow ? ' hov' : ''}`}>
           <b>{shown.sido} {shown.name}</b>
           <span>{metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>
-          <span>순위 이동<i>{shown[sector].ssiCamp}계단</i></span>
-          {shown[sector].flag === 'high' && <em className="ml-high">민감</em>}
+          <span>순위 이동<i>{shown[sector]?.ssiCamp}계단</i></span>
+          {shown[sector]?.flag === 'high' && <em className="ml-high">민감</em>}
         </div>
       )}
 

@@ -14,16 +14,16 @@ function hist(values, lo, hi) {
 // 지침서 6.4 예시: 한쪽에만 극단값이 있고 나머지는 촘촘한 분포
 const DEMO = [10, 45, 88, 90, 91, 92, 93, 94, 96, 100]
 
-export default function DistributionCompare({ sector, selectedRow, method }) {
+export default function DistributionCompare({ sector, selectedRow, method, ver = 0 }) {
   const cards = useMemo(() => METHODS.map((m) => {
-    const v = ROWS.map((r) => r[sector].ci[m.key]).filter((x) => x != null)
+    const v = ROWS.map((r) => r[sector]?.ci[m.key]).filter((x) => x != null)
     const lo = Math.min(...v), hi = Math.max(...v)
     const b = hist(v, lo, hi)
     const peak = Math.max(...b)
-    const sv = selectedRow ? selectedRow[sector].ci[m.key] : null
+    const sv = selectedRow ? (selectedRow[sector]?.ci[m.key] ?? null) : null
     const selBin = sv == null ? null : Math.min(BINS - 1, Math.floor((sv - lo) / ((hi - lo) || 1) * BINS))
     return { m, b, peak, lo, hi, sv, selBin }
-  }), [sector, selectedRow])
+  }), [sector, selectedRow, ver])
 
   const demoMM = minmax(DEMO)
   const demoPR = pctrank(DEMO)

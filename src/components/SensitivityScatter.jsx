@@ -6,9 +6,9 @@ import { ROWS, rowKey } from '../lib/ssi.js'
 
 // x=MinMax(간격보존형) 순위, y=PctRank(순위전용형) 순위.
 // 대각선에서 멀수록 두 진영의 판단이 다름 = SSI_camp 큼.
-export default function SensitivityScatter({ sector, selected, onSelect }) {
+export default function SensitivityScatter({ sector, selected, onSelect, ver = 0 }) {
   const data = ROWS
-    .filter((r) => r[sector].rank.minmax != null && r[sector].rank.pctrank != null)
+    .filter((r) => r[sector]?.rank.minmax != null && r[sector]?.rank.pctrank != null)
     .map((r) => ({
       x: r[sector].rank.minmax, y: r[sector].rank.pctrank,
       camp: r[sector].ssiCamp, high: r[sector].flag === 'high',

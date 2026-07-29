@@ -68,7 +68,7 @@ const cut = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 const mshort = (k) => { const m = methodOf(k); return m?.short || m?.label || k }
 
 /* ── 도면 한 벌 ─────────────────────────────────────────────── */
-function Bump({ size, sector, selectedRow, mode, onSelect }) {
+function Bump({ size, sector, selectedRow, mode, onSelect, ver = 0 }) {
   const g = GEO[size]
   const PW = g.W - g.L - g.R
   const PH = g.H - g.T - g.B
@@ -81,14 +81,14 @@ function Bump({ size, sector, selectedRow, mode, onSelect }) {
   const series = useMemo(() => {
     let list
     if (mode === 'sido' && selectedRow) {
-      list = ROWS.filter((r) => r.sido === selectedRow.sido)
+      list = ROWS.filter((r) => r[sector] && r.sido === selectedRow.sido)
         .sort((a, b) => a[sector].rank[mk0] - b[sector].rank[mk0]).slice(0, take)
     } else if (mode === 'top') {
-      list = [...ROWS].sort((a, b) => a[sector].rank[mk0] - b[sector].rank[mk0]).slice(0, take)
+      list = ROWS.filter((r) => r[sector]).sort((a, b) => a[sector].rank[mk0] - b[sector].rank[mk0]).slice(0, take)
     } else {
-      list = [...ROWS].sort((a, b) => b[sector].ssiCamp - a[sector].ssiCamp).slice(0, take)
+      list = ROWS.filter((r) => r[sector]).sort((a, b) => b[sector].ssiCamp - a[sector].ssiCamp).slice(0, take)
     }
-    if (selectedRow && !list.some((r) => rowKey(r) === rowKey(selectedRow))) list = [...list, selectedRow]
+    if (selectedRow && selectedRow[sector] && !list.some((r) => rowKey(r) === rowKey(selectedRow))) list = [...list, selectedRow]
     return list.map((r) => {
       const rk = METHODS.map((m) => r[sector].rank[m.key])
       // 방향은 두 진영의 대표 방법(간격보존형 ↔ 순위전용형)으로 본다.
@@ -97,7 +97,7 @@ function Bump({ size, sector, selectedRow, mode, onSelect }) {
       const swing = Math.max(...rk) - Math.min(...rk)
       return { key: rowKey(r), name: r.name, sido: shortSido(r.sido), ranks: rk, delta: d, swing, row: r }
     })
-  }, [mode, sector, selectedRow, mk0, repA, repB, take])
+  }, [mode, sector, selectedRow, mk0, repA, repB, take, ver])
 
   const selKey = selectedRow ? rowKey(selectedRow) : null
 
@@ -204,7 +204,7 @@ function Bump({ size, sector, selectedRow, mode, onSelect }) {
 }
 
 /* ── 카드 + 크게 보기 ───────────────────────────────────────── */
-export default function RankFlow({ sector, selectedRow, onSelect }) {
+export default function RankFlow({ sector, selectedRow, onSelect, ver = 0 }) {
   const [mode, setMode] = useState('move')
   const [big, setBig] = useState(false)
 
@@ -254,7 +254,7 @@ export default function RankFlow({ sector, selectedRow, onSelect }) {
         </button>
       </div>
 
-      <Bump size="sm" sector={sector} selectedRow={selectedRow} mode={mode} onSelect={onSelect} />
+      <Bump size="sm" sector={sector} selectedRow={selectedRow} mode={mode} onSelect={onSelect} ver={ver} />
       {legend}
 
       {/* 통계 패널 안쪽에 그대로 두면 패널 상자에 갇힌다 → 화면 뿌리로 옮겨 띄운다 */}
@@ -271,7 +271,7 @@ export default function RankFlow({ sector, selectedRow, onSelect }) {
                   {seg}
                   <span className="rf-desc">{modeDesc}</span>
                 </div>
-                <Bump size="lg" sector={sector} selectedRow={selectedRow} mode={mode} onSelect={onSelect} />
+                <Bump size="lg" sector={sector} selectedRow={selectedRow} mode={mode} onSelect={onSelect} ver={ver} />
                 {legend}
               </div>
             </div>

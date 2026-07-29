@@ -1,9 +1,9 @@
-import { SECTORS, rawSeries } from '../lib/ssi.js'
+import { indsOf, rawSeries, fmtRaw } from '../lib/ssi.js'
 
-// 부문 내 원자료 지표: 선택 시군구 값 + 전국 대비 위치(백분위)
+// 담은 지표의 원값: 선택 시군구 값 + 전국 대비 위치(백분위)
 export default function RawIndicators({ row, sector }) {
-  if (!row) return <div className="empty-hint">시군구를 선택하세요</div>
-  const inds = SECTORS[sector].inds
+  if (!row || !row[sector]) return <div className="empty-hint">시군구를 선택하세요</div>
+  const inds = indsOf(sector)
 
   return (
     <div className="rawind">
@@ -21,10 +21,10 @@ export default function RawIndicators({ row, sector }) {
           <div className="ri-row" key={ind.label}>
             <div className="ri-top">
               <span className="ri-name">{ind.label}
-                <em className="ri-dir">{ind.dir === '+' ? '↑좋음' : '↓좋음'}</em>
+                <em className="ri-dir">{ind.dir === '+' ? '▲ 높을수록' : '▼ 낮을수록'}</em>
                 {ind.year && <em className="ri-yr">{ind.year}년</em>}
               </span>
-              <b className="ri-val">{v == null ? '—' : v}<small>{ind.unit}</small></b>
+              <b className="ri-val">{fmtRaw(v)}<small>{ind.unit}</small></b>
             </div>
             {pctile != null && (
               <div className="ri-bar">

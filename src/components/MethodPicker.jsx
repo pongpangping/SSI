@@ -75,11 +75,11 @@ export default function MethodPicker({ sector, method, onMethod }) {
       <div className="mp-change">
         <div className="mp-chg-cap">
           지금 <b>{m.label}</b>에서 다른 방법으로 바꾸면
-          <br />지도 색 등급이 달라지는 시군구 수
+          <br />지도 색 구간이 달라지는 시군구 수
         </div>
         {METHODS.filter((x) => x.key !== method).map((x) => (
           <button key={x.key} className="mp-chg" onClick={() => onMethod(x.key)}
-            title={`${m.label} 대신 ${x.label}을 쓰면 지도 색 등급이 달라지는 시군구 수`}>
+            title={`${m.label} 대신 ${x.label}을 쓰면 지도 색 구간이 달라지는 시군구 수`}>
             <span className="mc-nm">{m.label} <i>→</i> {x.label}</span>
             <b>{binChangeCount(sector, method, x.key)}</b>
             <em>곳</em>

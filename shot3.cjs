@@ -1,0 +1,28 @@
+const { chromium } = require('playwright')
+const path = require('path')
+;(async () => {
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
+  const p = await b.newPage({ viewport: { width: 1680, height: 1000 } })
+  await p.goto('file://' + path.resolve(__dirname, 'dist/index.html'))
+  await p.waitForTimeout(4000)
+  await p.screenshot({ path: 'v4-main.png' })
+  await p.locator('.sidebar').screenshot({ path: 'v4-side.png' })
+  // 손잡이 주변 (펼침)
+  const t = await p.locator('.ptab').boundingBox()
+  await p.screenshot({ path: 'v4-tab-open.png', clip: { x: t.x - 70, y: t.y - 60, width: 190, height: 190 } })
+  await p.click('.ptab'); await p.waitForTimeout(900)
+  const t2 = await p.locator('.ptab').boundingBox()
+  await p.screenshot({ path: 'v4-tab-closed.png', clip: { x: t2.x - 70, y: t2.y - 60, width: 190, height: 190 } })
+  await p.screenshot({ path: 'v4-collapsed.png' })
+  await p.click('.ptab'); await p.waitForTimeout(800)
+  // 조건 선택 구획만
+  await p.locator('.sb2-block').screenshot({ path: 'v4-method.png' })
+  // 묶음 상자 열고 닫기
+  await p.click('.acc2-grp-h[data-grp="민감도"]'); await p.waitForTimeout(400)
+  await p.locator('.acc2-card.open').screenshot({ path: 'v4-groups.png' })
+  // 나란히 보기
+  await p.click('.sb2-cta'); await p.waitForTimeout(2500)
+  await p.screenshot({ path: 'v4-compare.png' })
+  await p.click('.sb2-cta'); await p.waitForTimeout(1200)
+  await b.close()
+})()

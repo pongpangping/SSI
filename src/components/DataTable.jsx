@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { ROWS, rowKey, SHEET_ORDER, COLMETA, flatValue, toCSV, META, SECTORS, SECTOR_KEYS } from '../lib/ssi.js'
+import { ROWS, rowKey, sheetOrder, colMeta, flatValue, toCSV, META, SECTORS, SECTOR_KEYS } from '../lib/ssi.js'
 
 // 부문 묶음은 데이터에서 만든다 — 부문이 8개로 늘어나면 단추도 8개가 된다.
 const GROUPS = ['전체', ...SECTOR_KEYS.map((k) => `${k} ${SECTORS[k].name.replace(/\s/g, '')}`)]
 const SECT_RE = new RegExp(`^(${SECTOR_KEYS.join('|')})_`)
 
-export default function DataTable({ sector, onClose, selected, onSelect }) {
+export default function DataTable({ sector, onClose, selected, onSelect, ver = 0 }) {
   const [q, setQ] = useState('')
   const [grp, setGrp] = useState(GROUPS.find((g) => g.startsWith(sector)) || GROUPS[0])
   const [sortCol, setSortCol] = useState(`${sector}_SSI_camp`)
@@ -13,10 +13,11 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
   const [onlyHigh, setOnlyHigh] = useState(false)
 
   const cols = useMemo(() => {
-    if (grp === '전체') return SHEET_ORDER
+    const all = sheetOrder()
+    if (grp === '전체') return all
     const p = grp.split(' ')[0]
-    return SHEET_ORDER.filter((c) => c === '시도' || c === '시군구' || c.startsWith(p + '_'))
-  }, [grp])
+    return all.filter((c) => c === '시도' || c === '시군구' || new RegExp(`^${p}_`).test(c))
+  }, [grp, ver])
 
   const rows = useMemo(() => {
     let list = ROWS
@@ -24,7 +25,7 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
       const t = q.trim()
       list = list.filter((r) => r.name.includes(t) || r.sido.includes(t))
     }
-    if (onlyHigh) list = list.filter((r) => r[sector].flag === 'high')
+    if (onlyHigh) list = list.filter((r) => r[sector]?.flag === 'high')
     const s = [...list].sort((a, b) => {
       const x = flatValue(a, sortCol), y = flatValue(b, sortCol)
       if (x == null) return 1
@@ -33,7 +34,7 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
       return desc ? y - x : x - y
     })
     return s
-  }, [q, onlyHigh, sortCol, desc, sector])
+  }, [q, onlyHigh, sortCol, desc, sector, ver])
 
   const download = () => {
     const blob = new Blob([toCSV(cols, rows)], { type: 'text/csv;charset=utf-8' })
@@ -45,7 +46,7 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
   }
 
   const head = (c) => {
-    const m = COLMETA[c]
+    const m = colMeta(c)
     return `${c}\n${m ? `${m.desc}\n단위/범위: ${m.unit}\n산출: ${m.how}${m.note ? `\n비고: ${m.note}` : ''}` : ''}`
   }
 
@@ -53,7 +54,7 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
     <div className="modal-back" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
-          <h3>전체 데이터표 · 원본 40개 컬럼</h3>
+          <h3>전체 데이터표 · 담은 조합으로 계산한 결과</h3>
           <button onClick={onClose}>✕</button>
         </div>
 
@@ -105,7 +106,7 @@ export default function DataTable({ sector, onClose, selected, onSelect }) {
           </table>
         </div>
         <div className="gl-note">
-          열 머리글에 마우스를 올리면 컬럼메타데이터 시트의 설명·단위·산출방법·비고가 표시됩니다. 클릭하면 정렬, 행을 클릭하면 지도에서 선택됩니다.
+          열 머리글에 마우스를 올리면 설명·단위·산출방법·비고가 표시됩니다. 클릭하면 정렬, 행을 클릭하면 지도에서 선택됩니다. 원값 열은 지금 담아 둔 지표만 나옵니다.
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@ const otherKey = (sector, method, key) => {
 }
 const nextSector = (s) => SECTOR_KEYS[(SECTOR_KEYS.indexOf(s) + 1) % SECTOR_KEYS.length]
 
-// 두 지도의 색 등급(7단계)이 다른 시군구 수 — 부문·지표가 달라도 셀 수 있게 값에서 직접 계산한다.
+// 두 지도의 색 구간(7단계)이 다른 시군구 수 — 부문·지표가 달라도 셀 수 있게 값에서 직접 계산한다.
 function binsOf(metric) {
   const v = valuesOf(metric)
   const f = v.filter((x) => x != null && !Number.isNaN(x))
@@ -73,7 +73,7 @@ function SidePick({ side, on, onChange }) {
 
 export default function CompareMaps({
   sector, method = 'minmax', metricKey, onlyHigh, selected, hovered,
-  onSelect, onHover, sido = null, onlyHighToggle = null,
+  onSelect, onHover, sido = null, onlyHighToggle = null, ver = 0,
 }) {
   const maps = useRef([])
   const lock = useRef(false)
@@ -122,7 +122,7 @@ export default function CompareMaps({
   const vA = useMemo(() => valuesOf(mA), [mA])
   const vB = useMemo(() => valuesOf(mB), [mB])
   const changed = useMemo(() => diffCount(mA, mB), [mA, mB])
-  const big = useMemo(() => ROWS.filter((r) => r[A.sector].ssiCamp >= 10).length, [A.sector])
+  const big = useMemo(() => ROWS.filter((r) => r[A.sector]?.ssiCamp >= 10).length, [A.sector, ver])
 
   const tagA = `${SECTORS[A.sector].name} · ${methodOf(A.method).label}`
   const tagB = `${SECTORS[B.sector].name} · ${methodOf(B.method).label}`
@@ -163,21 +163,21 @@ export default function CompareMaps({
       <div className="abm-bar">
         <span className="abm-tag" style={{ background: cA }}>{tagA}</span>
         <span className="abm-mid" title="두 지도의 확대·이동은 함께 움직입니다">
-          <em>색 등급 다른 곳</em><b>{changed}곳</b>
+          <em>색 구간 다른 곳</em><b>{changed}곳</b>
           <em>10계단↑ 이동</em><b>{big}곳</b>
         </span>
         <span className="abm-tag" style={{ background: cB }}>{tagB}</span>
       </div>
 
       <div className="abm-maps">
-        <NationalMap sector={A.sector} metric={mA} onlyHigh={onlyHigh} sido={sido}
+        <NationalMap sector={A.sector} metric={mA} method={A.method} onlyHigh={onlyHigh} sido={sido}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
           compact tips={false} title={methodOf(A.method).label} subtitle={mA.label}
-          onMapReady={register} onToolsReady={tools} />
-        <NationalMap sector={B.sector} metric={mB} onlyHigh={onlyHigh} sido={sido}
+          onMapReady={register} onToolsReady={tools} ver={ver} />
+        <NationalMap sector={B.sector} metric={mB} method={B.method} onlyHigh={onlyHigh} sido={sido}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
           compact tips={false} title={methodOf(B.method).label} subtitle={mB.label}
-          onMapReady={register} autoFit={false} />
+          onMapReady={register} autoFit={false} ver={ver} />
 
         <div className="mapz abm-mapz" title="두 지도가 함께 움직입니다">
           <button onClick={() => run('zoomIn')} title="확대" aria-label="확대">＋</button>
@@ -213,8 +213,8 @@ export default function CompareMaps({
             <i /><span>{mB.label}</span><b>{mB.fmt(vB[hi])}</b>
           </div>
           <div className="cp-f">
-            순위 이동 {hRow[A.sector].ssiCamp}계단
-            {hRow[A.sector].flag === 'high' && <em>민감</em>}
+            순위 이동 {hRow[A.sector]?.ssiCamp ?? '—'}계단
+            {hRow[A.sector]?.flag === 'high' && <em>민감</em>}
           </div>
         </div>
       )}
