@@ -54,7 +54,7 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
     <div className="modal-back" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
-          <h3>전체 데이터표 · 담은 조합으로 계산한 결과</h3>
+          <h3>전체 데이터표 · 선택 조합으로 계산한 결과</h3>
           <button onClick={onClose}>✕</button>
         </div>
 
@@ -106,7 +106,7 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
           </table>
         </div>
         <div className="gl-note">
-          열 머리글에 마우스를 올리면 설명·단위·산출방법·비고가 표시됩니다. 클릭하면 정렬, 행을 클릭하면 지도에서 선택됩니다. 원값 열은 지금 담아 둔 지표만 나옵니다.
+          열 머리글에 마우스를 올리면 설명·단위·산출방법·비고가 표시됩니다. 클릭하면 정렬, 행을 클릭하면 지도에서 선택됩니다. 원값 열은 지금 선택해 둔 지표만 나옵니다.
         </div>
       </div>
     </div>

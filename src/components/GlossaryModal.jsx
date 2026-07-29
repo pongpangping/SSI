@@ -1,8 +1,9 @@
+import SectorIcon from './SectorIcon.jsx'
 import { useEffect, useState } from 'react'
 import { METHODS, CAMP, META, INDICATORS, SECTORS, ALL_SECTOR_KEYS, N } from '../lib/ssi.js'
 
 const TERMS = [
-  { t: 'CI (부문지수, Composite Index)', d: '담은 지표들을 표준화한 뒤 같은 비중으로 평균해 만든 값. 담는 지표를 바꾸면 CI도 바뀐다.' },
+  { t: 'CI (부문지수, Composite Index)', d: '선택 지표들을 표준화한 뒤 같은 비중으로 평균해 만든 값. 선택 지표를 바꾸면 CI도 바뀐다.' },
   { t: 'SSI (표준화 민감도 지수)', d: '같은 원자료라도 표준화 방법에 따라 시군구 순위가 얼마나 흔들리는지를 나타내는 지수. 클수록 방법 선택에 순위가 크게 달라진다.' },
   { t: 'camp (진영)', d: '4개 표준화 방법이 실제로는 두 진영으로 갈린다: 값의 간격을 보존하는 간격보존형(Min-Max·거리기반·로지스틱)과 등수만 보는 순위전용형(백분위순위).' },
   { t: 'SSI_camp (최종 민감도)', d: '두 진영 대표값의 순위 차이. SSI_camp = |순위(Min-Max) − 순위(백분위순위)|. 4개 방법을 나열 비교하는 대신, 대립하는 두 진영의 차이로 간결하게 재정의한 최종 지표.' },
@@ -91,7 +92,7 @@ export default function GlossaryModal() {
                   if (!list.length && !planned.length) return null
                   return (
                     <div key={k}>
-                      <div className="modal-sec">{s.icon} {k} {s.name} {s.ready ? `(${list.length})` : '· 자료 준비중'}</div>
+                      <div className="modal-sec"><SectorIcon k={k} size={13} /> {k} {s.name} {s.ready ? `(${list.length})` : '· 자료 준비중'}</div>
                       {list.map((c) => (
                         <div className="gl-col" key={c.id}>
                           <b>{c.no}. {c.label} <i className={c.dir === '+' ? 'up' : 'dn'}>{c.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}</i></b>
@@ -117,7 +118,7 @@ export default function GlossaryModal() {
               </>}
             </div>
             <div className="gl-note">
-              {META.source} · 시군구 {N}개 · 표준화·부문점수·순위는 담은 조합에 맞춰 화면에서 계산합니다.
+              {META.source} · 시군구 {N}개 · 표준화·부문점수·순위는 선택 조합에 맞춰 화면에서 계산합니다.
             </div>
           </div>
         </div>

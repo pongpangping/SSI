@@ -13,7 +13,7 @@ export default function StdTransform({ row, sector, method, onMethod }) {
       <table className="stt-tbl">
         <thead>
           <tr>
-            <th className="stt-l">담은 지표 · 원값</th>
+            <th className="stt-l">선택 지표 · 원값</th>
             {METHODS.map((m) => (
               <th key={m.key} className={m.key === method ? 'on' : ''}
                 title={`${m.label} — ${m.formula}`}
@@ -45,7 +45,7 @@ export default function StdTransform({ row, sector, method, onMethod }) {
             )
           })}
           <tr className="stt-ci">
-            <td className="stt-l"><b>CI = 담은 지표 표준화값 평균</b></td>
+            <td className="stt-l"><b>CI = 선택 지표 표준화값 평균</b></td>
             {METHODS.map((m) => (
               <td key={m.key} className={m.key === method ? 'on' : ''}>{d.ci[m.key]?.toFixed(1)}</td>
             ))}

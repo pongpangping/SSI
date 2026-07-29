@@ -15,7 +15,7 @@ import CursorFx from './components/CursorFx.jsx'
 
 // ── URL 해시 상태 공유 ────────────────────────────────────────────────
 // #s=S8&m=minmax&k=rank&g=경기도&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT
-// i(담은 지표)까지 담기 때문에, 링크를 받은 사람은 '같은 조합으로 계산한 화면'을 본다.
+// i(선택 지표)까지 포함하기 때문에, 링크를 받은 사람은 '같은 조합으로 계산한 화면'을 본다.
 function parseHash() {
   const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
   const o = {}
@@ -53,7 +53,7 @@ export default function App() {
   const [xKey, setXKey] = useState(init.xKey || null)
   const [yKey, setYKey] = useState(init.yKey || null)
 
-  // 담은 지표. 링크로 받은 조합이 있으면 그 부문만 갈아 끼운다.
+  // 선택 지표. 링크로 받은 조합이 있으면 그 부문만 갈아 끼운다.
   const [picksBy, setPicksBy] = useState(() => {
     const base = basePicks()
     if (init.picks && init.sector) {

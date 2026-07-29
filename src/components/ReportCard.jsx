@@ -1,9 +1,9 @@
 import { METHODS, SECTORS, N, methodOf, indsOf, indT, indRank, ciT, pctOf,
-  rowIndex, rowKey, stdSeries, reportCSV, fmtRaw } from '../lib/ssi.js'
+  rowIndex, rowKey, stdSeries, fmtRaw } from '../lib/ssi.js'
 import { tColor, tWord, tPos, T_TICKS, T_MIN, T_MAX } from '../lib/report.js'
 
-// 성적표 — 모의고사 성적표를 그대로 옮겨 놓은 표.
-// 지표 하나가 '과목' 한 줄, 부문 종합이 '총점' 줄이다.
+// 지역 진단표 — 선택한 시군구 한 곳의 지표별·부문 종합 결과를 한 표에 세운다.
+// 지표 하나가 한 줄, 맨 위가 부문 종합 줄이다.
 // 표준화 방법을 바꾸면 원값은 그대로인데 표준점수가 움직인다.
 // 이 화면이 보여주려는 것이 바로 그 움직임이다.
 //
@@ -41,26 +41,17 @@ function Line({ name, note, stats, t, pct, total }) {
 }
 
 export default function ReportCard({ row, sector, method, onMethod }) {
-  if (!row) return <div className="empty-hint">지도에서 시군구를 클릭하면 성적표가 나옵니다</div>
+  if (!row) return <div className="empty-hint">지도에서 시군구를 클릭하면 진단표가 나옵니다</div>
 
   const m = methodOf(method)
   const i = rowIndex(rowKey(row))
   const d = row[sector]
   const inds = indsOf(sector)
-  if (!d) return <div className="empty-hint">지표를 하나 이상 담아 주세요</div>
+  if (!d) return <div className="empty-hint">지표를 하나 이상 선택해 주세요</div>
 
   const sRank = d.rank[method]
   const sPct = pctOf(sRank)
   const sT = ciT(sector, method)[i]
-
-  const save = () => {
-    const blob = new Blob([reportCSV(sector, method)], { type: 'text/csv;charset=utf-8' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `성적표_${sector}_${m.label}_${N}행.csv`
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-  }
 
   const yr = (() => {
     const ys = []
@@ -83,7 +74,7 @@ export default function ReportCard({ row, sector, method, onMethod }) {
       </div>
 
       <div className="rp-tbl">
-        <Line total name="부문 종합" note={`담은 지표 ${inds.length}개 동일가중 평균`}
+        <Line total name="부문 종합" note={`선택 지표 ${inds.length}개 동일가중 평균`}
           t={sT} pct={sPct}
           stats={[
             ['부문점수', f1(d.ci[method]), '표준화한 지표들의 평균 = CI'],
@@ -110,7 +101,7 @@ export default function ReportCard({ row, sector, method, onMethod }) {
         })}
       </div>
 
-      {/* 방법을 바꾸면 성적표가 어떻게 달라지는지 — 종합 순위만 한 줄로 */}
+      {/* 방법을 바꾸면 결과가 어떻게 달라지는지 — 종합 순위만 한 줄로 */}
       <div className="rp-sw">
         <span className="rp-sw-c">표준화 방법을 바꿔 보기</span>
         <div className="rp-sw-l">
@@ -131,12 +122,9 @@ export default function ReportCard({ row, sector, method, onMethod }) {
       </div>
 
       <div className="rp-foot">
-        <span>원값은 그대로인데 표준점수와 순위는 방법마다 달라집니다.
-          어느 방법이 옳으냐보다, 이 지역의 자리가 방법에 얼마나 기대고 있는지를 읽는 표입니다.</span>
-        <button className="rp-dl" onClick={save}
-          title={`${SECTORS[sector].name} · ${m.label} 기준 ${N}개 시군구 성적표 전체`}>
-          ⬇ 전체 {N}행 내려받기
-        </button>
+        <span>원값은 그대로인데 표준점수와 순위는 방법마다 달라집니다. 어느 방법이 옳으냐가
+          아니라, 이 지역의 순위가 표준화 방법에 얼마나 의존하는지를 확인하는 표입니다.
+          전체 {N}개 시군구 표는 카드 오른쪽 위 [CSV]로 받습니다.</span>
       </div>
     </div>
   )

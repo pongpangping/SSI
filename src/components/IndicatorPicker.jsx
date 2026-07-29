@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import SectorIcon from './SectorIcon.jsx'
 import { SECTORS, ALL_SECTOR_KEYS, INDICATORS, IND, indicatorsOf, defaultPicks, latestYear } from '../lib/ssi.js'
 
 // 지표 고르기 창 — 이 도구에서 '무엇을 계산할지' 정하는 유일한 자리.
@@ -37,7 +38,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
       const next = has(cu, ind.id, year)
         ? cu.filter((p) => !(p.id === ind.id && p.year === year))
         : [...cu, { id: ind.id, year }]
-      // 지표 번호 → 연도 순으로 정렬해 담은 차례가 뒤죽박죽되지 않게 한다
+      // 지표 번호 → 연도 순으로 정렬해 선택 순서가 뒤죽박죽되지 않게 한다
       next.sort((a, b) => (IND[a.id].no - IND[b.id].no) || (a.year - b.year))
       return { ...d, [k]: next }
     })
@@ -59,7 +60,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
     <div className="modal-back" onClick={onClose}>
       <div className="modal ip" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
-          <h3>지표 고르기</h3>
+          <h3>지표 선택</h3>
           <input className="ip-q" placeholder="지표명 · 정의 · 산식 · 출처 검색 (부문을 넘어 찾습니다)"
             value={q} onChange={(e) => setQ(e.target.value)} />
           <button onClick={onClose}>✕</button>
@@ -78,7 +79,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
                   className={`ip-sb${cur === k ? ' on' : ''}${s.ready ? '' : ' lock'}`}
                   onClick={() => { setCur(k); setQ('') }}
                   title={s.ready ? `${s.name} · 지표 ${s.inds.length}개` : `${s.name} · 자료 준비중 — 예정 지표만 볼 수 있습니다`}>
-                  <i>{s.ready ? s.icon : '🔒'}</i>
+                  <SectorIcon k={k} state={s.ready ? (k === cur ? 'on' : '') : 'lock'} size={14} />
                   <span><b>{s.name}</b><em>{k}</em></span>
                   {n > 0 && <u>{n}</u>}
                 </button>
@@ -109,7 +110,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
                 <div className={`ip-card${on ? ' on' : ''}`} key={ind.id}>
                   <div className="ip-c1">
                     <button className="ip-name" onClick={() => toggle(ind, latestYear(ind))}
-                      title="가장 최근 연도로 담기 / 빼기">
+                      title="가장 최근 연도로 선택 / 해제">
                       {ind.label}
                     </button>
                     <i className={ind.dir === '+' ? 'up' : 'dn'}>
@@ -136,14 +137,14 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
             })}
           </div>
 
-          {/* ③ 담은 목록 */}
+          {/* ③ 선택 목록 */}
           <div className="ip-bag">
             <div className="ip-bag-h">
-              <b>{SECTORS[cur].icon} {SECTORS[cur].name}</b>
+              <b><SectorIcon k={cur} state="on" size={14} />{SECTORS[cur].name}</b>
               <em>{cur}</em>
             </div>
             <div className="ip-bag-l">
-              {picks.length === 0 && <div className="ip-empty">아직 담은 지표가 없습니다.<br />가운데 카드에서 연도를 누르면 담깁니다.</div>}
+              {picks.length === 0 && <div className="ip-empty">아직 선택 지표가 없습니다.<br />가운데 카드에서 연도를 누르면 선택됩니다.</div>}
               {picks.map((p) => (
                 <div className="ip-bi" key={`${p.id}-${p.year}`}>
                   <b>{IND[p.id].label}</b>
@@ -164,12 +165,12 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
 
         <div className="ip-foot">
           <span>
-            담은 지표를 같은 비중으로 평균해 부문점수를 다시 계산합니다.
-            {total > picks.length && ` 다른 부문에 담아 둔 것도 그대로 유지됩니다 (전체 ${total}개).`}
+            선택 지표를 같은 비중으로 평균해 부문점수를 다시 계산합니다.
+            {total > picks.length && ` 다른 부문에 선택해 둔 것도 그대로 유지됩니다 (전체 ${total}개).`}
           </span>
           <button className="ip-go" disabled={!picks.length && SECTORS[cur].ready} onClick={apply}>
             {picks.length ? `${picks.length}개로 계산하고 닫기`
-              : SECTORS[cur].ready ? '지표를 하나 이상 담아 주세요' : '닫기'}
+              : SECTORS[cur].ready ? '지표를 하나 이상 선택해 주세요' : '닫기'}
           </button>
         </div>
       </div>

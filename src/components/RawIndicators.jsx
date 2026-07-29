@@ -1,6 +1,6 @@
 import { indsOf, rawSeries, fmtRaw } from '../lib/ssi.js'
 
-// 담은 지표의 원값: 선택 시군구 값 + 전국 대비 위치(백분위)
+// 선택 지표의 원값: 선택 시군구 값 + 전국 대비 위치(백분위)
 export default function RawIndicators({ row, sector }) {
   if (!row || !row[sector]) return <div className="empty-hint">시군구를 선택하세요</div>
   const inds = indsOf(sector)

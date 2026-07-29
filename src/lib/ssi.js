@@ -2,7 +2,7 @@
 //
 // v1에서는 이 파일이 '이미 계산이 끝난 표'를 읽어 나눠 주는 일만 했다. v2는 사용자가
 // 지표와 연도를 골라 오므로, 고른 조합을 compute.js에 넘겨 계산한 뒤 그 결과를 각 행에
-// 얹어 준다(applyPicks). 그래서 지도·표·성적표는 예전처럼 row[부문].ci[방법] 하나만
+// 얹어 준다(applyPicks). 그래서 지도·표·진단표는 예전처럼 row[부문].ci[방법] 하나만
 // 알면 되고, 조합이 바뀌었다는 사실을 따로 알 필요가 없다.
 
 import data from '../data/ssi.json'
@@ -94,14 +94,14 @@ export function otherMethodOf(mk) {
   return rep || METHOD_KEYS.find((k) => k !== mk) || mk
 }
 
-// ── 담은 조합 ────────────────────────────────────────────────────────────
-// pick = { id: 'S8_1', year: 2023 }.  담은 순서가 화면에 나오는 순서다.
+// ── 선택 조합 ────────────────────────────────────────────────────────────
+// pick = { id: 'S8_1', year: 2023 }.  선택 순서가 화면에 나오는 순서다.
 export const indicatorsOf = (sector) => (SECTORS[sector]?.inds || []).map((id) => IND[id]).filter(Boolean)
 export const latestYear = (ind) => ind.years[ind.years.length - 1]
 export const defaultPicks = (sector) => indicatorsOf(sector).map((i) => ({ id: i.id, year: latestYear(i) }))
 export const colOfPick = (p) => IND[p.id]?.cols[p.year] || null
 
-// 담은 것들이 한 해로 맞춰져 있으면 이름만, 여러 해가 섞였으면 이름 뒤에 연도를 붙인다.
+// 선택한 것들이 한 해로 맞춰져 있으면 이름만, 여러 해가 섞였으면 이름 뒤에 연도를 붙인다.
 function entriesOf(sector, picks) {
   const years = []
   picks.forEach((p) => { if (!years.includes(p.year)) years.push(p.year) })
@@ -159,7 +159,7 @@ SECTOR_KEYS.forEach((k) => applyPicks(k, defaultPicks(k)))
 export const indsOf = (sector) => CUR[sector]?.entries || []
 export const setOf = (sector) => CUR[sector]?.set || null
 export const picksOf = (sector) => (CUR[sector]?.entries || []).map((e) => ({ id: e.id, year: e.year }))
-// 담은 조합을 한 줄로: "S8_1_23.S8_2_23"
+// 선택 조합을 한 줄로: "S8_1_23.S8_2_23"
 export const picksToHash = (picks) => picks.map(colOfPick).filter(Boolean).join('.')
 export function picksFromHash(s) {
   if (!s) return null
@@ -243,7 +243,7 @@ export function binOf(values) {
 
 // ── 지도 색 기준 ─────────────────────────────────────────────────────────
 //   ① 부문 종합 — 점수·순위·표준점수·백분위
-//   ② 담은 지표 — 담은 지표 하나마다 원값 → 표준화 → 표준점수 → 순위
+//   ② 선택 지표 — 선택 지표 하나마다 원값 → 표준화 → 표준점수 → 순위
 //   ③ 표준화 민감도 — 방법을 바꿨을 때 순위가 얼마나 흔들리는가
 //   ④ 참고 플래그
 export const GRP = { total: '부문 종합', sens: '표준화 민감도', flag: '참고 플래그' }
@@ -279,7 +279,7 @@ export function metricsFor(sector, method) {
       get: (r) => r[sector].rank[other] - r[sector].rank[method] },
   ]
 
-  // ② 담은 지표 — 지표 하나가 상자 하나. 담은 만큼만 늘어난다.
+  // ② 선택 지표 — 지표 하나가 상자 하나. 고른 만큼만 늘어난다.
   indsOf(sector).forEach((ind) => {
     const g = indGroup(ind.label)
     const up = ind.dir === '+'
@@ -334,16 +334,16 @@ export function metricsFor(sector, method) {
     list.push({
       key: 'tradeoff', group: GRP.flag, scale: 'heat',
       label: '트레이드오프 지역',
-      desc: '담은 지표 사이의 백분위 순위 차이가 30%p를 넘는 곳 — 한쪽은 앞서고 한쪽은 뒤처지는 지역.',
+      desc: '선택 지표 사이의 백분위 순위 차이가 30%p를 넘는 곳 — 한쪽은 앞서고 한쪽은 뒤처지는 지역.',
       fmt: (v) => (v ? '해당' : '해당 없음'), get: (r) => (r[sector].tradeoff ? 1 : 0),
     })
   }
   return list
 }
-// 담은 지표가 하나도 없으면 그릴 값도 없다. 화면이 무너지지 않도록 빈 색 기준을 준다.
+// 선택 지표가 하나도 없으면 그릴 값도 없다. 화면이 무너지지 않도록 빈 색 기준을 준다.
 const EMPTY_METRIC = {
   key: 'none', group: '—', scale: 'blue', label: '표시할 값 없음',
-  desc: '담은 지표가 없어 계산된 값이 없습니다. [지표 고르기]에서 지표를 담아 주세요.',
+  desc: '선택 지표가 없어 계산된 값이 없습니다. [지표 선택]에서 지표를 선택해 주세요.',
   fmt: () => '—', get: () => null,
 }
 export const metricFor = (sector, method, key) => {
@@ -399,7 +399,7 @@ export function flatValue(row, col) {
   return null
 }
 
-// 전체 표의 열 순서. 담은 조합이 바뀌면 원값 열도 따라 바뀐다.
+// 전체 표의 열 순서. 선택 조합이 바뀌면 원값 열도 따라 바뀐다.
 export function sheetOrder() {
   const out = ['시도', '시군구']
   for (const s of SECTOR_KEYS) {
@@ -426,7 +426,7 @@ export function colMeta(col) {
   const mfor = (sh) => methodOf(MCOL[sh])?.formula || ''
   if (rest.startsWith('CI_')) {
     const sh = rest.slice(3)
-    return { desc: `${sn} 부문 점수 — ${mlab(sh)}으로 표준화한 담은 지표들의 단순평균`,
+    return { desc: `${sn} 부문 점수 — ${mlab(sh)}으로 표준화한 선택 지표들의 단순평균`,
       unit: methodOf(MCOL[sh])?.range || '0~100', how: mfor(sh) }
   }
   if (rest.startsWith('순위_')) {
@@ -440,7 +440,7 @@ export function colMeta(col) {
   if (rest === '민감구분') return { desc: '민감도 구간', unit: 'low / mid / high', how: '10계단 이상 high, 5계단 이상 mid' }
   if (rest === 'MinMax대표순위') return { desc: '간격보존형 대표(Min-Max) 순위', unit: `1~${N}위`, how: '진영 대표 방법의 순위' }
   if (rest === 'PctRank대표순위') return { desc: '순위전용형 대표(백분위순위) 순위', unit: `1~${N}위`, how: '진영 대표 방법의 순위' }
-  if (rest === '트레이드오프_참고') return { desc: '담은 지표 사이 성적 격차가 큰 지역', unit: 'Y / N', how: '지표 백분위 순위 차이 > 30%p' }
+  if (rest === '트레이드오프_참고') return { desc: '선택 지표 사이 점수 격차가 큰 지역', unit: 'Y / N', how: '지표 백분위 순위 차이 > 30%p' }
   if (rest.startsWith('원값_')) {
     const lab = rest.slice(3)
     const e = indsOf(s).find((x) => x.label === lab)
@@ -451,7 +451,7 @@ export function colMeta(col) {
   return null
 }
 
-// ── 부문 성적표 (229행 × 담은 지표) ──────────────────────────────────────
+// ── 부문 진단표 (229행 × 선택 지표) ──────────────────────────────────────
 export function reportTable(sector, method) {
   const inds = indsOf(sector)
   const cols = ['시도', '시군구']
@@ -502,7 +502,7 @@ export function binChangeCount(sector, from, to) {
   return a.reduce((n, x, i) => n + (x !== b[i] ? 1 : 0), 0)
 }
 
-// 산점도 축으로 고를 수 있는 것들 — 담은 지표 + 부문 종합
+// 산점도 축으로 고를 수 있는 것들 — 선택 지표 + 부문 종합
 export function axisOptions(sector, method) {
   const out = [
     { key: 'ci', label: `부문 점수 (CI)`, get: (r) => r[sector]?.ci[method] ?? null },

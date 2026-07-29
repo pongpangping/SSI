@@ -57,10 +57,11 @@ export default function MethodCompare({ row, sector, method, onMethod }) {
         {d.tradeoff && <span className="mcf trade" title="부문 안 지표들의 백분위 순위 차가 30%p 초과">지표 엇갈림 30%p↑</span>}
       </div>
 
-      <div className="mc-chips" title={`${METHODS.length}개 방법 순위의 폭·표준편차, 그리고 순위 이동 검산`}>
-        <span><em>순위 폭</em><b>{d.ssiRange}</b></span>
-        <span><em>표준편차</em><b>{d.ssiStd == null ? '—' : d.ssiStd.toFixed(1)}</b></span>
-        <span><em>검산</em><b>|{d.repMinmax}−{d.repPctrank}|={Math.abs(d.repMinmax - d.repPctrank)}</b></span>
+      <div className="mc-def">
+        <b>순위 이동</b> = |{methodOf(repA).label} 순위 − {methodOf(repB).label} 순위|
+        = |{rMin} − {rPct}| = <b>{camp}</b>
+        <span>값 간격을 쓰는 계열과 등수만 쓰는 계열에서 이 시군구가 몇 계단 옮겨
+          앉는지를 센다. 10계단 이상이면 민감으로 본다.</span>
       </div>
     </div>
   )

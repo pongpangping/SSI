@@ -9,7 +9,7 @@ import PickedSummary from './PickedSummary.jsx'
 // 예전에는 1번 칸이 부문 아코디언이었다. 부문마다 지표 이름과 색 기준을 모두
 // 펼쳐 놓다 보니 부문이 열 개가 된 지금은 조작부가 아니라 목록이 되어 버린다.
 // 그래서 셋으로 나눴다.
-//   1 지표 고르기 — 부문을 고르고, 담은 조합을 요약하고, 자세한 선택은 창으로 넘긴다
+//   1 지표 선택   — 부문을 고르고, 선택 조합을 요약하고, 자세한 선택은 창으로 넘긴다
 //   2 지도 색 기준 — 지금 부문의 것만 평평하게 편다 (다른 부문 것을 볼 이유가 없다)
 //   3 조건 선택   — 지역 범위와 표준화 방법
 export default function Sidebar({
@@ -33,13 +33,13 @@ export default function Sidebar({
     <aside className="sidebar sb2">
       <div className="sb2-scroll">
         {/* ── 1. 지표 고르기 ── */}
-        <div className="sb2-cap"><b>1</b>지표 고르기<em>부문 · 담은 조합</em></div>
+        <div className="sb2-cap"><b>1</b>지표 선택<em>부문 · 선택 조합</em></div>
         <PickedSummary sector={sector} onSector={onSector} picksBy={picksBy} onOpen={onOpenPicker} />
 
         {/* ── 2. 지도 색 기준 — 지금 부문의 것만 ── */}
         <div className="sb2-cap"><b>2</b>지도 색 기준<em>{SECTORS[sector].name}</em></div>
         <div className="sb2-block sb2-metrics">
-          {items.length === 0 && <div className="sb2-tip">담은 지표가 없어 그릴 값이 없습니다.</div>}
+          {items.length === 0 && <div className="sb2-tip">선택한 지표가 없어 그릴 값이 없습니다.</div>}
           {Object.entries(groups).map(([g, list]) => {
             const id = `${sector}|${g}`
             const hasCur = list.some((m) => m.key === metricKey)
@@ -74,7 +74,7 @@ export default function Sidebar({
         <div className="sb2-block">
           <RegionPicker sido={sido} onSido={onSido} selected={selected} onSelect={onSelect} />
           <div className="sb2-sub">표준화 방법</div>
-          <MethodPicker sector={sector} method={method} onMethod={onMethod} />
+          <MethodPicker method={method} onMethod={onMethod} />
           <div className="sb2-legend">
             <span>{metric.scale === 'rank' ? '하위' : metric.scale === 'div' ? '상승' : '낮음'}</span>
             <div className={`lg-bar ${metric.scale}`} />
@@ -98,7 +98,7 @@ export default function Sidebar({
           <div><span>민감</span><b>{s.high}</b></div>
         </div>
         <button className={`sb2-cta${compare ? ' on' : ''}`} onClick={() => onCompare(!compare)}>
-          {compare ? '비교 끝내고 한 지도로' : '두 방식 나란히 비교하기'}
+          {compare ? '단일 지도로 되돌리기' : '표준화 방법 2종 동시 비교'}
         </button>
       </div>
     </aside>
