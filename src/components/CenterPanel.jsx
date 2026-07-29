@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import ReportCard from './ReportCard.jsx'
 import MethodCompare from './MethodCompare.jsx'
 import MethodDetail from './MethodDetail.jsx'
@@ -9,27 +10,28 @@ import ScatterPlot from './ScatterPlot.jsx'
 import SensitivityScatter from './SensitivityScatter.jsx'
 import SensitiveList from './SensitiveList.jsx'
 import SectorIcon from './SectorIcon.jsx'
+import DlMenu from './DlMenu.jsx'
 import { SECTORS, methodOf, indsOf, N } from '../lib/ssi.js'
 import {
-  download, dlReport, dlMethods, dlRaw, dlTransform, dlDist, dlRankFlow,
+  dlReport, dlMethods, dlRaw, dlTransform, dlDist, dlRankFlow,
   dlScatter, dlSensScatter, dlSensList, dlAll,
 } from '../lib/statscsv.js'
 
-// 카드마다 오른쪽 위에 CSV 단추를 둔다. 화면에서 읽은 값을 그대로 파일로 받을 수
-// 있어야 보고서에 옮겨 적을 때 숫자를 다시 세지 않는다.
+// 카드마다 오른쪽 위에 내려받기 단추를 둔다. 화면에서 읽은 값을 그대로 파일로
+// 받을 수 있어야 보고서에 옮겨 적을 때 숫자를 다시 세지 않는다.
+//
+// 카드 본체에 ref를 걸어 두는 것은 PNG 때문이다. 차트 카드는 화면에 이미
+// 그려져 있는 그림(recharts의 svg)을 그대로 떠서 저장하고, 표 카드는 값에서
+// 표를 다시 그린다. 어느 쪽인지는 ref가 가리키는 곳에 차트가 있는지로 가린다.
 function Card({ title, sub, dl, dlTip, children }) {
-  const save = () => { const f = dl(); if (f) download(f.name, f.text) }
+  const body = useRef(null)
   return (
     <div className="ccard">
       <div className="ccard-head">
         <div className="ccard-title">{title}{sub && <em className="ccard-sub">{sub}</em>}</div>
-        {dl && (
-          <button className="ccard-dl" onClick={save} title={dlTip || 'CSV로 내려받기'}>
-            <span>↓</span>CSV
-          </button>
-        )}
+        {dl && <DlMenu pack={dl} elRef={body} tip={dlTip} />}
       </div>
-      {children}
+      <div className="ccard-body" ref={body}>{children}</div>
     </div>
   )
 }
@@ -64,23 +66,29 @@ export default function CenterPanel({
 
   return (
     <div className="center">
-      {/* 조작부에서 고른 것을 그대로 되짚는 흐름 막대 */}
+      {/* 조작부에서 고른 것을 그대로 되짚는 흐름 막대.
+          단계 칸은 번호가 순서를 말해 주므로 화살표를 두지 않는다. 폭이 좁아
+          줄이 바뀌면 화살표가 줄 끝이나 줄 머리에 홀로 남아 오히려 흐름이
+          끊겨 보인다. 내려받기는 아래 줄로 내려 단계와 섞이지 않게 했다. */}
       <div className="flowbar">
         <div className="fb-steps">
           <span className="fb-step"><i>1</i><b>{name}</b></span>
-          <span className="fb-arw">›</span>
           <button className="fb-step fb-btn" onClick={onOpenPicker} title="선택 지표 바꾸기">
             <i>2</i><b><SectorIcon k={sector} state="on" size={13} />{SECTORS[sector].name} · 지표 {inds.length}개{yr && ` · ${yr}`}</b>
           </button>
-          <span className="fb-arw">›</span>
           <span className="fb-step"><i>3</i><b>{m.label}</b></span>
-          <span className="fb-arw">›</span>
           <span className="fb-step on"><i>4</i><b>{metric.label}</b></span>
         </div>
-        <button className="fb-dl" onClick={() => { const f = dlAll(sector, method); download(f.name, f.text) }}
-          title={`${SECTORS[sector].name} · ${m.label} 기준 ${N}개 시군구 · 지표 원값과 표준화값, 방법별 CI·순위, 민감도를 한 표로`}>
-          ↓ 통계 전체 CSV
-        </button>
+        <div className="fb-dlrow">
+          <span className="fb-dlab">통계 전체</span>
+          <DlMenu
+            cls="fb-dl"
+            label="내려받기"
+            wide
+            pack={() => dlAll(sector, method)}
+            tip={`${SECTORS[sector].name} · ${m.label} 기준 ${N}개 시군구 · 지표 원값과 표준화값, 방법별 CI·순위, 민감도를 한 표로`}
+          />
+        </div>
       </div>
 
       <Sect k="A" title="선택 지역" plain="시군구 단위 결과">

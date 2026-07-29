@@ -187,20 +187,35 @@ button { font-family: inherit; }
 .center { position: relative; flex: none; width: 366px; min-height: 0; z-index: 20;
   display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 2px; }
 /* 흐름 막대 — 조작부 1~4단계를 그대로 되짚어 시선을 잇는다 */
+/* 단계 칸은 높이가 같은 알약 모양으로 통일한다. 통계창 폭이 366px이라
+   '서울특별시 강남구' + '국토공간거점 · 지표 3개 · 2021~2025년' 같은 이름이
+   들어오면 어차피 줄이 바뀐다. 줄이 바뀌어도 칸 높이와 사이 간격이 일정하면
+   흐트러져 보이지 않는다. 화살표는 두지 않는다 — 번호가 순서를 말해 주고,
+   줄바꿈 자리에 화살표가 홀로 남으면 그게 어긋나 보이는 원인이 된다. */
 .flowbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: var(--shadow-card); padding: 8px 8px 8px 11px;
-  flex: none; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 5; }
-.fb-steps { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center;
-  gap: 4px 5px; row-gap: 5px; }
-.fb-step { flex: none; max-width: 100%; display: flex; align-items: center; gap: 4px; }
-.fb-step i { flex: none; width: 15px; height: 15px; border-radius: 5px; background: var(--muted);
+  box-shadow: var(--shadow-card); padding: 9px 10px;
+  flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  position: sticky; top: 0; z-index: 5; }
+.fb-steps { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.fb-step { flex: 0 1 auto; min-width: 0; max-width: 100%; box-sizing: border-box;
+  height: 23px; display: inline-flex; align-items: center; gap: 5px;
+  padding: 0 9px 0 5px; border-radius: 999px; background: var(--muted); }
+.fb-step i { flex: none; width: 15px; height: 15px; border-radius: 50%; background: var(--surface);
   color: var(--ink3); font-style: normal; font-size: 9.5px; font-weight: 750;
-  display: grid; place-items: center; }
-.fb-step b { font-size: 11px; font-weight: 700; color: var(--ink2); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; }
+  line-height: 1; display: grid; place-items: center; }
+.fb-step b { min-width: 0; font-size: 11px; font-weight: 700; color: var(--ink2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: inline-flex; align-items: center; }
+.fb-step.on { background: var(--accent-weak); }
 .fb-step.on i { background: var(--accent); color: #fff; }
-.fb-step.on b { color: var(--accent); }
-.fb-arw { flex: none; font-size: 11px; color: #C3CDDA; }
+.fb-step.on b { color: var(--accent-strong); }
+.fb-arw { display: none; }
+/* 내려받기는 단계와 같은 줄에 두지 않는다. 단계가 두세 줄로 접힐 때
+   단추가 그 가운데 끼어 무엇에 딸린 단추인지 읽히지 않기 때문이다. */
+.fb-dlrow { display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid var(--line); padding-top: 8px; }
+.fb-dlab { flex: 1; min-width: 0; font-size: 10px; font-weight: 700; color: var(--ink3);
+  letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .center-collapse { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line);
   background: var(--surface); color: var(--ink2); font-size: 15px; line-height: 1; cursor: pointer; }
 .center-collapse:hover { background: var(--muted); border-color: var(--accent); color: var(--accent); }
@@ -1933,9 +1948,12 @@ html.fx-map.fx-down .fxc-tk { background: rgba(0,138,224,.9); }
 .sp-note { font-size: 10px; line-height: 1.55; color: var(--ink3); margin-top: 6px; }
 
 /* 흐름 막대의 2단계는 눌러서 지표 고르기 창을 여는 단추다 */
-.fb-btn { border: 1px solid transparent; background: transparent; cursor: pointer;
-  font-family: inherit; padding: 2px 6px; border-radius: 7px; transition: background .12s, border-color .12s; }
+/* 나머지 칸과 높이·모양을 맞추되, 눌리는 칸이라는 것만 테두리로 알린다.
+   배경까지 다르게 하면 네 칸이 서로 다른 물건처럼 보인다. */
+.fb-btn { border: 1px dashed #C7D3E2; background: var(--muted); cursor: pointer;
+  font-family: inherit; transition: background .12s, border-color .12s; }
 .fb-btn:hover { background: var(--accent-weak); border-color: var(--accent); }
+.fb-btn:hover b { color: var(--accent-strong); }
 
 /* ── 지도 위 시군구 이름표 ─────────────────────────────────────
    글자에 흰 테두리를 둘러 어떤 색 위에 얹혀도 읽히게 한다.
@@ -2022,7 +2040,7 @@ button:hover > .sic, .ps-s:hover .sic, .ip-sec:hover .sic { opacity: 1; }
 .mdet .mp2-detail { margin: 0; }
 .mdet .mp-change { margin: 0; }
 
-/* ── 카드 CSV 단추 ───────────────────────────────────────────────── */
+/* ── 카드 내려받기 단추와 형식 목록 ──────────────────────────────── */
 .ccard-head { justify-content: space-between; }
 .ccard-head .ccard-title { flex: 1; min-width: 0; }
 .ccard-dl { flex: none; display: inline-flex; align-items: center; gap: 3px;
@@ -2036,12 +2054,38 @@ button:hover > .sic, .ps-s:hover .sic, .ip-sec:hover .sic { opacity: 1; }
 .ccard-dl:active { background: var(--panel); }
 
 /* 흐름 막대의 전체 내려받기 */
-.fb-dl { flex: none; border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink2); border-radius: 8px; padding: 5px 9px; font-family: inherit;
+.fb-dl { flex: none; display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink2); border-radius: 8px; padding: 5px 10px; font-family: inherit;
   font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap;
   transition: border-color .12s, background .12s, color .12s; }
 .fb-dl:hover { border-color: var(--accent); background: var(--accent-weak);
   color: var(--accent-strong); }
+
+/* 형식 고르기 — CSV / Excel / PNG.
+   확장자만 늘어놓으면 무엇을 고를지 알기 어려워 쓰임을 한 줄씩 적었다. */
+.dlm { position: relative; flex: none; }
+.dlm.open > .ccard-dl, .dlm.open > .fb-dl { border-color: var(--accent);
+  background: var(--accent-weak); color: var(--accent-strong); }
+.dlm-pop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  min-width: 196px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 10px 26px -8px rgba(15,23,42,.28);
+  padding: 5px; display: flex; flex-direction: column; gap: 2px; }
+.dlm-pop.wide { min-width: 224px; }
+.dlm-pop.up { top: auto; bottom: calc(100% + 6px); }
+.dlm-item { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline;
+  column-gap: 6px; width: 100%; text-align: left; border: 0; background: transparent;
+  border-radius: 7px; padding: 6px 8px; font-family: inherit; cursor: pointer;
+  transition: background .1s; }
+.dlm-item:hover:not(:disabled) { background: var(--muted); }
+.dlm-item:disabled { cursor: default; opacity: .55; }
+.dlm-item b { font-size: 11.5px; font-weight: 750; color: var(--ink); }
+.dlm-item code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px; color: var(--accent-strong); background: var(--accent-weak);
+  border-radius: 4px; padding: 1px 4px; }
+.dlm-item em { grid-column: 1 / -1; font-style: normal; font-size: 10px;
+  color: var(--ink3); line-height: 1.4; margin-top: 1px; }
+.dlm-err { padding: 5px 8px 3px; font-size: 10px; color: #C2410C; }
 
 /* ── 순위 이동 목록: 값이 무엇인지 표 위에 정의를 적는다 ──────────
    순위 이동 / 순위 폭 / 표준편차 셋을 나란히 두던 것을 정의값 하나로
@@ -2089,3 +2133,6 @@ button:hover > .sic, .ps-s:hover .sic, .ip-sec:hover .sic { opacity: 1; }
   color: var(--ink3); }
 .sp-axcap em { flex: none; font-style: normal; font-weight: 750; color: var(--ink2);
   background: var(--muted); border-radius: 4px; padding: 0 4px; }
+
+/* 카드 본체 — PNG로 뜰 때 무엇을 뜰지 잡아 두는 자리이기도 하다 */
+.ccard-body { min-width: 0; }
