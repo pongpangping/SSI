@@ -165,12 +165,11 @@ export default function CenterPanel({
         />
         {sumOpen && (
           <>
-            {!selectedRow && (
-              <div className="csect-wait">
-                <b>지도에서 시군구를 클릭하면 그 지역 결과가 이 위에 나옵니다</b>
-                <span>지역 진단표 · 표준화 방법별 점수와 순위 · 계산 과정</span>
-              </div>
-            )}
+            {/* 지도를 누르기 전에는 전국 통계가 곧바로 나온다.
+                16차까지 이 자리에 '지도에서 시군구를 클릭하면…' 안내 상자를 두었는데,
+                통계창을 열자마자 보이는 첫 칸이 통계가 아니라 안내문이라, 전국 통계는
+                아래로 밀리고 화면은 아직 아무것도 없는 것처럼 보였다.
+                같은 안내는 흐름줄 한 줄로 이미 하고 있으므로 상자는 없앤다. */}
             <NationalSummary sector={sector} method={method} selected={link.selected}
               selectedRow={selectedRow} onSelect={link.onSelect} ver={ver} dlOf={nsDl} />
             <div className="nsum-all">

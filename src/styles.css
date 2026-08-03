@@ -518,15 +518,30 @@ button { font-family: inherit; }
 
 /* SensitiveList */
 .slist { display: flex; flex-direction: column; gap: 3px; }
-.sl-row { display: grid; grid-template-columns: 20px 1.3fr 1fr 0.9fr 26px; align-items: center; gap: 7px;
+/* 다섯 칸 폭을 다시 잡았다. 예전에는 '이동 폭' 막대와 '141→111.5위'가 같은
+   비율 칸을 나눠 쓰다가, 긴 시도 이름(강원특별자치도)이 들어오면 줄이 두 줄로
+   불어나고 맨 오른쪽 계단 숫자가 칸 밖으로 밀려 잘렸다. 숫자 칸 둘은 고정폭으로
+   빼고, 이름과 막대만 남은 자리를 나눠 갖게 한다. */
+.sl-row { display: grid; grid-template-columns: 22px minmax(0, 1.35fr) minmax(0, 0.5fr) 76px 34px;
+  align-items: center; gap: 6px;
   border: none; background: transparent; border-radius: 8px; padding: 5px 6px; cursor: pointer; text-align: left; transition: background .1s; }
 .sl-row:hover { background: var(--muted); } .sl-row.on { background: #F0F8FF; }
 .sl-rk { font-size: var(--fs-3); color: var(--ink3); text-align: center; }
-.sl-nm { font-size: var(--fs-4); font-weight: 650; color: var(--ink); } .sl-nm em { font-size: var(--fs-2); color: var(--ink3); font-style: normal; margin-left: 4px; }
+/* 시군구 이름과 시도 이름을 옆으로 붙여 놓으니 '원주시 강원특별자치도'가 한 줄
+   102px 안에 들어가지 않아 시도 쪽이 통째로 잘렸다. 시도는 어느 시군구인지를
+   가리는 정보라 지울 수 없으므로, 이름 아래 한 줄로 내려 놓는다. */
+.sl-nm { font-size: var(--fs-4); font-weight: 650; color: var(--ink);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.35; }
+.sl-nm em { display: block; font-size: var(--fs-2); font-weight: 500; color: var(--ink3);
+  font-style: normal; margin-left: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sl-bar { height: 7px; background: var(--muted); border-radius: 4px; overflow: hidden; }
 .sl-bar i { display: block; height: 100%; background: #F5760D; border-radius: 4px; }
-.sl-mv { font-size: var(--fs-2); color: var(--ink3); text-align: right; }
-.sl-camp { font-size: var(--fs-5); font-weight: 750; color: #DA5A05; text-align: right; }
+.sl-mv { font-size: var(--fs-2); color: var(--ink3); text-align: right;
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums; }
+.sl-camp { font-size: var(--fs-5); font-weight: 750; color: #DA5A05; text-align: right;
+  min-width: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* Recharts tooltip */
 .rc-tip { background: rgba(15,23,42,.93); color: #fff; font-size: var(--fs-3); line-height: 1.5; border-radius: 8px; padding: 7px 10px; }
@@ -814,8 +829,12 @@ button { font-family: inherit; }
 
 /* ── 표준화 방법 카드의 눈금 띠 (설명 문장 대체) ──────────────── */
 .mp-strip { position: relative; width: 100%; height: 15px; margin-top: 5px; }
-.mp-strip .ms-track { position: absolute; left: 0; right: 0; top: 7px; height: 2px;
+.mp-strip .ms-track { position: absolute; left: 2px; right: 2px; top: 7px; height: 2px;
   border-radius: 2px; background: var(--line); }
+/* 표식은 제 너비의 절반만큼 왼쪽으로 당겨 놓는다. 그래서 100% 자리에 놓인
+   마지막 표식이 띠 오른쪽으로 1.5px 삐져나가 있었다. 표식만 따로 싸서 양쪽을
+   2px씩 들여 놓으면, 100%가 곧 '띠 안쪽 오른쪽 끝'이 된다. */
+.mp-strip .ms-marks { position: absolute; left: 2px; right: 2px; top: 0; bottom: 0; }
 .mp-strip i { position: absolute; top: 3px; width: 3px; height: 10px; margin-left: -1.5px;
   border-radius: 2px; opacity: .9; box-shadow: 0 0 0 1px #fff; }
 
@@ -911,8 +930,30 @@ button { font-family: inherit; }
 .sb2-cap em { font-style: normal; font-size: var(--fs-2); font-weight: 600; color: var(--ink3);
   margin-left: auto; }
 
-.sb2-block { display: flex; flex-direction: column; gap: 9px; }
+.sb2-block { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
 .sb2-sub { font-size: var(--fs-2); font-weight: 700; color: var(--ink3); padding: 2px 2px 0; }
+
+/* 아직 오지 않은 단계 — 흐리게 잠가 둔다.
+   16차까지 이 이름이 마크업에만 있고 규칙이 없어, 잠긴 칸이 열린 칸과 똑같이 보였다. */
+.sb2-lock { opacity: .42; pointer-events: none; filter: grayscale(.35); }
+
+/* 1단계에서 다음으로 넘어가는 단추 · 2단계 안내문.
+   둘 다 규칙이 없어 브라우저 기본 글꼴(Arial 13.33px)로 나오던 자리다.
+   글자 크기 여덟 단에 맞추고, 300px 칸을 넘지 않게 줄바꿈을 정해 둔다. */
+.sb2-next { width: 100%; font-family: inherit; font-size: var(--fs-3); font-weight: 700;
+  color: #fff; background: var(--accent-strong); border: 1px solid var(--accent-strong);
+  border-radius: 8px; padding: 8px 10px; cursor: pointer; word-break: keep-all;
+  transition: filter .12s; }
+.sb2-next:hover { filter: brightness(1.08); }
+.sb2-next:disabled { cursor: default; color: var(--ink3); background: var(--muted);
+  border-color: var(--line); filter: none; }
+.sb2-hint { font-size: var(--fs-2); line-height: 1.55; color: var(--ink3);
+  background: var(--muted); border-radius: 8px; padding: 7px 9px;
+  min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: keep-all; }
+.sb2-hint b { font-weight: 750; color: var(--ink2); }
+
+/* 안내 한 줄짜리들도 칸 밖으로 새지 않게 */
+.sb2-tip, .sb2-cap, .sb2-legend { min-width: 0; max-width: 100%; }
 .sb2-legend { display: flex; align-items: center; gap: 7px; padding: 0 2px; }
 .sb2-legend span { font-size: var(--fs-2); color: var(--ink3); white-space: nowrap; }
 .sb2-legend .lg-bar { flex: 1; height: 8px; border-radius: 999px; }
@@ -1053,6 +1094,7 @@ button { font-family: inherit; }
 .mp2-camp { flex: none; color: #fff; font-size: var(--fs-1); font-weight: 750; border-radius: 5px;
   padding: 2px 6px; }
 .mp2-top .mp-strip { flex: 1; min-width: 40px; }
+.mp2-top b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── 보기 옵션 스위치 ───────────────────────────────────────── */
 .sw-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -1150,7 +1192,8 @@ button { font-family: inherit; }
 .acc2-body { max-height: 186px; overflow-y: auto; }
 /* 나란히 보기: 가운데 옵션 막대와 겹치지 않도록 각 지도의 범례를 올린다 */
 .abm-maps .map-compact .maplegend { bottom: 48px; }
-.sb2-tip { font-size: var(--fs-2); color: var(--ink3); line-height: 1.5; padding: 0 2px; }
+.sb2-tip { font-size: var(--fs-2); color: var(--ink3); line-height: 1.5; padding: 0 2px;
+  word-break: keep-all; overflow-wrap: anywhere; }
 .sb2-tip b { color: var(--ink2); font-weight: 700; }
 .sb2-tip em { font-style: normal; color: #C2410C; font-weight: 700; }
 
@@ -1739,9 +1782,13 @@ html.fx-map.fx-down .fxc-tk { background: rgba(0,138,224,.9); }
 .ml-tk span { position: absolute; top: 0; transform: translateX(-50%);
   font-size: var(--fs-1); color: var(--ink3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ml-cls { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); width: 148px; }
-.mlc-seg { display: flex; gap: 2px; background: var(--muted); border-radius: 7px; padding: 2px; }
-.mlc-seg button { flex: 1; border: 0; background: transparent; font-family: inherit;
-  font-size: var(--fs-2); color: var(--ink3); padding: 4px 2px; border-radius: 5px; cursor: pointer;
+/* 단추가 다섯이라 148px 한 줄에 다 들어가지 않는다. 글자를 줄이거나 범례를
+   넓히는 대신 두 줄로 접는다 — 마지막 '표준편차'가 잘려 나가던 자리다. */
+.mlc-seg { display: flex; flex-wrap: wrap; gap: 2px; background: var(--muted);
+  border-radius: 7px; padding: 2px; }
+.mlc-seg button { flex: 1 1 auto; min-width: 0; border: 0; background: transparent;
+  font-family: inherit;
+  font-size: var(--fs-2); color: var(--ink3); padding: 4px 5px; border-radius: 5px; cursor: pointer;
   white-space: nowrap; transition: background .12s, color .12s; }
 .mlc-seg button:hover { background: var(--accent-weak); color: var(--accent-strong); }
 .mlc-seg button.on { background: var(--surface); color: var(--ink); font-weight: 700;
@@ -1993,6 +2040,15 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
 
 /* 아이콘이 <i> 글리프 자리를 넘겨받은 곳들 */
 .ps-bag-h b { display: flex; align-items: center; gap: 5px; }
+
+/* 조작부는 300px 고정폭이다 — 화면 폭 미디어 쿼리는 여기서 절대 걸리지 않으므로
+   좁은 칸 규칙은 조건 없이 걸어 둔다.
+   부문 이름 + '지표 N개 · 2023년'이 한 줄에 안 들어가면 뒤엣것이 아랫줄로
+   내려가고, 그래도 이름이 길면 그때만 말줄임으로 끊는다. */
+.ps-bag-h { flex-wrap: wrap; row-gap: 2px; }
+.ps-bag-h b { flex: 1 1 auto; }
+.ps-bag-h b > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-bag-h em { flex: none; margin-left: auto; }
 .fb-step b .sic { margin-right: 4px; }
 
 /* ── 조작부: 지금 고른 것을 먼저 읽히게 ───────────────────────────
@@ -2009,7 +2065,8 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
 
 /* 수식·범위를 어디서 보는지 알려 주는 한 줄 (설명 자체는 통계창에) */
 .mp2-where { margin-top: 8px; padding: 7px 9px; border-radius: 8px;
-  background: var(--muted); font-size: var(--fs-2); line-height: 1.5; color: var(--ink3); }
+  background: var(--muted); font-size: var(--fs-2); line-height: 1.5; color: var(--ink3);
+  min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: keep-all; }
 .mp2-where b { font-weight: 750; color: var(--ink2); }
 .mp2-where em { font-style: normal; font-weight: 700; color: var(--accent-strong); }
 
@@ -2073,8 +2130,8 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
   font-size: var(--fs-2); line-height: 1.5; color: var(--ink2); }
 .sl-def b { font-weight: 800; color: var(--ink); }
 .sl-def span { display: block; margin-top: 3px; font-size: var(--fs-2); color: var(--ink3); }
-.sl-head { display: grid; grid-template-columns: 20px 1.3fr 1fr 0.9fr 26px;
-  align-items: center; gap: 7px; padding: 0 6px 4px;
+.sl-head { display: grid; grid-template-columns: 22px minmax(0, 1.35fr) minmax(0, 0.5fr) 76px 34px;
+  align-items: center; gap: 6px; padding: 0 6px 4px;
   border-bottom: 1px solid var(--line); margin-bottom: 3px; }
 .sl-head span { font-size: var(--fs-1); font-weight: 700; color: var(--ink3); letter-spacing: .02em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2437,3 +2494,8 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
   margin-right: 6px; }
 .idf-s { display: flex; flex-wrap: wrap; gap: 12px; font-size: var(--fs-2); color: var(--ink3); }
 .idf-foot { font-size: var(--fs-2); color: var(--ink3); line-height: 1.65; padding-top: 2px; }
+
+/* ── 낱말 가운데서 끊기지 않게 ─────────────────────────────────
+   '누르면 지도에서 선 / 택됩니다'처럼 카드 부제가 낱말 한가운데를 갈라
+   놓고 있었다. 한글은 낱말 단위로만 넘기고, 정 안 되면 그때만 자른다. */
+.ccard-sub { word-break: keep-all; overflow-wrap: anywhere; }

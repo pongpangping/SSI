@@ -15,7 +15,11 @@ function ScaleStrip({ mk, color }) {
   return (
     <div className="mp-strip" title="같은 원자료 10개가 이 방법에서 놓이는 자리">
       <span className="ms-track" />
-      {v.map((x, i) => <i key={i} style={{ left: `${((x - lo) / d) * 100}%`, background: color }} />)}
+      {/* 표식은 ms-marks 안에 담는다. 표식 자리는 % 로 잡는데, 그 % 가 띠 전체를
+          기준으로 잡히면 100% 에 놓인 마지막 표식이 절반쯤 띠 밖으로 나간다. */}
+      <span className="ms-marks">
+        {v.map((x, i) => <i key={i} style={{ left: `${((x - lo) / d) * 100}%`, background: color }} />)}
+      </span>
     </div>
   )
 }

@@ -22,7 +22,11 @@ export default function PickedSummary({ sector, onOpen }) {
       <div className="ps-bag">
         <div className="ps-bag-h">
           <span className="ps-tag">선택</span>
-          <b><SectorIcon k={sector} state="on" size={15} />{s.name}</b>
+          {/* 부문 이름은 제 칸을 다 쓰게 두고, 그래도 모자라면 말줄임으로 끊는다.
+              b가 flex 상자라 이름이 그냥 글자로 놓여 있으면 말줄임이 걸리지
+              않는다(text-overflow는 블록 안의 글줄에만 걸린다). 그래서 이름을
+              따로 span으로 싼다. */}
+          <b><SectorIcon k={sector} state="on" size={15} /><span>{s.name}</span></b>
           <em>지표 {inds.length}개{yearText && ` · ${yearText}`}</em>
         </div>
         <div className="ps-chips">

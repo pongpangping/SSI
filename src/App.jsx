@@ -27,7 +27,7 @@ import CursorFx from './components/CursorFx.jsx'
 // 시·도 범위(g)는 뺐다. 이 지수는 전국 229개 시군구를 한 번에 세우는 지수라,
 // 시·도로 걸러 놓고 보면 순위·평균이 전국 기준과 어긋나 읽힌다.
 // 탭(t)도 뺐다. 통계창이 탭에서 본문+서랍으로 바뀌면서 자리가 없어졌다.
-// 대신 펼친 서랍을 d에 적는다. 옛 링크의 t는 읽지 않고 무시한다.
+// 대신 접은 서랍을 d에 적는다(기본은 둘 다 펼침). 옛 링크의 t는 읽지 않고 무시한다.
 function parseHash() {
   const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
   const o = {}
@@ -41,11 +41,19 @@ function parseHash() {
   if (h.get('x')) o.xKey = h.get('x')
   if (h.get('y')) o.yKey = h.get('y')
   if (h.get('d')) {
-    o.drawers = {}
-    h.get('d').split('.').forEach((k) => { if (k === 'sens' || k === 'raw') o.drawers[k] = true })
+    // d 는 '접어 둔 서랍'을 적는다. 서랍은 기본이 펼침이라, 기본 상태에서는
+    // d 가 아예 붙지 않는다. (16차의 d 는 '펼친 서랍'이었다 — 규칙이 뒤집혔다.)
+    o.drawers = { sens: true, raw: true }
+    h.get('d').split('.').forEach((k) => { if (k === 'sens' || k === 'raw') o.drawers[k] = false })
   }
   return o
 }
+
+// 서랍 기본값 — 둘 다 펼침.
+// 16차에서는 접은 채로 시작했는데, 그러면 분포·범프 차트·산점도·순위 이동 목록이
+// 화면에서 통째로 사라진 것처럼 보인다. 차례(본문이 먼저, 서랍이 나중)와 머리
+// 모양만으로도 무엇이 주(主)인지는 충분히 드러나므로, 접어 감출 이유가 없다.
+const ALL_OPEN = () => ({ sens: true, raw: true })
 
 // 부문별 기본 조합 = 그 부문의 모든 지표를 가장 최근 연도로.
 const basePicks = () => Object.fromEntries(SECTOR_KEYS.map((k) => [k, defaultPicks(k)]))
@@ -63,8 +71,8 @@ export default function App() {
   const [panelOpen, setPanelOpen] = useState(false)
   // 어디까지 왔는가. 1 지표 · 2 표준화 방법 · 3 다 골랐음
   const [step, setStep] = useState(1)
-  // 통계창 아래쪽 서랍 두 개. 처음에는 둘 다 접혀 있다.
-  const [drawers, setDrawers] = useState(init.drawers || {})
+  // 통계창 아래쪽 서랍 두 개. 처음부터 둘 다 펴 둔다.
+  const [drawers, setDrawers] = useState(init.drawers || ALL_OPEN())
   // 부문 종합(본문)이 펼쳐져 있는가. 지역을 고르면 접힌다.
   const [sumOpen, setSumOpen] = useState(true)
   const [onlyHigh, setOnlyHigh] = useState(false)
@@ -105,31 +113,34 @@ export default function App() {
 
   // 시작 화면에서 부문을 골랐을 때.
   //
-  // 해시에 적혀 있던 그 부문이면 '이어보기'다. 방법·색 기준·선택 지역·서랍까지
-  // 링크에 담긴 대로 되살리고 통계창을 바로 연다. 다른 부문이면 해시를 버리고
-  // 그 부문의 기본 상태에서 새로 시작한다.
+  // 어느 부문을 고르든 언제나 1 지표 선택부터 시작한다. 16차에서는 해시에 적힌
+  // 부문을 다시 고르면 '이어보기'로 보고 곧장 3단계(지도 색 기준)로 뛰었는데,
+  // 그러면 부문을 고르자마자 화면이 조작부 아래쪽으로 감겨 내려가, 무엇을
+  // 골라야 하는지가 아니라 색 고르는 칸이 먼저 보였다.
+  //
+  // 이어보기는 이제 '되살리기'만 한다 — 표준화 방법·지도 색 기준·선택 지역·
+  // 산점도 축은 링크에 담긴 대로 두되, 단계는 1로 되돌리고 통계창은 접어 둔다.
+  // 지표를 확인하고 넘어가면 그 자리에 그대로 이어진다.
   const openSector = (k) => {
     const resume = !!init.sector && k === init.sector
     setSector(k)
     setStarted(true)
     setCompare(false)
     setSumOpen(true)
+    setStep(1)
+    setPanelOpen(false)
     if (resume) {
       setMethod(init.method || METHOD_KEYS[0])
       setMetricKey(init.metricKey || 'rank')
       setSelected(init.selected || null)
-      setDrawers(init.drawers || {})
+      setDrawers(init.drawers || ALL_OPEN())
       setXKey(init.xKey || null); setYKey(init.yKey || null)
-      setStep(3)
-      setPanelOpen(init.panelOpen !== false)
     } else {
       setMethod(METHOD_KEYS[0])
       setMetricKey('rank')
       setSelected(null)
-      setDrawers({})
+      setDrawers(ALL_OPEN())
       setXKey(null); setYKey(null)
-      setStep(1)
-      setPanelOpen(false)
     }
   }
 
@@ -179,8 +190,8 @@ export default function App() {
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
     if (!panelOpen) p.set('p', '0')
-    const open = ['sens', 'raw'].filter((k) => drawers[k])
-    if (open.length) p.set('d', open.join('.'))
+    const shut = ['sens', 'raw'].filter((k) => !drawers[k])
+    if (shut.length) p.set('d', shut.join('.'))   // 접은 것만 적는다. 기본(둘 다 펼침)이면 안 적는다
     const cur = picksOf(sector)
     const base = defaultPicks(sector)
     const same = cur.length === base.length && cur.every((q, i) => q.id === base[i].id && q.year === base[i].year)
