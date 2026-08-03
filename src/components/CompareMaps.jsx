@@ -112,10 +112,10 @@ export default function CompareMaps({
 
   return (
     <div className="abm-wrap" onMouseMove={onMove}>
-      {/* 무엇과 무엇을 견줄지 — 좌우를 각각 직접 고른다 */}
+      {/* 좌우 두 조합을 각각 직접 고른다 */}
       <div className="cv-free">
         <SidePick side={A} onChange={setA} />
-        <span className="cv-vs">견줌</span>
+        <span className="cv-vs">대비</span>
         <SidePick side={B} onChange={setB} />
       </div>
 
