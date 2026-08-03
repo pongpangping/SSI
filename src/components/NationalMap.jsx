@@ -144,7 +144,7 @@ export default function NationalMap({
   const tipHtml = (k, row) => `
     <div class="mpop">
       <div class="mpop-h">${row.sido} ${row.name}</div>
-      <div class="mtip-row"><span>${metric.label}</span><b>${metric.fmt(valOf(k))}</b></div>
+      <div class="mtip-row"><span>${metric.full || metric.label}</span><b>${metric.fmt(valOf(k))}</b></div>
       <div class="mtip-row"><span>순위 이동</span><b>${row[sector]?.ssiCamp}계단${row[sector]?.flag === 'high' ? ' · 민감' : ''}</b></div>
     </div>`
 
@@ -403,7 +403,7 @@ export default function NationalMap({
           <div className="mapdl">
             <div className="mapdl-h">
               내보내기
-              <em>{SECTORS[sector]?.name} · {metric.label} · 전국</em>
+              <em>{SECTORS[sector]?.name} · {metric.full || metric.label} · 전국</em>
             </div>
             <button onClick={() => doExport('shp')}>
               <b>Shapefile (.zip)</b><span>QGIS·ArcGIS에서 바로 열립니다 · EPSG:4326</span>
@@ -439,7 +439,7 @@ export default function NationalMap({
       {!compact && shown && (
         <div className={`map-live${hovRow ? ' hov' : ''}`}>
           <b>{shown.sido} {shown.name}</b>
-          <span>{metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>
+          <span>{metric.full || metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>
           <span>순위 이동<i>{shown[sector]?.ssiCamp}계단</i></span>
           {shown[sector]?.flag === 'high' && <em className="ml-high">민감</em>}
         </div>
@@ -448,7 +448,7 @@ export default function NationalMap({
       {!tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
 
       <div className={`maplegend${compact ? ' lg-mini' : ''}`}>
-        <h4>{metric.label}</h4>
+        <h4>{metric.full || metric.label}</h4>
         <div className="ml-scale" title={tickTitle}>
           {ramp.map((c, i) => <i key={i} style={{ background: c }} />)}
         </div>

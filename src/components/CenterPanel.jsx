@@ -10,7 +10,6 @@ import ScatterPlot from './ScatterPlot.jsx'
 import SensitivityScatter from './SensitivityScatter.jsx'
 import SensitiveList from './SensitiveList.jsx'
 import NationalSummary from './NationalSummary.jsx'
-import IndicatorDefs from './IndicatorDefs.jsx'
 import SectorIcon from './SectorIcon.jsx'
 import DlMenu from './DlMenu.jsx'
 import Drawer from './Drawer.jsx'
@@ -20,7 +19,7 @@ import {
   dlReport, dlMethods, dlRaw, dlTransform, dlDist, dlRankFlow,
   dlScatter, dlSensScatter, dlSensList, dlAll,
   dlDistribution, dlTopBottom, dlBySido, dlContribution, dlSummaryAll,
-  dlIndicatorDefs, dlRawAll,
+  dlRawAll,
 } from '../lib/statscsv.js'
 
 // 통계창.
@@ -36,10 +35,18 @@ import {
 //   0 흐름줄        지금 무엇을 보고 있는가
 //   1 선택 지역     지도에서 고른 곳이 있을 때만. 맨 위
 //   2 부문 종합     본문. 항상 펼쳐 둔다 (지역을 고르면 접힌다)
-//   3 표준화 민감도  서랍 · 접힌 채로 시작
-//   4 원데이터      서랍 · 접힌 채로 시작
+//   3 표준화 민감도  서랍 · 처음부터 펴 둔다 (17차)
+//   4 원데이터      서랍 · 처음부터 펴 둔다 (17차)
 //
 // 층을 옮겨도 고른 것(부문·지표·방법·선택 지역)은 그대로다. 보는 각도만 바뀐다.
+//
+// 여기 있지 않은 것 — 지표 정의·산식·출처. 값의 뜻을 읽는 일은 네 층 어디서나
+// 똑같이 필요하므로 층 안에 두지 않고 머리줄 오른쪽 '데이터 설명'으로 뺐다(18차).
+// 같은 이유로 용어 사전과 전체 데이터표도 머리줄에 있다.
+//
+// 색 있는 세로 선도 여기 없다. 17차까지 선택 지역 칸의 왼쪽에 3px 파란 선을
+// 세워 두었는데, 카드가 여럿 쌓이면 선이 통계창 높이만큼(2,700px 남짓) 이어져
+// 무엇을 묶는 선인지 알 수 없었다. 층의 구분은 머리줄 하나로 충분하다(18차).
 
 function Card({ title, sub, dl, dlTip, children }) {
   const body = useRef(null)
@@ -112,7 +119,7 @@ export default function CenterPanel({
             <i>1</i><b><SectorIcon k={sector} state="on" size={13} />지표 {inds.length}개{yr && ` · ${yr}`}</b>
           </button>
           <span className="fb-step"><i>2</i><b>{m.label}</b></span>
-          <span className="fb-step fb-opt"><b>{metric.label}</b><u>지도 색</u></span>
+          <span className="fb-step fb-opt"><b>{metric.full || metric.label}</b><u>지도 색</u></span>
           {name && (
             <button className="fb-step fb-opt fb-sel fb-btn" title="선택 해제"
               onClick={() => link.onSelect(null)}>
@@ -207,12 +214,10 @@ export default function CenterPanel({
       </Drawer>
 
       {/* ── 4 원데이터 — 서랍 ──────────────────────────────────────────── */}
+      {/* 지표 정의 · 산식 · 출처는 여기 있지 않다. 값의 뜻을 읽는 일은 이 서랍의
+          어느 표에서나 똑같이 필요하므로 머리줄 오른쪽 '데이터 설명'으로 옮겼다. */}
       <Drawer id="raw" title="원데이터" plain="표준화하기 전의 값"
-        count={4} open={!!drawers.raw} onToggle={(v) => onDrawer('raw', v)}>
-        <Card title="선택 지표 설명" sub={`${inds.length}개 · ${yr}`}
-          dl={() => dlIndicatorDefs(sector)} dlTip="지표 정의 · 산식 · 출처">
-          <IndicatorDefs sector={sector} />
-        </Card>
+        count={3} open={!!drawers.raw} onToggle={(v) => onDrawer('raw', v)}>
         <Card title="선택 지역 지표 원값" sub={yr}
           dl={one(dlRaw)} dlTip="선택 지역의 지표별 원값·표준화값">
           {selectedRow

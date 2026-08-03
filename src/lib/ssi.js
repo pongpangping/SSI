@@ -242,12 +242,18 @@ export function binOf(values) {
 }
 
 // ── 지도 색 기준 ─────────────────────────────────────────────────────────
-//   ① 부문 종합 — 점수·순위·표준점수·백분위
-//   ② 선택 지표 — 선택 지표 하나마다 원값 → 표준화 → 표준점수 → 순위
-//   ③ 표준화 민감도 — 방법을 바꿨을 때 순위가 얼마나 흔들리는가
+// 최상위는 네 묶음으로 고정한다. 지표를 몇 개 고르든 목록의 첫 층은 늘 이 넷이다.
+//
+//   ① 부문 종합      점수 · 순위 · 표준점수 · 백분위 · 순위 변화
+//   ② 원데이터        지표별 소묶음. 지표 하나마다 원값 → 표준화 → 표준점수 → 순위
+//   ③ 표준화 민감도   방법을 바꿨을 때 순위가 얼마나 흔들리는가
 //   ④ 참고 플래그
-export const GRP = { total: '부문 종합', sens: '표준화 민감도', flag: '참고 플래그' }
-export const indGroup = (label) => `지표 · ${label}`
+//
+// 17차까지는 지표 하나가 곧 최상위 묶음('지표 · 인구변화율')이었다. 지표를 여덟
+// 개 고르면 최상위가 열한 칸으로 늘어나, 무엇이 부문 종합이고 무엇이 원데이터인지
+// 첫 층만 봐서는 알 수 없었다. 지표는 원데이터 안쪽 한 층 아래로 내린다.
+export const GRP = { total: '부문 종합', raw: '원데이터', sens: '표준화 민감도', flag: '참고 플래그' }
+export const GRP_ORDER = [GRP.total, GRP.raw, GRP.sens, GRP.flag]
 
 export function metricsFor(sector, method) {
   const m = methodOf(method)
@@ -279,33 +285,34 @@ export function metricsFor(sector, method) {
       get: (r) => r[sector].rank[other] - r[sector].rank[method] },
   ]
 
-  // ② 선택 지표 — 지표 하나가 상자 하나. 고른 만큼만 늘어난다.
+  // ② 원데이터 — 최상위는 '원데이터' 하나. 지표 이름은 sub 로 달아 두고,
+  //    조작부가 그 값으로 한 층 더 접었다 폈다 한다.
   indsOf(sector).forEach((ind) => {
-    const g = indGroup(ind.label)
+    const g = GRP.raw
     const up = ind.dir === '+'
     list.push({
-      key: `raw:${ind.label}`, group: g, scale: up ? 'green' : 'heat',
-      label: `원값 (${ind.unit || '원자료'})`,
+      key: `raw:${ind.label}`, group: g, sub: ind.label, scale: up ? 'green' : 'heat',
+      label: `원값 (${ind.unit || '원자료'})`, full: `${ind.label} · 원값`,
       desc: `${ind.desc} 방향 ${up ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}. ${ind.year}년 자료.`,
       fmt: (v) => (v == null ? '—' : `${fmtRaw(v)}${ind.unit || ''}`), get: (r) => r[sector].raw[ind.label],
     })
     list.push({
-      key: `std:${ind.label}`, group: g, scale: 'blue', dynamic: true,
-      label: `표준화 값 · ${m.label}`,
+      key: `std:${ind.label}`, group: g, sub: ind.label, scale: 'blue', dynamic: true,
+      label: `표준화 값 · ${m.label}`, full: `${ind.label} · 표준화 값(${m.label})`,
       desc: `원값을 ${m.label}(${m.formula})으로 옮긴 값. 방향도 반영한다. 지표 1개만 보면 어떤 방법을 써도 순위는 같다.`,
       fmt: (v) => (v == null ? '—' : v.toFixed(1)),
       get: (r, i) => stdSeries(sector, ind.label, method)[i],
     })
     list.push({
-      key: `t:${ind.label}`, group: g, scale: 'blue', dynamic: true,
-      label: `표준점수(T) · ${m.label}`,
+      key: `t:${ind.label}`, group: g, sub: ind.label, scale: 'blue', dynamic: true,
+      label: `표준점수(T) · ${m.label}`, full: `${ind.label} · 표준점수(T)`,
       desc: '전국 평균 50 · 표준편차 10 눈금. 표준화 방법을 바꾸면 이 값이 달라진다.',
       fmt: (v) => (v == null ? '—' : v.toFixed(1)),
       get: (r, i) => indT(sector, ind.label, method)[i],
     })
     list.push({
-      key: `rank:${ind.label}`, group: g, scale: 'rank',
-      label: '지표 전국 순위',
+      key: `rank:${ind.label}`, group: g, sub: ind.label, scale: 'rank',
+      label: '지표 전국 순위', full: `${ind.label} · 전국 순위`,
       desc: `${ind.label} 하나만 놓고 매긴 ${N}개 시군구 순위(1 = 최상위).`,
       fmt: (v) => (v == null ? '—' : `${Math.round(v)}위`),
       get: (r, i) => indRank(sector, ind.label, method)[i],

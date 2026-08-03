@@ -484,15 +484,15 @@ button { font-family: inherit; }
 
 /* MethodCompare */
 .mc-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
-.mc-name { font-size: var(--fs-6); font-weight: 750; color: var(--ink); }
+.mc-name { font-size: var(--fs-5); font-weight: 750; color: var(--ink); }
 .mc-badge { font-size: var(--fs-3); color: var(--ink2); background: var(--muted); border-radius: 8px; padding: 4px 9px; white-space: nowrap; }
-.mc-badge b { font-size: var(--fs-5); }
+.mc-badge b { font-size: var(--fs-4); }
 .mc-badge.high { background: #FEF2F2; color: #B91C1C; }
 .camp-cmp { border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; margin-bottom: 11px; background: var(--surface); }
 .camp-row { display: flex; align-items: center; gap: 8px; }
 .camp-tag { font-size: var(--fs-2); font-weight: 700; color: #fff; border-radius: 6px; padding: 2px 7px; }
 .camp-mth { font-size: var(--fs-3); color: var(--ink3); flex: 1; }
-.camp-rank { font-size: var(--fs-6); font-weight: 750; color: var(--ink); }
+.camp-rank { font-size: var(--fs-5); font-weight: 750; color: var(--ink); }
 .camp-gap { display: flex; align-items: center; gap: 8px; margin: 6px 0 6px 4px; }
 .gap-line { width: 2px; height: 16px; background: repeating-linear-gradient(#CBD5E1 0 3px, transparent 3px 6px); }
 .gap-val { font-size: var(--fs-3); color: #B91C1C; font-weight: 650; }
@@ -687,7 +687,8 @@ button { font-family: inherit; }
 
 /* ── MethodCompare 추가 ────────────────────────────────────────── */
 .mtbl-r { width: 100%; border: none; border-top: 1px solid var(--line); background: var(--surface);
-  text-align: inherit; cursor: pointer; font: inherit; transition: background .12s; }
+  text-align: inherit; cursor: pointer; transition: background .12s;
+  font-family: inherit; font-weight: inherit; font-size: var(--fs-3); }
 .mtbl-r:hover { background: var(--muted); }
 .mtbl-r.on { background: #F0F8FF; }
 .mtbl-r.on .mt-m { color: var(--accent-strong); font-weight: 700; }
@@ -724,6 +725,17 @@ button { font-family: inherit; }
   box-shadow: 0 0 0 3px var(--accent-weak); }
 
 /* ── DataTable (전체 40개 컬럼) ────────────────────────────────── */
+/* ── 데이터 설명 (18차) ────────────────────────────────────────────
+   지표 정의 · 산식 · 출처. 17차까지 원데이터 서랍 첫 칸에 있던 것을 머리줄
+   오른쪽으로 뺐다. 값의 뜻을 읽는 일은 통계창 어느 층에서나 똑같이 필요하다.
+   글줄이 길어 넓게 벌리면 눈이 줄을 놓치므로 폭은 좁게 잡는다. */
+.modal-nar { width: min(560px, 96vw); }
+.dd-bar { display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+  border-bottom: 1px solid var(--line); background: var(--muted); }
+.dd-sec { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; }
+.dd-sec b { font-size: var(--fs-4); font-weight: 750; color: var(--ink); }
+.dd-sec em { font-style: normal; font-size: var(--fs-2); color: var(--ink3); }
+
 .modal-wide { width: min(1400px, 97vw); max-height: 92vh; }
 .dt-bar { display: flex; align-items: center; gap: 9px; padding: 11px 20px;
   border-bottom: 1px solid var(--line); flex-wrap: wrap; }
@@ -1391,6 +1403,36 @@ button { font-family: inherit; }
   line-height: 1; color: var(--ink3); display: grid; place-items: center; }
 .acc2-grp-h:hover .gb-sign { color: var(--accent-strong); }
 .gb-body { display: flex; flex-direction: column; gap: 2px; padding: 5px 5px 6px; }
+
+/* ── 원데이터 묶음 안쪽의 지표별 소묶음 (18차) ─────────────────────
+   지도 색 기준의 첫 층은 넷으로 고정한다(부문 종합 · 원데이터 · 표준화 민감도 ·
+   참고 플래그). 지표를 여덟 개 고르면 예전에는 첫 층이 열한 칸으로 늘어나
+   무엇이 종합이고 무엇이 원값인지 첫 층만 봐서는 알 수 없었다. 지표는 원데이터
+   안쪽 한 층 아래로 내린다.
+
+   깊이가 하나 늘었으므로 안쪽은 바깥보다 한 눈금씩 작고 옅게 둔다. 같은 무게로
+   그리면 두 층이 한 층처럼 보여 접는 뜻이 사라진다. */
+.acc2-sub { border: 1px solid transparent; border-radius: 7px; overflow: hidden;
+  background: transparent; transition: background .12s, border-color .12s; }
+.acc2-sub.open { background: #fff; border-color: var(--line); }
+.acc2-sub.cur { border-color: var(--accent-weak); background: #fff; }
+.acc2-sub-h { display: flex; align-items: center; gap: 5px; width: 100%;
+  padding: 5px 7px; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; text-align: left; transition: background .12s; }
+.acc2-sub-h:hover { background: var(--muted); }
+.acc2-sub.open > .acc2-sub-h { border-bottom: 1px dashed var(--line); }
+/* display:flex 를 쓰는 칸에서는 글자에 말줄임이 걸리지 않는다.
+   지표 이름을 제 칸에 넣어 두고 거기에 말줄임을 건다. */
+.sb-t { flex: 1; min-width: 0; font-size: var(--fs-2); font-weight: 700; color: var(--ink2);
+  letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acc2-sub.cur .sb-t { color: var(--accent-strong); }
+.sb-n { flex: none; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 5px;
+  background: var(--muted); color: var(--ink3); font-size: var(--fs-1); font-weight: 700;
+  display: grid; place-items: center; }
+.acc2-sub.cur .sb-n { background: var(--accent-weak); color: var(--accent-strong); }
+.acc2-sub-body { display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 5px; }
+/* 안쪽 칸은 왼쪽을 조금 들여 어느 지표에 딸린 값인지 눈으로 잇는다 */
+.acc2-sub-body .acc2-item { padding-left: 12px; }
 
 /* ── 세로 적층(1180px 미만)에서는 겹침 배치를 풀고 흐름 배치로 ────── */
 @media (max-width: 1180px) {
@@ -2400,8 +2442,12 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
 .csect-main > .csect-head .csect-t em,
 .csect-sel > .csect-head .csect-t em { font-size: var(--fs-3); }
 
-/* 지도에서 고른 지역 — 늘 맨 위. 파란 왼쪽 선으로 '지금 보고 있는 곳'을 표시한다. */
-.csect-sel { padding-left: 11px; border-left: 3px solid var(--accent); }
+/* 지도에서 고른 지역 — 늘 맨 위.
+   17차까지는 왼쪽에 3px 파란 세로 선을 세워 '지금 보고 있는 곳'을 표시했다.
+   그런데 이 층에는 카드가 여럿 쌓인다. 실제로 재 보니 선의 길이가 2,700px 을
+   넘어, 화면을 내리는 내내 무엇을 묶는 선인지 알 수 없는 채로 따라왔다.
+   층을 가르는 일은 머리줄 하나로 충분하다 — 선은 없앤다(18차). */
+.csect-sel { }
 .csect-sel > .csect-head { border-bottom-color: var(--accent); }
 .csect-sel > .csect-head .csect-t { color: var(--accent-strong); }
 .csect-x { flex: none; margin-left: auto; font-family: inherit; cursor: pointer;
@@ -2439,8 +2485,11 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
 .drw.open .drw-n { background: var(--accent-weak); border-color: transparent; color: var(--accent-strong); }
 .drw-act { flex: none; margin-left: auto; font-size: var(--fs-2); font-weight: 700; color: var(--ink3); }
 .drw-head:hover .drw-act { color: var(--accent-strong); }
-.drw-body { display: flex; flex-direction: column; gap: 10px; padding-left: 11px;
-  border-left: 2px solid var(--line); }
+/* 서랍 속살. 여기에도 왼쪽 세로 선이 있었다 — 재 보니 2,766px 이었다.
+   서랍은 17차부터 처음부터 펴 두므로 이 선은 화면을 내리는 내내 따라오면서
+   어디까지가 한 서랍인지는 알려 주지 못했다. 서랍의 경계는 머리줄과 그 아래
+   여백이 맡는다(18차). */
+.drw-body { display: flex; flex-direction: column; gap: 10px; padding-left: 2px; }
 
 /* ── 도형 표식 ─────────────────────────────────────────────── */
 /* 글꼴 문자(− + ◆ ✕)를 도형으로 바꿨다. 그 문자가 없는 글꼴이 걸리면 빈 네모로
