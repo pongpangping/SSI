@@ -30,7 +30,7 @@ export default function StdTransform({ row, sector, method, onMethod }) {
             return (
               <tr key={ind.label}>
                 <td className="stt-l">
-                  <b>{ind.label}<em className={ind.dir === '+' ? 'up' : 'dn'}>{ind.dir === '+' ? '▲ 높을수록' : '▼ 낮을수록'}</em></b>
+                  <b>{ind.name || ind.label}<em className={ind.dir === '+' ? 'up' : 'dn'}>{ind.dir === '+' ? '▲ 높을수록' : '▼ 낮을수록'}</em></b>
                   <span>
                     원값 <u>{fmtRaw(d.raw[ind.label])}{ind.unit}</u> <u>{ind.year}년</u>
                     <i className={same ? 'same' : ''}>지표순위 {ranks[0]}위{same ? ` · ${METHODS.length}방법 동일` : ''}</i>

@@ -23,7 +23,7 @@ export default function SensitiveList({ sector, selected, onSelect, ver = 0 }) {
       </div>
       <div className="sl-head">
         <span>순서</span><span>시군구</span><span>이동 폭</span>
-        <span>{methodOf(repA).short || 'MinMax'} → {methodOf(repB).short || '백분위'}</span>
+        <span>{methodOf(repA).label} → {methodOf(repB).label}</span>
         <span>계단</span>
       </div>
       {ranked.map((r, i) => {

@@ -2,33 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NationalMap from './NationalMap.jsx'
 import {
   metricFor, metricsFor, methodOf, METHODS, SECTORS, SECTOR_KEYS, CAMP, CAMP_REPS,
-  campOf, valuesOf, rowIndex, ROWS, shortSido,
+  campOf, valuesOf, rowIndex, ROWS,
 } from '../lib/ssi.js'
 
 // 나란히 보기 — 왼쪽·오른쪽 지도를 각각 '부문 · 방법 · 지표'로 정한다.
-// 처음에는 가장 자주 쓰는 조합(방법 비교)을 추천으로 걸어 두고,
-// 필요하면 자유 조합으로 넘어가 좌우를 완전히 따로 고를 수 있게 한다.
+// 추천 조합(방법 비교·부문 비교·지표 비교) 세 가지를 두었었지만, 결국 무엇을
+// 비교하는지는 사람이 알고 들어오는 일이라 고르는 단계가 한 겹 더 늘 뿐이었다.
+// 지금은 좌우를 각각 직접 고르는 자유 조합 하나만 둔다.
 // 마우스를 올리면 커서를 따라다니는 팝업이 두 지도의 값을 한 번에 보여 준다.
-
-const PRESETS = [
-  { key: 'method', label: '방법 비교', desc: '같은 부문 · 같은 지표, 표준화 방법만 다르게' },
-  { key: 'sector', label: '부문 비교', desc: '같은 방법 · 같은 항목, 부문만 다르게' },
-  { key: 'metric', label: '지표 비교', desc: '같은 부문 · 같은 방법, 보는 항목만 다르게' },
-  { key: 'free', label: '자유 조합', desc: '좌우를 각각 따로 고른다' },
-]
 
 // 지표 키가 그 부문·방법에 실제로 있는지 확인하고, 없으면 순위로 되돌린다.
 const safeKey = (sector, method, key) => {
   const list = metricsFor(sector, method)
   return list.some((m) => m.key === key) ? key : (list.find((m) => m.key === 'rank') || list[0]).key
 }
-const otherKey = (sector, method, key) => {
-  const list = metricsFor(sector, method)
-  const pref = ['ci', 'rank', 'pct', 'ciT']
-  return (pref.find((p) => p !== key && list.some((m) => m.key === p))
-    || list.find((m) => m.key !== key)?.key || key)
-}
-const nextSector = (s) => SECTOR_KEYS[(SECTOR_KEYS.indexOf(s) + 1) % SECTOR_KEYS.length]
 
 // 두 지도의 색 구간(7단계)이 다른 시군구 수 — 부문·지표가 달라도 셀 수 있게 값에서 직접 계산한다.
 function binsOf(metric) {
@@ -73,7 +60,7 @@ function SidePick({ side, on, onChange }) {
 
 export default function CompareMaps({
   sector, method = 'minmax', metricKey, onlyHigh, selected, hovered,
-  onSelect, onHover, sido = null, onlyHighToggle = null, ver = 0,
+  onSelect, onHover, onlyHighToggle = null, ver = 0,
 }) {
   const maps = useRef([])
   const lock = useRef(false)
@@ -92,27 +79,11 @@ export default function CompareMaps({
   const tools = useCallback((ref) => { if (!api.current) api.current = ref }, [])
   const run = (fn, ...a) => { const t = api.current?.current; if (t && t[fn]) t[fn](...a) }
 
-  const [preset, setPreset] = useState('method')
-  const [A, setA] = useState({ sector, method: CAMP_REPS[0], metricKey })
-  const [B, setB] = useState({ sector, method: CAMP_REPS[1], metricKey })
-
-  // 추천 조합일 때는 왼쪽 조작부(부문·방법·지표)를 그대로 따라간다.
-  useEffect(() => {
-    if (preset === 'free') return
-    if (preset === 'method') {
-      const k = safeKey(sector, CAMP_REPS[0], metricKey)
-      setA({ sector, method: CAMP_REPS[0], metricKey: k })
-      setB({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], k) })
-    } else if (preset === 'sector') {
-      const s2 = nextSector(sector)
-      setA({ sector, method, metricKey: safeKey(sector, method, metricKey) })
-      setB({ sector: s2, method, metricKey: safeKey(s2, method, metricKey) })
-    } else {
-      const k = safeKey(sector, method, metricKey)
-      setA({ sector, method, metricKey: k })
-      setB({ sector, method, metricKey: otherKey(sector, method, k) })
-    }
-  }, [preset, sector, method, metricKey])
+  // 처음 열 때만 조작부에서 고른 부문·지표를 그대로 물려받고, 표준화 방법만
+  // 두 계열의 대표(간격보존형 · 순위전용형)로 갈라 둔다. 그 뒤로는 사람이
+  // 좌우를 직접 바꾼다 — 조작부를 건드릴 때마다 되돌아가면 오히려 방해가 된다.
+  const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], metricKey: safeKey(sector, CAMP_REPS[0], metricKey) }))
+  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], metricKey) }))
 
   const mA = metricFor(A.sector, A.method, A.metricKey)
   const mB = metricFor(B.sector, B.method, B.metricKey)
@@ -141,24 +112,12 @@ export default function CompareMaps({
 
   return (
     <div className="abm-wrap" onMouseMove={onMove}>
-      {/* 무엇과 무엇을 견줄지 고르는 줄 */}
-      <div className="cv-bar">
-        <div className="cv-seg">
-          {PRESETS.map((p) => (
-            <button key={p.key} className={`cv-sg${preset === p.key ? ' on' : ''}`}
-              onClick={() => setPreset(p.key)} title={p.desc}>{p.label}</button>
-          ))}
-        </div>
-        <span className="cv-desc">{PRESETS.find((p) => p.key === preset)?.desc}</span>
+      {/* 무엇과 무엇을 견줄지 — 좌우를 각각 직접 고른다 */}
+      <div className="cv-free">
+        <SidePick side={A} onChange={setA} />
+        <span className="cv-vs">견줌</span>
+        <SidePick side={B} onChange={setB} />
       </div>
-
-      {preset === 'free' && (
-        <div className="cv-free">
-          <SidePick side={A} onChange={setA} />
-          <span className="cv-vs">견줌</span>
-          <SidePick side={B} onChange={setB} />
-        </div>
-      )}
 
       <div className="abm-bar">
         <span className="abm-tag" style={{ background: cA }}>{tagA}</span>
@@ -170,11 +129,11 @@ export default function CompareMaps({
       </div>
 
       <div className="abm-maps">
-        <NationalMap sector={A.sector} metric={mA} method={A.method} onlyHigh={onlyHigh} sido={sido}
+        <NationalMap sector={A.sector} metric={mA} method={A.method} onlyHigh={onlyHigh}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
           compact tips={false} title={methodOf(A.method).label} subtitle={mA.label}
           onMapReady={register} onToolsReady={tools} ver={ver} />
-        <NationalMap sector={B.sector} metric={mB} method={B.method} onlyHigh={onlyHigh} sido={sido}
+        <NationalMap sector={B.sector} metric={mB} method={B.method} onlyHigh={onlyHigh}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
           compact tips={false} title={methodOf(B.method).label} subtitle={mB.label}
           onMapReady={register} autoFit={false} ver={ver} />
@@ -184,9 +143,6 @@ export default function CompareMaps({
           <button onClick={() => run('zoomOut')} title="축소" aria-label="축소">－</button>
           <span className="mapz-sep" />
           <button onClick={() => run('fitAll')} title="전국이 한 화면에 들어오도록" aria-label="전국 보기">↺</button>
-          <button onClick={() => sido && run('fitSido', sido)} disabled={!sido}
-            title={sido ? `${shortSido(sido)}로 이동` : '시·도를 고르면 사용'}
-            aria-label="선택한 시·도로 이동">◎</button>
           <button onClick={() => run('fitSel')} disabled={!selected} title="선택한 시군구를 확대"
             aria-label="선택 지역 확대">⤢</button>
         </div>

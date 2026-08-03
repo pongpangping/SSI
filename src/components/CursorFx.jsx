@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom'
 //   지도 위     : 조준점 (가는 원 + 사방 눈금 + 가운데 점)
 //   조작·통계창 : 동그란 점 (누를 수 있는 것 위에서는 테두리가 벌어진다)
 //   입력칸      : 손대지 않고 브라우저 기본 커서로 되돌린다
-// 바깥 고리는 한 박자 늦게 따라와서 움직임에 무게가 생긴다.
+// 바깥 고리는 반 박자 늦게 따라온다. 늦는 폭을 크게 잡으면 '느리다'는 인상이
+// 되므로, 붙는 속도를 높이고 남은 1px 미만은 그냥 붙여 끌림을 없앴다.
 // 손가락·펜으로 쓰는 기기(pointer: coarse)에서는 아예 켜지 않는다.
 export default function CursorFx() {
   const ring = useRef(null)
@@ -33,19 +34,25 @@ export default function CursorFx() {
       root.classList.toggle('fx-hit', onHit)
     }
 
+    // 모양 판정(closest 세 번)은 마우스 밑의 요소가 실제로 바뀔 때만 한다.
+    // 매 프레임 돌리면 지도처럼 도형이 많은 화면에서 포인터가 늦게 따라온다.
+    let lastEl = null
     const move = (e) => {
       x = e.clientX; y = e.clientY
       if (!shown) { shown = true; rx = x; ry = y; root.classList.add('fx-in') }
       if (dot.current) dot.current.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      setMode(e.target)
+      if (e.target !== lastEl) { lastEl = e.target; setMode(e.target) }
     }
     const leave = () => { shown = false; root.classList.remove('fx-in') }
     const down = () => root.classList.add('fx-down')
     const up = () => root.classList.remove('fx-down')
 
     const tick = () => {
-      rx += (x - rx) * 0.22           // 0.22 = 따라붙는 속도. 1이면 즉시, 작을수록 늘어진다
-      ry += (y - ry) * 0.22
+      rx += (x - rx) * 0.5            // 따라붙는 속도. 1이면 즉시, 작을수록 늘어진다
+      ry += (y - ry) * 0.5
+      // 1px 미만으로 남은 거리는 그냥 붙인다. 끝에서 미세하게 끌리는 느낌을 없앤다.
+      if (Math.abs(x - rx) < 0.7) rx = x
+      if (Math.abs(y - ry) < 0.7) ry = y
       if (ring.current) ring.current.style.transform = `translate3d(${rx}px, ${ry}px, 0)`
       raf = requestAnimationFrame(tick)
     }

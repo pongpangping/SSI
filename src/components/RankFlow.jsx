@@ -65,7 +65,7 @@ function place(ys, gap, top, bottom) {
   return out
 }
 const cut = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
-const mshort = (k) => { const m = methodOf(k); return m?.short || m?.label || k }
+const mname = (k) => { const m = methodOf(k); return m?.label || k }
 
 /* ── 도면 한 벌 ─────────────────────────────────────────────── */
 function Bump({ size, sector, selectedRow, mode, onSelect, ver = 0 }) {
@@ -148,7 +148,7 @@ function Bump({ size, sector, selectedRow, mode, onSelect, ver = 0 }) {
       {METHODS.map((m, i) => (
         <g key={m.key}>
           <line x1={x(i)} x2={x(i)} y1={g.T - 4} y2={g.T + PH + 4} stroke="#E2E8F0" />
-          <text x={x(i)} y={g.T + PH + 19} textAnchor="middle" className="rf-mx">{m.short || m.label}</text>
+          <text x={x(i)} y={g.T + PH + 19} textAnchor="middle" className="rf-mx">{m.label}</text>
         </g>
       ))}
 
@@ -234,7 +234,7 @@ export default function RankFlow({ sector, selectedRow, onSelect, ver = 0 }) {
       <span><i style={{ background: DOWN }} />순위 하락</span>
       <span><i style={{ background: FLAT }} />거의 그대로</span>
       <span><i style={{ background: SEL }} />선택 지역</span>
-      <em>↕ 는 {METHODS.length}개 방법에서 순위가 움직인 폭(계단) · 색은 {mshort(CAMP_REPS[0])} → {mshort(CAMP_REPS[1])} 방향</em>
+      <em>↕ 는 {METHODS.length}개 방법에서 순위가 움직인 폭(계단) · 색은 {mname(CAMP_REPS[0])} → {mname(CAMP_REPS[1])} 방향</em>
     </div>
   )
 

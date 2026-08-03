@@ -13,6 +13,7 @@ import {
   ROWS, N, METHODS, SECTORS, methodOf, indsOf, stdSeries, indT, indRank, ciT,
   pctOf, reportTable, axisFor, rowKey, rowIndex,
 } from './ssi.js'
+import { distribution, shapeText, topBottom, bySido, contribution } from './summary.js'
 import { xlsx, XLSX_MIME } from './xlsx.js'
 import { download as saveBytes } from './shpout.js'
 import { tablePng, chartPng, savePng, chartSvgOf } from './pngout.js'
@@ -226,6 +227,150 @@ export function dlSensList(sector) {
     cols,
     rows,
     note: foot(sector, null),
+  }
+}
+
+// ── 전국 요약 ─────────────────────────────────────────────────────────
+// 화면의 네 칸을 그대로 파일로 옮긴다. 그림에 쓴 배열을 다시 읽어 쓰므로
+// 히스토그램 칸 경계도 화면과 같다.
+
+export function dlDistribution(sector, method) {
+  const d = distribution(sector, method)
+  const cols = ['구간번호', '구간시작', '구간끝', '시군구수', '비율_%']
+  const rows = d ? d.bins.map((b) => [
+    b.i + 1, r1(b.from), r1(b.to), b.n, r1(b.n / d.n * 100),
+  ]) : []
+  const sum = d ? [
+    ['평균', r1(d.mean)], ['중앙값', r1(d.med)], ['표준편차', r1(d.sd)],
+    ['최고', r1(d.max)], ['최저', r1(d.min)],
+    ['1사분위', r1(d.q1)], ['3사분위', r1(d.q3)], ['대상 시군구', d.n],
+  ] : []
+  return {
+    base: fileName('전국분포', sector, method),
+    title: '전국 분포 요약',
+    sub: d ? shapeText(d) : '',
+    cols,
+    rows,
+    note: foot(sector, method, '구간은 최저~최고를 20칸으로 똑같이 나눈 것입니다.'),
+    sheets: [
+      { name: '분포 요약', cols: ['항목', '값'], rows: sum },
+      { name: '구간별 분포', cols, rows },
+    ],
+  }
+}
+
+export function dlTopBottom(sector, method, k = 10) {
+  const { top, bottom, n } = topBottom(sector, method, k)
+  const cols = ['구분', '전국순위', '시도', '시군구', '부문점수_CI', '표준점수_T', '백분위', '순위이동']
+  const line = (tag) => (x) => [tag, x.rank, x.sido, x.name, r1(x.ci), r1(x.t), r1(pctOf(x.rank)), x.camp]
+  const rows = [...top.map(line('상위')), ...bottom.map(line('하위'))]
+  return {
+    base: fileName(`상하위${k}곳`, sector, method),
+    title: `상위·하위 ${k}곳`,
+    sub: `전국 ${n}개 시군구 중`,
+    cols,
+    rows,
+    note: foot(sector, method),
+  }
+}
+
+export function dlBySido(sector, method) {
+  const { list, nat } = bySido(sector, method)
+  const cols = ['순서', '시도', '시군구수', '평균_CI', '전국평균과의차', '최저', '최고']
+  const rows = list.map((s) => [
+    s.order, s.sido, s.n, r1(s.mean), r1(s.gap), r1(s.min), r1(s.max),
+  ])
+  return {
+    base: fileName('시도별평균', sector, method),
+    title: '시도별 평균 비교',
+    sub: `전국 평균 ${r1(nat)}`,
+    cols,
+    rows,
+    note: foot(sector, method,
+      '시도 평균은 소속 시군구 부문점수의 단순 평균입니다. 인구·면적 가중을 하지 않았습니다.'),
+  }
+}
+
+export function dlContribution(sector, method) {
+  const rows0 = contribution(sector, method)
+  const cols = ['지표', '연도', '단위', '방향', '표준화값_평균', '표준화값_표준편차',
+    '표준화값_최저', '표준화값_최고', '부문점수와의_상관', '몫_%']
+  const rows = rows0.map((r) => [
+    r.name || r.label, r.year, r.unit || '',
+    r.dir === '+' ? '높을수록 좋음' : '낮을수록 좋음',
+    r1(r.mean), r1(r.sd), r1(r.min), r1(r.max), r3(r.corr), r1(r.share),
+  ])
+  return {
+    base: fileName('지표별기여도', sector, method),
+    title: '지표별 기여도',
+    sub: `선택 지표 ${rows0.length}개 · 동일가중 평균`,
+    cols,
+    rows,
+    note: foot(sector, method,
+      '몫 = 지표 평균의 합에서 차지하는 비율 · 상관 = 지표 표준화값과 부문점수의 상관계수'),
+  }
+}
+
+// 지금 고른 지표가 무엇인지 — 정의·산식·출처. 원데이터 칸의 첫 표.
+export function dlIndicatorDefs(sector) {
+  const cols = ['번호', '지표', '연도', '단위', '방향', '정의', '산식', '출처', '비고']
+  const rows = indsOf(sector).map((e, i) => [
+    i + 1, e.name || e.label, e.year, e.unit || '',
+    e.dir === '+' ? '높을수록 좋음' : '낮을수록 좋음',
+    e.desc || '', e.formula || '', e.source || '', e.note || '',
+  ])
+  return {
+    base: fileName('지표설명', sector),
+    title: '선택 지표 설명',
+    sub: `${rows.length}개 지표`,
+    cols,
+    pngCols: 6,
+    rows,
+    note: foot(sector, null),
+  }
+}
+
+// 선택 지표 원값 전국 표 — 229행 × 지표
+export function dlRawAll(sector, method) {
+  const inds = indsOf(sector)
+  const std = inds.map((e) => stdSeries(sector, e.label, method))
+  const cols = ['시도', '시군구']
+  inds.forEach((e) => cols.push(`${e.name}_${e.year}_원값`, `${e.name}_${e.year}_표준화`))
+  const rows = ROWS.map((r, i) => {
+    const d = r[sector]
+    const o = [r.sido, r.name]
+    inds.forEach((e, j) => { o.push(d ? d.raw[e.label] : null, r1(std[j][i])) })
+    return o
+  })
+  return {
+    base: fileName('지표원값_전국', sector, method),
+    title: '선택 지표 원값 · 전국',
+    sub: `${N}개 시군구 × 지표 ${inds.length}개`,
+    cols,
+    rows,
+    note: foot(sector, method),
+  }
+}
+
+// 전국 요약 네 칸을 한 파일로. 엑셀이면 장을 나눠 담는다.
+export function dlSummaryAll(sector, method) {
+  const d = dlDistribution(sector, method)
+  const t = dlTopBottom(sector, method)
+  const s = dlBySido(sector, method)
+  const c = dlContribution(sector, method)
+  return {
+    base: fileName('전국요약', sector, method),
+    title: `${SECTORS[sector].name} 전국 요약`,
+    sub: `${N}개 시군구 · 표준화 ${methodOf(method).label}`,
+    cols: c.cols,
+    rows: c.rows,
+    note: foot(sector, method),
+    sheets: [
+      ...d.sheets,
+      { name: '상위·하위', cols: t.cols, rows: t.rows },
+      { name: '시도별 평균', cols: s.cols, rows: s.rows },
+      { name: '지표별 기여도', cols: c.cols, rows: c.rows },
+    ],
   }
 }
 

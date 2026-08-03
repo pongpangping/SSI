@@ -88,7 +88,7 @@ export default function ReportCard({ row, sector, method, onMethod }) {
           const raw = d.raw[ind.label]
           const it = indT(sector, ind.label, method)[i]
           return (
-            <Line key={ind.label} name={ind.label}
+            <Line key={ind.label} name={ind.name || ind.label}
               note={`${ind.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'} · ${ind.year}년`}
               t={it} pct={pctOf(rk)}
               stats={[
@@ -112,7 +112,7 @@ export default function ReportCard({ row, sector, method, onMethod }) {
               <button key={x.key} className={`rp-sw-b${x.key === method ? ' on' : ''}`}
                 onClick={() => onMethod?.(x.key)}
                 title={`${x.label}으로 보면 ${rk == null ? '—' : `${rk}위`} · 표준점수 ${f1(t)}`}>
-                <em>{x.short || x.label}</em>
+                <em>{x.label}</em>
                 <b>{rk == null ? '—' : `${rk}위`}</b>
                 <i style={{ background: tColor(t) }}>{t == null ? '—' : Math.round(t)}</i>
               </button>

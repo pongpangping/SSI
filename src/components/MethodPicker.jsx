@@ -7,7 +7,7 @@ import { CAMP, CAMP_NAMES, methodOf } from '../lib/ssi.js'
 //
 // 수식·범위·눈금띠와 '방법을 바꾸면 지도가 얼마나 달라지나'는 여기서 뺐다.
 // 조작부에 설명이 함께 있으면 지금 무엇을 고른 상태인지가 묻힌다.
-// 그 내용은 통계창 B단의 [선택한 표준화 방법] 카드로 옮겼다.
+// 그 내용은 통계창 [표준화 민감도] 칸의 [선택한 표준화 방법] 카드로 옮겼다.
 const CAMPS = CAMP_NAMES
 const CAMP_NOTE = { 간격보존형: '값 간격 유지', 순위전용형: '등수만 사용' }
 // 한 줄 요약 — 목록에서 바로 고를 수 있게 방법마다 성격을 한 문장으로.
@@ -50,7 +50,7 @@ export default function MethodPicker({ method, onMethod }) {
       </div>
 
       <div className="mp2-where">
-        지금 <b>{m.label}</b> · 수식과 범위는 통계창 <em>B. 표준화 방법 비교</em>에 있습니다
+        지금 <b>{m.label}</b> · 수식과 범위는 통계창 <em>표준화 민감도</em> 칸에 있습니다
       </div>
     </div>
   )

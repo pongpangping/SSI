@@ -89,7 +89,7 @@ function labelData() {
 const pxPerDeg = (z) => (256 * Math.pow(2, z)) / 360
 
 export default function NationalMap({
-  sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover, sido = null,
+  sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
   autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0,
 }) {
@@ -131,8 +131,7 @@ export default function NationalMap({
     const row = byKey[k]
     const isSel = k === selected, isHov = k === hovered
     const high = row && row[sector]?.flag === 'high'
-    const outSido = sido && row && row.sido !== sido
-    const dim = (onlyHigh && !high) || outSido
+    const dim = onlyHigh && !high
     return {
       fillColor: color(valOf(k)),
       fillOpacity: dim ? 0.06 : isSel ? 0.95 : isHov ? 0.88 : 0.82,
@@ -221,13 +220,12 @@ export default function NationalMap({
     const zAll = map.getBoundsZoom(all, false, p), zCore = map.getBoundsZoom(CORE, false, p)
     fitTo(zCore - zAll > 0.12 ? CORE : all, g, { core: true, keepIn: all, duration })
   }
-  const fitSido = (s) => fitTo(boundsOf((k) => byKey[k]?.sido === s), 28, { duration: 0.7 })
   const fitSel = () => fitTo(boundsOf((k) => k === selected), 70, { duration: 0.7 })
 
   // 조작 함수 묶음 — 나란히 보기(듀얼)에서 부모가 공용 도구막대로 쓴다.
   const apiRef = useRef({})
   apiRef.current = {
-    fitAll, fitSido, fitSel,
+    fitAll, fitSel,
     zoomIn: () => map && map.zoomIn(),
     zoomOut: () => map && map.zoomOut(),
   }
@@ -253,14 +251,6 @@ export default function NationalMap({
     const t = setTimeout(() => { try { map.panBy([d / 2, 0], { animate: true, duration: 0.4 }) } catch (e) { /* noop */ } }, 20)
     return () => clearTimeout(t)
   }, [padLeft, map])
-
-  // 시도를 고르면 그 권역으로, 전국으로 되돌리면 전국으로 이동
-  const sidoRef = useRef(sido)
-  useEffect(() => {
-    if (!map || !autoFit || sidoRef.current === sido) return
-    sidoRef.current = sido
-    try { sido ? fitSido(sido) : fitAll() } catch (e) { /* noop */ }
-  }, [sido, map])
 
   // ── 시군구 이름표 ──────────────────────────────────────────────────────
   // 확대 배율이 정해지면 화면 위 거리도 정해지므로, 겹침 계산은 확대할 때만 다시 한다.
@@ -288,7 +278,6 @@ export default function NationalMap({
           const row = byKey[o.key]
           if (!row) return false
           if (o.key === selected) return true
-          if (sido && row.sido !== sido) return false
           if (onlyHigh && row[sector]?.flag !== 'high') return false
           return o.span * per >= (compact ? 46 : 30)
         })
@@ -328,7 +317,7 @@ export default function NationalMap({
     draw()
     map.on('zoomend', draw)
     return () => { map.off('zoomend', draw); group.remove() }
-  }, [map, labelsOn, sido, onlyHigh, selected, sector, byKey, compact, ver])
+  }, [map, labelsOn, onlyHigh, selected, sector, byKey, compact, ver])
 
   // 통계창 접기/펼치기·창 크기 변화로 지도 폭이 바뀌면 Leaflet에 알린다
   useEffect(() => {
@@ -354,20 +343,20 @@ export default function NationalMap({
   const tickTitle = `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
 
   // ── 내보내기 ────────────────────────────────────────────────────────────
-  // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 시도를 골라 둔 상태면 그 권역만 나간다.
+  // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 전국 229개 시군구가 통째로 나간다.
   const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표' }
   const doExport = (kind) => {
     setDlOpen(false)
     let n = 0
     try {
-      const o = { geo, byKey, sector, method, metric, valOf, sido }
+      const o = { geo, byKey, sector, method, metric, valOf }
       n = kind === 'shp' ? exportShapefile(o) : kind === 'geojson' ? exportGeoJSON(o) : exportCSV(o)
     } catch (e) {
       setDlMsg('내보내는 중 문제가 생겼습니다')
       setTimeout(() => setDlMsg(''), 3200)
       return
     }
-    setDlMsg(n ? `${sido || '전국'} ${n}개 시군구 · ${DL[kind]} 내려받음` : '내보낼 지역이 없습니다')
+    setDlMsg(n ? `전국 ${n}개 시군구 · ${DL[kind]} 내려받음` : '내보낼 지역이 없습니다')
     setTimeout(() => setDlMsg(''), 3400)
   }
 
@@ -396,9 +385,6 @@ export default function NationalMap({
           <button onClick={() => map && map.zoomOut()} title="축소" aria-label="축소">－</button>
           <span className="mapz-sep" />
           <button onClick={fitAll} title="전국이 한 화면에 들어오도록" aria-label="전국 보기">↺</button>
-          <button onClick={() => sido && fitSido(sido)} disabled={!sido}
-            title={sido ? `${shortSido(sido)}로 이동` : '시·도를 고르면 사용'}
-            aria-label="선택한 시·도로 이동">◎</button>
           <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대"
             aria-label="선택 지역 확대">⤢</button>
           <span className="mapz-sep" />
@@ -417,7 +403,7 @@ export default function NationalMap({
           <div className="mapdl">
             <div className="mapdl-h">
               내보내기
-              <em>{SECTORS[sector]?.name} · {metric.label} · {sido || '전국'}</em>
+              <em>{SECTORS[sector]?.name} · {metric.label} · 전국</em>
             </div>
             <button onClick={() => doExport('shp')}>
               <b>Shapefile (.zip)</b><span>QGIS·ArcGIS에서 바로 열립니다 · EPSG:4326</span>
@@ -481,7 +467,7 @@ export default function NationalMap({
                 title={`분포를 보고 자동으로 고릅니다 — 지금은 ${modeOf(auto).label}`}>자동</button>
               {CLASS_MODES.map((m) => (
                 <button key={m.key} className={cmode === m.key ? 'on' : ''}
-                  onClick={() => setCmode(m.key)} title={m.desc}>{m.short}</button>
+                  onClick={() => setCmode(m.key)} title={m.desc}>{m.label}</button>
               ))}
             </div>
             <p className="ml-note">

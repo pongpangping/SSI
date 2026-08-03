@@ -20,7 +20,7 @@ export default function RawIndicators({ row, sector }) {
         return (
           <div className="ri-row" key={ind.label}>
             <div className="ri-top">
-              <span className="ri-name">{ind.label}
+              <span className="ri-name">{ind.name || ind.label}
                 <em className="ri-dir">{ind.dir === '+' ? '▲ 높을수록' : '▼ 낮을수록'}</em>
                 {ind.year && <em className="ri-yr">{ind.year}년</em>}
               </span>
