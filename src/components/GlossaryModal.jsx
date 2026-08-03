@@ -1,6 +1,7 @@
 import SectorIcon from './SectorIcon.jsx'
 import { useEffect, useState } from 'react'
 import { METHODS, CAMP, META, INDICATORS, SECTORS, ALL_SECTOR_KEYS, N } from '../lib/ssi.js'
+import { Cross } from './Glyph.jsx'
 
 const TERMS = [
   { t: 'CI (부문지수, Composite Index)', d: '선택 지표들을 표준화한 뒤 같은 비중으로 평균해 만든 값. 선택 지표를 바꾸면 CI도 바뀐다.' },
@@ -33,7 +34,7 @@ export default function GlossaryModal() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-h">
               <h3>용어 · 표준화 방법론 · 지표 사전</h3>
-              <button onClick={() => setOpen(false)}>✕</button>
+              <button onClick={() => setOpen(false)} title="닫기"><Cross size={12} /></button>
             </div>
             <div className="gl-tabs">
               {[['term', '핵심 용어'], ['method', `${METHODS.length}개 표준화 방법`], ['col', `지표 사전 (${INDICATORS.length})`]].map(([k, l]) => (

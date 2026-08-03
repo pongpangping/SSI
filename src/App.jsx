@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ROWS, metricFor, rowKey, METHOD_KEYS, SECTOR_KEYS,
   applyPicks, defaultPicks, picksOf, picksToHash, picksFromHash,
@@ -15,12 +15,19 @@ import IndicatorPicker from './components/IndicatorPicker.jsx'
 import CursorFx from './components/CursorFx.jsx'
 
 // ── URL 해시 상태 공유 ────────────────────────────────────────────────
-// #s=S8&m=minmax&k=rank&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT&t=sum
+// #s=S8&m=minmax&k=rank&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT&d=sens
 // i(선택 지표)까지 포함하기 때문에, 링크를 받은 사람은 '같은 조합으로 계산한 화면'을 본다.
-// 링크에 부문(s)이 적혀 있으면 시작 화면을 건너뛰고 곧장 그 부문으로 들어간다.
+//
+// 다만 링크에 부문(s)이 적혀 있어도 시작 화면을 건너뛰지는 않는다. 예전에는
+// 곧장 들어가게 해 두었는데, 주소창에 지난 해시가 남아 있으면 새로 열 때마다
+// 부문 고르는 화면이 아예 뜨지 않았다. 지금은 시작 화면을 항상 먼저 띄우고,
+// 해시에 적힌 부문 카드에 '이어보던 부문' 띠를 붙여 맨 앞에 놓는다. 그 카드를
+// 누르면 방법·지표 조합·선택 지역까지 그대로 복원되므로 링크 공유는 그대로다.
 //
 // 시·도 범위(g)는 뺐다. 이 지수는 전국 229개 시군구를 한 번에 세우는 지수라,
 // 시·도로 걸러 놓고 보면 순위·평균이 전국 기준과 어긋나 읽힌다.
+// 탭(t)도 뺐다. 통계창이 탭에서 본문+서랍으로 바뀌면서 자리가 없어졌다.
+// 대신 펼친 서랍을 d에 적는다. 옛 링크의 t는 읽지 않고 무시한다.
 function parseHash() {
   const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
   const o = {}
@@ -33,7 +40,10 @@ function parseHash() {
   if (h.get('i')) o.picks = picksFromHash(h.get('i'))
   if (h.get('x')) o.xKey = h.get('x')
   if (h.get('y')) o.yKey = h.get('y')
-  if (h.get('t')) o.tab = h.get('t')
+  if (h.get('d')) {
+    o.drawers = {}
+    h.get('d').split('.').forEach((k) => { if (k === 'sens' || k === 'raw') o.drawers[k] = true })
+  }
   return o
 }
 
@@ -42,20 +52,23 @@ const basePicks = () => Object.fromEntries(SECTOR_KEYS.map((k) => [k, defaultPic
 
 export default function App() {
   const init = useMemo(parseHash, [])
-  // 부문을 고른 적이 있는가. 링크로 들어온 사람은 이미 고른 것으로 친다.
-  const [started, setStarted] = useState(!!init.sector)
+  // 시작 화면은 언제나 먼저 뜬다. 해시에 부문이 있어도 건너뛰지 않는다.
+  const [started, setStarted] = useState(false)
   const [sector, setSector] = useState(init.sector || SECTOR_KEYS[0])
   const [method, setMethod] = useState(init.method || METHOD_KEYS[0])
   const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
-  const [compare, setCompare] = useState(!!init.compare)
+  const [compare, setCompare] = useState(false)
   // 조작부는 항상 열려 있다. 접을 수 있는 것은 통계 패널 하나뿐.
   // 처음 들어오면 접혀 있다가, 꼭 골라야 하는 두 가지를 정하면 열린다.
-  const [panelOpen, setPanelOpen] = useState(init.sector ? init.panelOpen !== false : false)
+  const [panelOpen, setPanelOpen] = useState(false)
   // 어디까지 왔는가. 1 지표 · 2 표준화 방법 · 3 다 골랐음
-  const [step, setStep] = useState(init.sector ? 3 : 1)
-  const [tab, setTab] = useState(init.tab || 'sum')
+  const [step, setStep] = useState(1)
+  // 통계창 아래쪽 서랍 두 개. 처음에는 둘 다 접혀 있다.
+  const [drawers, setDrawers] = useState(init.drawers || {})
+  // 부문 종합(본문)이 펼쳐져 있는가. 지역을 고르면 접힌다.
+  const [sumOpen, setSumOpen] = useState(true)
   const [onlyHigh, setOnlyHigh] = useState(false)
-  const [selected, setSelected] = useState(init.selected || null)
+  const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [tableOpen, setTableOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -90,23 +103,41 @@ export default function App() {
     if (step === 1) setStep(2)
   }
 
-  // 시작 화면에서 부문을 골랐을 때. 계산은 이미 되어 있으므로 상태만 되돌린다.
+  // 시작 화면에서 부문을 골랐을 때.
+  //
+  // 해시에 적혀 있던 그 부문이면 '이어보기'다. 방법·색 기준·선택 지역·서랍까지
+  // 링크에 담긴 대로 되살리고 통계창을 바로 연다. 다른 부문이면 해시를 버리고
+  // 그 부문의 기본 상태에서 새로 시작한다.
   const openSector = (k) => {
+    const resume = !!init.sector && k === init.sector
     setSector(k)
     setStarted(true)
-    setStep(1)
-    setPanelOpen(false)
     setCompare(false)
-    setSelected(null)
-    setTab('sum')
-    setXKey(null); setYKey(null)
-    setMetricKey('rank')
+    setSumOpen(true)
+    if (resume) {
+      setMethod(init.method || METHOD_KEYS[0])
+      setMetricKey(init.metricKey || 'rank')
+      setSelected(init.selected || null)
+      setDrawers(init.drawers || {})
+      setXKey(init.xKey || null); setYKey(init.yKey || null)
+      setStep(3)
+      setPanelOpen(init.panelOpen !== false)
+    } else {
+      setMethod(METHOD_KEYS[0])
+      setMetricKey('rank')
+      setSelected(null)
+      setDrawers({})
+      setXKey(null); setYKey(null)
+      setStep(1)
+      setPanelOpen(false)
+    }
   }
 
   const goHome = () => {
     setStarted(false)
     setPanelOpen(false)
     setStep(1)
+    setSelected(null)
     window.history.replaceState(null, '', window.location.pathname + window.location.search)
   }
 
@@ -117,6 +148,8 @@ export default function App() {
     if (n >= 3) setPanelOpen(true)
   }
 
+  const toggleDrawer = (k, v) => setDrawers((d) => ({ ...d, [k]: v }))
+
   const metric = metricFor(sector, method, metricKey)
   const byKey = useMemo(() => Object.fromEntries(ROWS.map((r) => [rowKey(r), r])), [])
 
@@ -126,6 +159,19 @@ export default function App() {
   const sel = selected && byKey[selected] ? selected : null
   const selectedRow = sel ? byKey[sel] : null
 
+  // 지역을 고르면 그 결과가 통계창 맨 위로 올라온다. 전국 요약은 그 아래로
+  // 접히고, 머리를 눌러 다시 편다. 15차까지는 선택 지역 결과가 전국 요약
+  // 아래에 있어서, 지도를 눌러도 화면이 그대로인 것처럼 보였다.
+  const prevSel = useRef(sel)
+  useEffect(() => {
+    if (prevSel.current === sel) return
+    prevSel.current = sel
+    setSumOpen(!sel)
+    if (!sel) return
+    const el = document.querySelector('.center')
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [sel])
+
   useEffect(() => {
     if (!started) return
     const p = new URLSearchParams()
@@ -133,7 +179,8 @@ export default function App() {
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
     if (!panelOpen) p.set('p', '0')
-    if (tab !== 'sum') p.set('t', tab)
+    const open = ['sens', 'raw'].filter((k) => drawers[k])
+    if (open.length) p.set('d', open.join('.'))
     const cur = picksOf(sector)
     const base = defaultPicks(sector)
     const same = cur.length === base.length && cur.every((q, i) => q.id === base[i].id && q.year === base[i].year)
@@ -141,7 +188,7 @@ export default function App() {
     if (xKey) p.set('x', xKey)
     if (yKey) p.set('y', yKey)
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [started, sector, method, metric.key, sel, compare, panelOpen, tab, pickVer, xKey, yKey])
+  }, [started, sector, method, metric.key, sel, compare, panelOpen, drawers, pickVer, xKey, yKey])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
   const onAxis = (which, key) => (which === 'x' ? setXKey(key) : setYKey(key))
@@ -154,7 +201,7 @@ export default function App() {
   if (!started) {
     return (
       <>
-        <LandingPage onPick={openSector} />
+        <LandingPage onPick={openSector} resume={init.sector || null} />
         <CursorFx />
       </>
     )
@@ -179,7 +226,9 @@ export default function App() {
           {panelOpen && (
             <CenterPanel sector={sector} method={method} metric={metric}
               selectedRow={selectedRow} link={link} ver={pickVer}
-              xKey={xKey} yKey={yKey} onAxis={onAxis} tab={tab} onTab={setTab}
+              xKey={xKey} yKey={yKey} onAxis={onAxis}
+              drawers={drawers} onDrawer={toggleDrawer}
+              sumOpen={sumOpen} onSumOpen={setSumOpen}
               onOpenPicker={() => setPickerOpen(true)} />
           )}
         </div>

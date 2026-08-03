@@ -11,8 +11,14 @@ import SectorIcon from './SectorIcon.jsx'
 // 그래서 부문 고르기를 화면 전체로 떼어 냈다. 여기서 하나를 고르면 그 부문의
 // 화면으로 들어가고, 머리줄의 부문 이름을 누르면 다시 이 화면으로 돌아온다.
 // 자료가 아직 없는 넷은 아래에 작게 두어, 곧 들어온다는 사실만 알린다.
-export default function LandingPage({ onPick }) {
-  const ready = ALL_SECTOR_KEYS.filter((k) => SECTORS[k].ready)
+//
+// 주소에 부문이 담겨 있을 때도 이 화면을 건너뛰지 않는다. 대신 그 부문 카드를
+// 맨 앞으로 옮기고 '이어보던 부문' 띠를 붙인다. 화면을 여는 문은 늘 하나이고,
+// 이어 보던 자리는 그 문 앞에 표시로 남는다.
+export default function LandingPage({ onPick, resume = null }) {
+  const all = ALL_SECTOR_KEYS.filter((k) => SECTORS[k].ready)
+  const back = resume && SECTORS[resume] && SECTORS[resume].ready ? resume : null
+  const ready = back ? [back, ...all.filter((k) => k !== back)] : all
   const soon = ALL_SECTOR_KEYS.filter((k) => !SECTORS[k].ready)
 
   const yearsOf = (k) => {
@@ -41,7 +47,8 @@ export default function LandingPage({ onPick }) {
             const s = SECTORS[k]
             const inds = indicatorsOf(k)
             return (
-              <button key={k} className="lp-card" onClick={() => onPick(k)}>
+              <button key={k} className={`lp-card${k === back ? ' lp-back' : ''}`} onClick={() => onPick(k)}>
+                {k === back && <span className="lpc-resume">이어보던 부문</span>}
                 <span className="lpc-top">
                   <SectorIcon k={k} state="on" size={30} />
                   <b>{s.name}</b>
@@ -51,7 +58,7 @@ export default function LandingPage({ onPick }) {
                   {inds.slice(0, 5).map((i) => <em key={i.id}>{i.label}</em>)}
                   {inds.length > 5 && <em className="lpc-more">외 {inds.length - 5}개</em>}
                 </span>
-                <span className="lpc-go">이 부문 보기 →</span>
+                <span className="lpc-go">{k === back ? '이어서 보기 →' : '이 부문 보기 →'}</span>
               </button>
             )
           })}

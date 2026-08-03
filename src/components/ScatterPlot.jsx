@@ -95,10 +95,10 @@ export default function ScatterPlot({ sector, method, selected, onSelect, xKey, 
           <CartesianGrid strokeDasharray="2 4" />
           <XAxis type="number" dataKey="x" name={ax.label} reversed={!!ax.invert}
             domain={['dataMin', 'dataMax']} tickLine={false} axisLine={false}
-            tick={{ fontSize: 10, fill: '#9aa0ac' }} tickFormatter={fmt} height={22} />
+            tick={{ fontSize: 10.5, fill: '#9aa0ac' }} tickFormatter={fmt} height={22} />
           <YAxis type="number" dataKey="y" name={ay.label} reversed={!!ay.invert}
             domain={['dataMin', 'dataMax']} tickLine={false} axisLine={false}
-            tick={{ fontSize: 10, fill: '#9aa0ac' }} width={46} tickFormatter={fmt} />
+            tick={{ fontSize: 10.5, fill: '#9aa0ac' }} width={46} tickFormatter={fmt} />
           {ax.key === 'ciT' && <ReferenceLine x={50} stroke="#CBD5E1" strokeDasharray="5 4" />}
           {ay.key === 'ciT' && <ReferenceLine y={50} stroke="#CBD5E1" strokeDasharray="5 4" />}
           <Tooltip cursor={{ strokeDasharray: '3 3' }}

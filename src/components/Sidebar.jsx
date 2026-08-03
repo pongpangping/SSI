@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SECTORS, metricsFor, sectorSummary, indsOf, methodOf } from '../lib/ssi.js'
 import MethodPicker from './MethodPicker.jsx'
 import PickedSummary from './PickedSummary.jsx'
+import { PlusMinus, Diamond } from './Glyph.jsx'
 
 // 조작부 = 제품의 조작 패널. 접히지 않고 늘 열려 있다.
 //
@@ -92,7 +93,7 @@ export default function Sidebar({
                   aria-expanded={gon} data-grp={g}>
                   <span className="gb-t">{g}</span>
                   <span className="gb-n">{list.length}</span>
-                  <span className="gb-sign">{gon ? '−' : '+'}</span>
+                  <span className="gb-sign"><PlusMinus open={gon} size={12} /></span>
                 </button>
                 {gon && (
                   <div className="gb-body">
@@ -101,7 +102,7 @@ export default function Sidebar({
                         className={`acc2-item${metricKey === m.key ? ' on' : ''}`}
                         onClick={() => onMetric(m.key)} title={m.desc}>
                         {m.label}
-                        {m.dynamic && <i title="표준화 방법을 바꾸면 지도가 바뀜">◆</i>}
+                        {m.dynamic && <i className="ac2-dyn"><Diamond size={9} title="표준화 방법을 바꾸면 지도가 바뀜" /></i>}
                       </button>
                     ))}
                   </div>

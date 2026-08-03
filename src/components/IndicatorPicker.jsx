@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import SectorIcon from './SectorIcon.jsx'
 import { SECTORS, ALL_SECTOR_KEYS, INDICATORS, IND, indicatorsOf, defaultPicks, latestYear } from '../lib/ssi.js'
+import { Cross } from './Glyph.jsx'
 
 // 지표 고르기 창 — 이 도구에서 '무엇을 계산할지' 정하는 유일한 자리.
 //
@@ -63,7 +64,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
           <h3>지표 선택</h3>
           <input className="ip-q" placeholder="지표명 · 정의 · 산식 · 출처 검색 (부문을 넘어 찾습니다)"
             value={q} onChange={(e) => setQ(e.target.value)} />
-          <button onClick={onClose}>✕</button>
+          <button onClick={onClose} title="닫기"><Cross size={12} /></button>
         </div>
 
         <div className="ip-body">
@@ -149,7 +150,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
                 <div className="ip-bi" key={`${p.id}-${p.year}`}>
                   <b>{IND[p.id].label}</b>
                   <em>{p.year}</em>
-                  <button onClick={() => clearOne(p)} title="빼기">✕</button>
+                  <button onClick={() => clearOne(p)} title="빼기"><Cross size={10} /></button>
                 </div>
               ))}
             </div>

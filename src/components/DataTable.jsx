@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ROWS, rowKey, sheetOrder, colMeta, flatValue, toCSV, META, SECTORS, SECTOR_KEYS } from '../lib/ssi.js'
+import { Cross } from './Glyph.jsx'
 
 // 부문 묶음은 데이터에서 만든다 — 부문이 8개로 늘어나면 단추도 8개가 된다.
 const GROUPS = ['전체', ...SECTOR_KEYS.map((k) => `${k} ${SECTORS[k].name.replace(/\s/g, '')}`)]
@@ -55,7 +56,7 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <h3>전체 데이터표 · 선택 조합으로 계산한 결과</h3>
-          <button onClick={onClose}>✕</button>
+          <button onClick={onClose} title="닫기"><Cross size={12} /></button>
         </div>
 
         <div className="dt-bar">

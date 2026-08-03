@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { METHODS, ROWS, N, rowKey, shortSido, methodOf, CAMP_REPS } from '../lib/ssi.js'
+import { Cross } from './Glyph.jsx'
 
 // 방법 간 순위 이동 — 범프 차트.
 // 세로축은 전국 순위(위가 1위), 가로축은 표준화 방법이다.
@@ -263,7 +264,7 @@ export default function RankFlow({ sector, selectedRow, onSelect, ver = 0 }) {
           <div className="modal modal-wide rf-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-h">
               <h3>방법 간 순위 이동 · 범프 차트</h3>
-              <button onClick={() => setBig(false)} title="닫기 (Esc)">✕</button>
+              <button onClick={() => setBig(false)} title="닫기 (Esc)"><Cross size={13} /></button>
             </div>
             <div className="modal-b rf-modal-b">
               <div className="rf rf-big">

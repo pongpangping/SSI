@@ -24,9 +24,9 @@ export default function SensitivityScatter({ sector, selected, onSelect, ver = 0
         <ScatterChart margin={{ left: 6, right: 14, top: 8, bottom: 16 }}>
           <CartesianGrid strokeDasharray="2 4" />
           <XAxis type="number" dataKey="x" name="Min-Max 순위" domain={[0, 230]} reversed
-            tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#9aa0ac' }} height={22} />
+            tickLine={false} axisLine={false} tick={{ fontSize: 10.5, fill: '#9aa0ac' }} height={22} />
           <YAxis type="number" dataKey="y" name="백분위순위 순위" domain={[0, 230]} reversed
-            tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#9aa0ac' }} width={34} />
+            tickLine={false} axisLine={false} tick={{ fontSize: 10.5, fill: '#9aa0ac' }} width={34} />
           <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 230, y: 230 }]} stroke="#CBD5E1" strokeDasharray="5 4" />
           <Tooltip cursor={{ strokeDasharray: '3 3' }}
             content={({ active, payload }) => {
