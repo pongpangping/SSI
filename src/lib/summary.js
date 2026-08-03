@@ -68,7 +68,7 @@ export function distribution(sector, method) {
 export function shapeText(d) {
   if (!d) return ''
   const a = Math.abs(d.skew)
-  if (a < 0.08) return '평균과 중앙값이 거의 겹칩니다 — 좌우가 고른 분포'
+  if (a < 0.08) return '평균과 중앙값이 거의 겹치는 고른 분포입니다'
   const side = d.skew > 0 ? '높은 쪽' : '낮은 쪽'
   const how = a < 0.25 ? '약간' : a < 0.5 ? '뚜렷하게' : '크게'
   return `${side}으로 ${how} 꼬리가 늘어져 있습니다 (평균 ${d.mean.toFixed(1)} · 중앙값 ${d.med.toFixed(1)})`

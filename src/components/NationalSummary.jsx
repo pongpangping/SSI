@@ -118,9 +118,9 @@ function BySido({ sector, method, ver }) {
   return (
     <div className="ns-sido">
       <div className="ns-sdnote">
-        시도 평균은 그 시도에 속한 시군구 부문점수의 단순 평균입니다. 인구나 면적으로
-        가중하지 않았습니다 — 이 지수가 시군구를 한 단위로 세는 지수이기 때문입니다.
-        시군구 수가 적은 시도는 한두 곳에 평균이 크게 흔들립니다.
+        시도 평균은 그 시도에 속한 시군구 부문점수의 단순 평균입니다. 시군구를 한 단위로
+        세는 지수이므로 인구나 면적으로 가중하지 않았습니다. 시군구 수가 적은 시도는
+        한두 곳에 평균이 크게 흔들립니다.
       </div>
       <div className="ns-sdwrap">
         {list.map((s) => (
@@ -190,11 +190,10 @@ function Contribution({ sector, method, ver }) {
         ))}
       </div>
       <div className="ns-cfoot">
-        <b>▲ ▼</b> 지표 방향 — ▼는 표준화 전에 값을 뒤집는 지표.&nbsp;
-        <b>편차</b> 표준화값의 표준편차 — 이 지표가 지역을 얼마나 벌려 놓는가.&nbsp;
-        <b>순위 영향</b> 지표 표준화값과 부문점수의 상관계수 — 1에 가까울수록 부문점수가
-        이 지표를 따라간다.&nbsp;
-        <b>몫</b> 지표 평균을 모두 더한 값에서 이 지표가 차지하는 비율.
+        <b>▲ ▼</b> 지표 방향. ▼는 표준화 전에 값을 뒤집습니다.&nbsp;
+        <b>편차</b> 표준화값의 표준편차.&nbsp;
+        <b>순위 영향</b> 지표 표준화값과 부문점수의 상관계수.&nbsp;
+        <b>몫</b> 지표 평균 합계에서 이 지표가 차지하는 비율.
       </div>
     </div>
   )
@@ -202,10 +201,10 @@ function Contribution({ sector, method, ver }) {
 
 // ── 묶음 ─────────────────────────────────────────────────────────────
 const BLOCKS = [
-  { k: 'dist', t: '분포 요약', s: '전국 부문점수가 어떤 모양으로 퍼져 있는가', C: Distribution },
-  { k: 'tb', t: '상위·하위 열 곳', s: '위아래 끝에 어디가 있는가 — 누르면 지도에서 선택됩니다', C: TopBottom },
-  { k: 'sido', t: '시도별 평균 비교', s: '17개 시도를 평균으로 줄 세우면', C: BySido },
-  { k: 'con', t: '지표별 기여도', s: '이 점수를 실제로 움직이는 지표는 무엇인가', C: Contribution },
+  { k: 'dist', t: '분포 요약', s: '구간별 시군구 수 · 평균 · 중앙값 · 표준편차', C: Distribution },
+  { k: 'tb', t: '상위·하위 열 곳', s: '누르면 지도에서 선택됩니다', C: TopBottom },
+  { k: 'sido', t: '시도별 평균 비교', s: '17개 시도 평균과 범위', C: BySido },
+  { k: 'con', t: '지표별 기여도', s: '지표별 편차 · 상관 · 몫', C: Contribution },
 ]
 
 export default function NationalSummary({
@@ -217,9 +216,6 @@ export default function NationalSummary({
         <div className="nsh-t">
           <b>전국 요약</b>
           <em>{SECTORS[sector]?.name} · 표준화 {methodOf(method)?.label}</em>
-        </div>
-        <div className="nsh-s">
-          지도에서 시군구를 고르기 전에, 전국이 어떤 모양인지부터 봅니다.
         </div>
       </div>
 

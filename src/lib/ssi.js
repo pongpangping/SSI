@@ -341,7 +341,7 @@ export function metricsFor(sector, method) {
     list.push({
       key: 'tradeoff', group: GRP.flag, scale: 'heat',
       label: '트레이드오프 지역',
-      desc: '선택 지표 사이의 백분위 순위 차이가 30%p를 넘는 곳 — 한쪽은 앞서고 한쪽은 뒤처지는 지역.',
+      desc: '선택 지표 사이의 백분위 순위 차이가 30%p를 넘는 지역.',
       fmt: (v) => (v ? '해당' : '해당 없음'), get: (r) => (r[sector].tradeoff ? 1 : 0),
     })
   }
@@ -433,12 +433,12 @@ export function colMeta(col) {
   const mfor = (sh) => methodOf(MCOL[sh])?.formula || ''
   if (rest.startsWith('CI_')) {
     const sh = rest.slice(3)
-    return { desc: `${sn} 부문 점수 — ${mlab(sh)}으로 표준화한 선택 지표들의 단순평균`,
+    return { desc: `${sn} 부문 점수 · ${mlab(sh)} 표준화 후 선택 지표 단순평균`,
       unit: methodOf(MCOL[sh])?.range || '0~100', how: mfor(sh) }
   }
   if (rest.startsWith('순위_')) {
     const sh = rest.slice(3)
-    return { desc: `${sn} 부문 점수 기준 전국 순위 — ${mlab(sh)}`, unit: `1~${N}위`,
+    return { desc: `${sn} 부문 점수 기준 전국 순위 · ${mlab(sh)}`, unit: `1~${N}위`,
       how: '부문 점수 내림차순, 동점은 평균순위' }
   }
   if (rest === 'SSI_range') return { desc: `${sn} 순위의 최댓값 − 최솟값`, unit: '계단', how: `${METHODS.length}개 방법 순위의 범위` }

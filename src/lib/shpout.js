@@ -246,7 +246,7 @@ const FIELDS = [
   { name: 'CI', type: 'N', len: 12, dec: 4, ko: '부문 점수' },
   { name: 'RANK', type: 'N', len: 6, dec: 0, ko: '부문 점수 전국 순위(1 = 최상위)' },
   { name: 'TSCORE', type: 'N', len: 8, dec: 2, ko: '표준점수 T (전국 평균 50 · 표준편차 10)' },
-  { name: 'PCTILE', type: 'N', len: 8, dec: 2, ko: '백분위(%) — 나보다 낮은 지역의 비율' },
+  { name: 'PCTILE', type: 'N', len: 8, dec: 2, ko: '백분위(%) · 값이 더 낮은 지역의 비율' },
   { name: 'SSI_CAMP', type: 'N', len: 6, dec: 0, ko: '표준화 방법을 바꿨을 때의 순위 이동(계단)' },
   { name: 'SENSITIVE', type: 'C', len: 6, ko: '민감 지역 여부(Y/N)' },
 ]

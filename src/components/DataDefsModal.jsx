@@ -44,7 +44,7 @@ export default function DataDefsModal({ sector }) {
         <div className="modal-back" onClick={() => setOpen(false)}>
           <div className="modal modal-nar" onClick={(e) => e.stopPropagation()}>
             <div className="modal-h">
-              <h3>데이터 설명 — 지표 정의 · 산식 · 출처</h3>
+              <h3>데이터 설명 · 지표 정의 · 산식 · 출처</h3>
               <button onClick={() => setOpen(false)} title="닫기"><Cross size={12} /></button>
             </div>
             <div className="dd-bar">

@@ -16,7 +16,7 @@ export default function StdTransform({ row, sector, method, onMethod }) {
             <th className="stt-l">선택 지표 · 원값</th>
             {METHODS.map((m) => (
               <th key={m.key} className={m.key === method ? 'on' : ''}
-                title={`${m.label} — ${m.formula}`}
+                title={`${m.label} · ${m.formula}`}
                 onClick={() => onMethod?.(m.key)}>
                 <i style={{ background: CAMP[m.camp].color }} />{m.label}
               </th>

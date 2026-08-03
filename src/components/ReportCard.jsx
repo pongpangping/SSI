@@ -28,7 +28,7 @@ function Line({ name, note, stats, t, pct, total }) {
         ))}
       </div>
       <div className="rp-bar"
-        title={`표준점수(T) ${f1(t)} — 전국 평균이 50, 표준편차가 10인 눈금${pct == null ? '' : ` · 백분위 ${pct.toFixed(1)}%`}`}>
+        title={`표준점수(T) ${f1(t)} · 평균 50 · 표준편차 10${pct == null ? '' : ` · 백분위 ${pct.toFixed(1)}%`}`}>
         {T_TICKS.map((v) => (
           <s key={v} className={v === 50 ? 'mid' : ''}
             style={{ left: `${(v - T_MIN) / (T_MAX - T_MIN) * 100}%` }} />
@@ -78,7 +78,7 @@ export default function ReportCard({ row, sector, method, onMethod }) {
           t={sT} pct={sPct}
           stats={[
             ['부문점수', f1(d.ci[method]), '표준화한 지표들의 평균 = CI'],
-            ['표준점수', f1(sT), 'T점수 — 전국 평균 50 · 표준편차 10'],
+            ['표준점수', f1(sT), 'T점수 · 평균 50 · 표준편차 10'],
             ['전국순위', sRank == null ? '—' : `${sRank}위`, `${N}개 시군구 중`],
             ['백분위', sPct == null ? '—' : `${sPct.toFixed(1)}%`, '나보다 낮은 지역의 비율'],
           ]} />
@@ -94,7 +94,7 @@ export default function ReportCard({ row, sector, method, onMethod }) {
               stats={[
                 ['원값', raw == null ? '—' : `${fmtRaw(raw)}${ind.unit || ''}`, ind.desc],
                 ['표준화', f1(stdSeries(sector, ind.label, method)[i]), `${m.label}: ${m.formula}`],
-                ['표준점수', f1(it), 'T점수 — 전국 평균 50 · 표준편차 10'],
+                ['표준점수', f1(it), 'T점수 · 평균 50 · 표준편차 10'],
                 ['지표순위', rk == null ? '—' : `${Math.round(rk)}위`, `${N}개 시군구 중`],
               ]} />
           )

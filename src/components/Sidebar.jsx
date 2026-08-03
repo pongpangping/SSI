@@ -108,8 +108,7 @@ export default function Sidebar({
         <div className={`sb2-block${step < 2 ? ' sb2-lock' : ''}`}>
           <MethodPicker method={method} onMethod={onMethod} />
           {step >= 3 && (
-            <div className="sb2-hint">방법은 언제든 바꿀 수 있습니다.
-              바꾸면 지도와 통계가 곧바로 다시 계산됩니다.</div>
+            <div className="sb2-hint">방법을 바꾸면 지도와 통계가 곧바로 다시 계산됩니다.</div>
           )}
         </div>
 

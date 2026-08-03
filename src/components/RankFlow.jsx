@@ -143,7 +143,7 @@ function Bump({ size, sector, selectedRow, mode, onSelect, ver = 0 }) {
           <text x={g.L - 6} y={y(t) + 3.5} textAnchor="end" className="rf-ax">{t}위</text>
         </g>
       ))}
-      <text x={4} y={14} className="rf-cap">전국 순위 — 위쪽이 상위</text>
+      <text x={4} y={14} className="rf-cap">전국 순위 · 위쪽이 상위</text>
 
       {/* 세로 방법 축 */}
       {METHODS.map((m, i) => (

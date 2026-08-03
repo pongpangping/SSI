@@ -65,7 +65,7 @@ export default function LandingPage({ onPick, resume = null }) {
         </div>
 
         <div className="lp-soon">
-          <div className="lps-cap">자료 준비중 — 들어오는 대로 같은 화면에서 볼 수 있습니다</div>
+          <div className="lps-cap">자료 준비중</div>
           <div className="lps-row">
             {soon.map((k) => {
               const s = SECTORS[k]

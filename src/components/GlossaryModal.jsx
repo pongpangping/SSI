@@ -47,7 +47,7 @@ export default function GlossaryModal() {
                 <div className="modal-sec">핵심 원리</div>
                 <div className="gl-item"><p>
                   ① 지표 1개 단위 순위는 표준화 방법과 무관하게 항상 같다(단조변환, Spearman = 1.000).
-                  ② 여러 지표를 합치는 CI 단계에서 방법 간 순위 차이가 생긴다 — 각 방법이 값 간격을 서로 다르게 압축·신장하기 때문이다.
+                  ② 여러 지표를 합치는 CI 단계에서는 방법 간 순위 차이가 생긴다. 각 방법이 값 간격을 서로 다르게 압축·신장하기 때문이다.
                   전국 {META.n}개 시군구 중 상당수가 방법 선택만으로 10순위 넘게 움직인다.
                 </p></div>
                 <div className="modal-sec">방향 ▼ 지표의 처리</div>
@@ -62,7 +62,7 @@ export default function GlossaryModal() {
               {tab === 'method' && <>
                 {Object.entries(CAMP).map(([name, c]) => (
                   <div key={name}>
-                    <div className="modal-sec" style={{ color: c.color }}>{name} — {c.desc}</div>
+                    <div className="modal-sec" style={{ color: c.color }}>{name} · {c.desc}</div>
                     {METHODS.filter((m) => m.camp === name).map((m) => (
                       <div className="gl-item" key={m.key}>
                         <b>{m.label}{m.key === c.rep ? ' · 진영 대표' : ''}</b>

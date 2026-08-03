@@ -121,9 +121,10 @@ export default function CenterPanel({
           <span className="fb-step"><i>2</i><b>{m.label}</b></span>
           <span className="fb-step fb-opt"><b>{metric.full || metric.label}</b><u>지도 색</u></span>
           {name && (
-            <button className="fb-step fb-opt fb-sel fb-btn" title="선택 해제"
+            <button className="fb-step fb-opt fb-sel fb-btn"
+              title="선택을 풀고 전국 화면으로 돌아갑니다"
               onClick={() => link.onSelect(null)}>
-              <b>{name}</b><u>선택 지역</u>
+              <b>{name}</b><u>✕ 전국으로</u>
             </button>
           )}
         </div>
@@ -145,7 +146,8 @@ export default function CenterPanel({
           <BodyHead
             title={name}
             plain="지도에서 고른 시군구"
-            right={<button className="csect-x" onClick={() => link.onSelect(null)} title="선택 해제">선택 해제</button>}
+            right={<button className="csect-x" onClick={() => link.onSelect(null)}
+              title="선택을 풀고 전국 화면으로 돌아갑니다">← 전국으로 돌아가기</button>}
           />
           <Card title="지역 진단표" sub="원값 · 표준점수(T) · 백분위"
             dl={() => dlReport(sector, method)} dlTip={`${N}개 시군구 진단표 전체`}>
@@ -190,7 +192,7 @@ export default function CenterPanel({
       </section>
 
       {/* ── 3 표준화 민감도 — 서랍 ─────────────────────────────────────── */}
-      <Drawer id="sens" title="표준화 민감도" plain="방법을 바꾸면 순위가 얼마나 흔들리는가"
+      <Drawer id="sens" title="표준화 민감도" plain="방법별 부문점수와 순위 이동"
         count={5} open={!!drawers.sens} onToggle={(v) => onDrawer('sens', v)}>
         <Card title="선택한 표준화 방법" sub="정의 · 수식 · 범위 · 방법을 바꿨을 때의 변화">
           <MethodDetail sector={sector} method={method} onMethod={link.onMethod} />
@@ -230,7 +232,7 @@ export default function CenterPanel({
         <Card title="전국 지표 원값" sub={`${N}개 시군구 × 지표 ${inds.length}개`}
           dl={() => dlRawAll(sector, method)} dlTip="전국 원값·표준화값 표">
           <div className="ns-say">
-            화면에 다 담기에는 표가 큽니다. 오른쪽 위 내려받기로 CSV·Excel 파일을 받으세요.
+            표가 커서 화면에는 싣지 않습니다. 오른쪽 위 내려받기로 CSV·Excel 파일을 받으세요.
             머리줄의 <b>전체 데이터표</b>에서도 같은 값을 볼 수 있습니다.
           </div>
         </Card>

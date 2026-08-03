@@ -222,6 +222,10 @@ export default function NationalMap({
   }
   const fitSel = () => fitTo(boundsOf((k) => k === selected), 70, { duration: 0.7 })
 
+  // 선택을 풀고 전국 화면으로 되돌린다. 지금까지는 지도 빈 곳을 눌러야만 풀렸는데,
+  // 빈 곳은 누를 이유가 없는 자리라 되돌아가는 길이 사실상 없는 것과 같았다.
+  const backToAll = () => { onSelect(null); fitAll() }
+
   // 조작 함수 묶음 — 나란히 보기(듀얼)에서 부모가 공용 도구막대로 쓴다.
   const apiRef = useRef({})
   apiRef.current = {
@@ -384,7 +388,7 @@ export default function NationalMap({
           <button onClick={() => map && map.zoomIn()} title="확대" aria-label="확대">＋</button>
           <button onClick={() => map && map.zoomOut()} title="축소" aria-label="축소">－</button>
           <span className="mapz-sep" />
-          <button onClick={fitAll} title="전국이 한 화면에 들어오도록" aria-label="전국 보기">↺</button>
+          <button onClick={fitAll} title="전국이 한 화면에 들어오도록" aria-label="화면 맞추기">↺</button>
           <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대"
             aria-label="선택 지역 확대">⤢</button>
           <span className="mapz-sep" />
@@ -394,6 +398,15 @@ export default function NationalMap({
           <button className={dlOpen ? 'on' : ''} onClick={() => setDlOpen(!dlOpen)}
             aria-expanded={dlOpen} title="지금 지도를 파일로 내보내기" aria-label="내보내기">⤓</button>
         </div>
+      )}
+
+      {/* 전국으로 되돌아가는 단추. 시군구를 고른 동안에만 나오고, 누르면 선택을
+          풀고 배율까지 전국 보기로 되돌린다. */}
+      {!compact && selected && (
+        <button className="mapback" onClick={backToAll}
+          title="선택을 풀고 전국 화면으로 돌아갑니다" aria-label="전국으로 돌아가기">
+          <i>←</i>전국으로 돌아가기
+        </button>
       )}
 
       {/* 내보내기 차림표 — 지금 화면에 칠해진 값과 범위를 그대로 담는다 */}
@@ -464,7 +477,7 @@ export default function NationalMap({
           <div className="ml-cls">
             <div className="mlc-seg">
               <button className={cmode === 'auto' ? 'on' : ''} onClick={() => setCmode('auto')}
-                title={`분포를 보고 자동으로 고릅니다 — 지금은 ${modeOf(auto).label}`}>자동</button>
+                title={`분포에 맞춰 자동 선택 · 지금은 ${modeOf(auto).label}`}>자동</button>
               {CLASS_MODES.map((m) => (
                 <button key={m.key} className={cmode === m.key ? 'on' : ''}
                   onClick={() => setCmode(m.key)} title={m.desc}>{m.label}</button>
@@ -472,7 +485,7 @@ export default function NationalMap({
             </div>
             <p className="ml-note">
               <b>{modeOf(eff).label}</b>
-              {cmode === 'auto' ? ` — ${autoReason(vals, metric.scale)}` : ` — ${modeOf(eff).desc}`}
+              {cmode === 'auto' ? ` · ${autoReason(vals, metric.scale)}` : ` · ${modeOf(eff).desc}`}
             </p>
           </div>
         )}

@@ -18,7 +18,7 @@ export default function Header({ onTable, sector, onHome }) {
         <div className="hd-logo">SSI</div>
         <div className="hd-title">국토종합진단지수 · 표준화 방법 민감도 진단</div>
         {s && (
-          <button className="hd-sector" onClick={onHome} title="다른 부문 고르기 — 시작 화면으로">
+          <button className="hd-sector" onClick={onHome} title="다른 부문 고르기">
             <SectorIcon k={sector} state="on" size={16} />
             <b>{s.name}</b>
             <u>부문 바꾸기</u>

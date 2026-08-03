@@ -79,7 +79,7 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
                 <button key={k}
                   className={`ip-sb${cur === k ? ' on' : ''}${s.ready ? '' : ' lock'}`}
                   onClick={() => { setCur(k); setQ('') }}
-                  title={s.ready ? `${s.name} · 지표 ${s.inds.length}개` : `${s.name} · 자료 준비중 — 예정 지표만 볼 수 있습니다`}>
+                  title={s.ready ? `${s.name} · 지표 ${s.inds.length}개` : `${s.name} · 자료 준비중`}>
                   <SectorIcon k={k} state={s.ready ? (k === cur ? 'on' : '') : 'lock'} size={14} />
                   <span><b>{s.name}</b><em>{k}</em></span>
                   {n > 0 && <u>{n}</u>}
@@ -90,10 +90,10 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
 
           {/* ② 지표 카드 */}
           <div className="ip-cards">
-            {t && <div className="ip-hint">‘{t}’ 검색 결과 {list.length}개 — 부문을 넘어 찾았습니다</div>}
+            {t && <div className="ip-hint">‘{t}’ 검색 결과 {list.length}개 · 전 부문</div>}
             {!t && !SECTORS[cur].ready && (
               <div className="ip-plan">
-                <b>{SECTORS[cur].name} — 자료 준비중</b>
+                <b>{SECTORS[cur].name} 자료 준비중</b>
                 <p>지표체계에 자리는 잡혀 있으나 원자료가 아직 들어오지 않았습니다. 예정 지표는 아래와 같습니다.</p>
                 {(SECTORS[cur].planned || []).map((p) => (
                   <div className="ip-pl" key={p.no}>
