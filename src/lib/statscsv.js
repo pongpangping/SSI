@@ -357,19 +357,17 @@ export function dlSummaryAll(sector, method) {
   const d = dlDistribution(sector, method)
   const t = dlTopBottom(sector, method)
   const s = dlBySido(sector, method)
-  const c = dlContribution(sector, method)
   return {
     base: fileName('전국요약', sector, method),
     title: `${SECTORS[sector].name} 전국 요약`,
     sub: `${N}개 시군구 · 표준화 ${methodOf(method).label}`,
-    cols: c.cols,
-    rows: c.rows,
+    cols: s.cols,
+    rows: s.rows,
     note: foot(sector, method),
     sheets: [
       ...d.sheets,
       { name: '상위·하위', cols: t.cols, rows: t.rows },
       { name: '시도별 평균', cols: s.cols, rows: s.rows },
-      { name: '지표별 기여도', cols: c.cols, rows: c.rows },
     ],
   }
 }

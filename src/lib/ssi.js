@@ -143,7 +143,7 @@ export function applyPicks(sector, picks) {
       ci: byMethod(set.ci, i),
       rank: byMethod(set.rank, i),
       ssiCamp: set.camp[i], ssiRange: set.range[i], ssiStd: set.rstd[i],
-      flag: set.flag[i], tradeoff: set.tradeoff[i],
+      flag: set.flag[i], prSpread: set.spread[i], tradeoff: set.tradeoff[i],
       repMinmax: set.rank[ra][i], repPctrank: set.rank[rb][i],
       raw,
     }
@@ -337,11 +337,23 @@ export function metricsFor(sector, method) {
   )
 
   // ④ 지표가 둘 이상일 때만 뜻이 있는 플래그
+  //
+  // 20차까지 이 묶음에는 '트레이드오프 지역' 하나뿐이었고, 그 기준이 지표 수와
+  // 무관한 고정값(30%p)이라 지표를 여섯 개 고르면 229곳 중 220곳에 표시가 붙었다.
+  // 기준을 전국 분포에서 끊도록 고치면서, 표시의 근거가 되는 격차 자체도 지도에서
+  // 볼 수 있게 함께 내놓는다. 표시만 있고 값이 없으면 왜 걸렸는지 확인할 길이 없다.
   if (indsOf(sector).length >= 2) {
+    const cut = setOf(sector)?.tradeoffCut
+    list.push({
+      key: 'prSpread', group: GRP.flag, scale: 'heat',
+      label: '지표 간 순위 격차',
+      desc: '선택한 지표 각각의 백분위 순위 중 가장 높은 값과 가장 낮은 값의 차이(%p). 클수록 어느 지표로 보느냐에 따라 평가가 갈린다.',
+      fmt: (v) => (v == null ? '—' : `${v.toFixed(1)}%p`), get: (r) => r[sector].prSpread,
+    })
     list.push({
       key: 'tradeoff', group: GRP.flag, scale: 'heat',
       label: '트레이드오프 지역',
-      desc: '선택 지표 사이의 백분위 순위 차이가 30%p를 넘는 지역.',
+      desc: `지표 간 순위 격차가 전국 상위 10%에 드는 지역${cut == null ? '' : ` (${cut.toFixed(1)}%p 이상)`}. 격차는 지표 수가 늘수록 저절로 커지므로 고정 기준 대신 전국 분포에서 끊는다.`,
       fmt: (v) => (v ? '해당' : '해당 없음'), get: (r) => (r[sector].tradeoff ? 1 : 0),
     })
   }
@@ -402,6 +414,7 @@ export function flatValue(row, col) {
   if (rest === 'MinMax대표순위') return d.repMinmax
   if (rest === 'PctRank대표순위') return d.repPctrank
   if (rest.startsWith('원값_')) return d.raw[rest.slice(3)]
+  if (rest === '지표간_순위격차') return d.prSpread
   if (rest === '트레이드오프_참고') return d.tradeoff ? 'Y' : 'N'
   return null
 }
@@ -415,7 +428,7 @@ export function sheetOrder() {
     out.push(`${s}_SSI_range`, `${s}_SSI_std`, `${s}_SSI_camp`, `${s}_민감구분`,
       `${s}_MinMax대표순위`, `${s}_PctRank대표순위`)
     indsOf(s).forEach((i) => out.push(`${s}_원값_${i.label}`))
-    if (indsOf(s).length >= 2) out.push(`${s}_트레이드오프_참고`)
+    if (indsOf(s).length >= 2) out.push(`${s}_지표간_순위격차`, `${s}_트레이드오프_참고`)
   }
   return out
 }

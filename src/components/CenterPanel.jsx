@@ -18,7 +18,7 @@ import { SECTORS, methodOf, indsOf, N } from '../lib/ssi.js'
 import {
   dlReport, dlMethods, dlRaw, dlTransform, dlDist, dlRankFlow,
   dlScatter, dlSensScatter, dlSensList, dlAll,
-  dlDistribution, dlTopBottom, dlBySido, dlContribution, dlSummaryAll,
+  dlDistribution, dlTopBottom, dlBySido, dlSummaryAll,
   dlRawAll,
 } from '../lib/statscsv.js'
 
@@ -34,9 +34,15 @@ import {
 //
 //   0 흐름줄        지금 무엇을 보고 있는가
 //   1 선택 지역     지도에서 고른 곳이 있을 때만. 맨 위
-//   2 부문 종합     본문. 항상 펼쳐 둔다 (지역을 고르면 접힌다)
+//   2 부문 종합     본문. 지도를 누르기 전에만 나온다 (21차)
 //   3 표준화 민감도  서랍 · 처음부터 펴 둔다 (17차)
 //   4 원데이터      서랍 · 처음부터 펴 둔다 (17차)
+//
+// 21차에서 2번 칸의 자리를 바꿨다. 20차까지는 지역을 고르면 부문 종합이 접힌 채
+// 선택 지역 칸 아래에 남아 있었다. 지역 하나를 들여다보는 동안 전국 요약이 화면
+// 아래쪽에 계속 매달려 있을 이유가 없고, 접힌 머리줄만 남아 무엇을 접어 둔 것인지
+// 알기도 어려웠다. 이제 지역을 고르면 통째로 빠지고, 전국으로 돌아가면 다시 나온다.
+// 돌아가는 길은 흐름줄 · 선택 지역 머리줄 · 지도 왼쪽 아래 세 자리에 있다.
 //
 // 층을 옮겨도 고른 것(부문·지표·방법·선택 지역)은 그대로다. 보는 각도만 바뀐다.
 //
@@ -82,7 +88,7 @@ function BodyHead({ title, plain, foldable, open, onToggle, right }) {
 export default function CenterPanel({
   sector, method, metric, selectedRow, link, ver = 0,
   xKey, yKey, onAxis, onOpenPicker,
-  drawers = {}, onDrawer, sumOpen = true, onSumOpen,
+  drawers = {}, onDrawer,
 }) {
   const m = methodOf(method)
   const name = selectedRow ? `${selectedRow.sido} ${selectedRow.name}` : null
@@ -95,13 +101,12 @@ export default function CenterPanel({
 
   const one = (fn) => () => (selectedRow ? fn(sector, method, selectedRow) : null)
 
-  // 전국 요약 네 칸의 내려받기. 이쪽은 recharts가 아니라 직접 그린 막대라
+  // 전국 요약 세 칸의 내려받기. 이쪽은 recharts가 아니라 직접 그린 막대라
   // elRef를 넘기지 않는다 — PNG는 값에서 표를 다시 그리는 쪽으로 간다.
   const NS_DL = {
     dist: [() => dlDistribution(sector, method), '구간별 시군구 수와 요약 통계'],
     tb: [() => dlTopBottom(sector, method), '상위·하위 열 곳'],
     sido: [() => dlBySido(sector, method), '17개 시도 평균·범위'],
-    con: [() => dlContribution(sector, method), '지표별 평균·편차·상관·몫'],
   }
   const nsDl = (k) => {
     const [pack, tip] = NS_DL[k]
@@ -163,33 +168,25 @@ export default function CenterPanel({
         </section>
       )}
 
-      {/* ── 2 부문 종합 — 본문 ─────────────────────────────────────────── */}
-      <section className={`csect csect-main${sumOpen ? '' : ' shut'}`}>
-        <BodyHead
-          title="부문 종합"
-          plain={`전국 ${N}개 시군구`}
-          foldable={!!selectedRow}
-          open={sumOpen}
-          onToggle={onSumOpen}
-        />
-        {sumOpen && (
-          <>
-            {/* 지도를 누르기 전에는 전국 통계가 곧바로 나온다.
-                16차까지 이 자리에 '지도에서 시군구를 클릭하면…' 안내 상자를 두었는데,
-                통계창을 열자마자 보이는 첫 칸이 통계가 아니라 안내문이라, 전국 통계는
-                아래로 밀리고 화면은 아직 아무것도 없는 것처럼 보였다.
-                같은 안내는 흐름줄 한 줄로 이미 하고 있으므로 상자는 없앤다. */}
-            <NationalSummary sector={sector} method={method} selected={link.selected}
-              selectedRow={selectedRow} onSelect={link.onSelect} ver={ver} dlOf={nsDl} />
-            <div className="nsum-all">
-              <span>전국 요약 네 칸을 한 파일로</span>
-              <DlMenu cls="fb-dl" label="내려받기" wide
-                pack={() => dlSummaryAll(sector, method)}
-                tip="분포 요약 · 상위·하위 · 시도별 평균 · 지표별 기여도" />
-            </div>
-          </>
-        )}
-      </section>
+      {/* ── 2 부문 종합 — 본문. 지도를 누르기 전에만 ──────────────────── */}
+      {!selectedRow && (
+        <section className="csect csect-main">
+          <BodyHead title="부문 종합" plain={`전국 ${N}개 시군구`} />
+          {/* 지도를 누르기 전에는 전국 통계가 곧바로 나온다.
+              16차까지 이 자리에 '지도에서 시군구를 클릭하면…' 안내 상자를 두었는데,
+              통계창을 열자마자 보이는 첫 칸이 통계가 아니라 안내문이라, 전국 통계는
+              아래로 밀리고 화면은 아직 아무것도 없는 것처럼 보였다.
+              같은 안내는 흐름줄 한 줄로 이미 하고 있으므로 상자는 없앤다. */}
+          <NationalSummary sector={sector} method={method} selected={link.selected}
+            selectedRow={selectedRow} onSelect={link.onSelect} ver={ver} dlOf={nsDl} />
+          <div className="nsum-all">
+            <span>전국 요약 세 칸을 한 파일로</span>
+            <DlMenu cls="fb-dl" label="내려받기" wide
+              pack={() => dlSummaryAll(sector, method)}
+              tip="분포 요약 · 상위·하위 · 시도별 평균" />
+          </div>
+        </section>
+      )}
 
       {/* ── 3 표준화 민감도 — 서랍 ─────────────────────────────────────── */}
       <Drawer id="sens" title="표준화 민감도" plain="방법별 부문점수와 순위 이동"

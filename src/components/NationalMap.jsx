@@ -88,10 +88,21 @@ function labelData() {
 // 경도 1도가 이 확대 배율에서 몇 px인지 — 지도를 만지지 않고도 셈할 수 있다.
 const pxPerDeg = (z) => (256 * Math.pow(2, z)) / 360
 
+// 21차 — 백지도로 시작한다.
+//
+// 예전에는 화면을 열자마자 시군구가 색으로 칠해져 있었다. 그런데 그 색은 아직
+// 아무것도 고르지 않은 상태에서 프로그램이 임의로 잡아 둔 지표의 색이었다.
+// 지표도 표준화 방법도 정하지 않았는데 결과처럼 생긴 그림이 먼저 나오면,
+// 보는 사람은 그것을 이미 산출된 값으로 읽는다.
+//
+// 그래서 지표와 표준화 방법이 확정되기 전(blank)에는 경계와 이름만 있는
+// 백지도를 그린다. 지역을 눌러 어디가 어디인지 확인하는 일은 그대로 되고,
+// 값에 딸린 것들 — 색 구간, 범례, 민감 지역만 보기, 내보내기 — 은 값이
+// 생긴 뒤에 나온다. 표준화 점수가 산출되면 그 자리에 주제도가 채워진다.
 export default function NationalMap({
   sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
-  autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0,
+  autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0, blank = false,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -126,10 +137,28 @@ export default function NationalMap({
   }, [breaks, metric.scale, ramp])
   const valOf = (k) => { const i = rowIndex(k); return i == null ? null : vals[i] }
 
+  // 서로 다른 값이 몇 가지뿐인 지표 — 참고 플래그의 '해당 / 해당 없음'이 그렇다.
+  // 이런 값은 구간을 일곱으로 나눌 것이 없다. 경계 숫자(0.5)를 눈금에 적어 봐야
+  // 읽을 것이 없으므로, 눈금 대신 값 이름을 양 끝에 적고 구간 나누기 단추를 뺀다.
+  const few = useMemo(() => {
+    const u = [...new Set(vals.filter((x) => x != null && Number.isFinite(x)))].sort((a, b) => a - b)
+    return u.length >= 2 && u.length <= 7 ? u : null
+  }, [vals])
+
   const styleFor = (f) => {
     const k = featKey(f)
     const row = byKey[k]
     const isSel = k === selected, isHov = k === hovered
+
+    // 백지도 — 옅은 면에 회색 경계. 누른 곳과 커서 아래만 진하게 남긴다.
+    if (blank) return {
+      fillColor: isSel ? '#D6E7F7' : isHov ? '#E7EDF4' : '#F2F5F8',
+      fillOpacity: 1,
+      color: isSel ? '#0F172A' : isHov ? '#334155' : '#C3CDD9',
+      weight: isSel ? 2.6 : isHov ? 1.8 : 0.7,
+      opacity: 1,
+    }
+
     const high = row && row[sector]?.flag === 'high'
     const dim = onlyHigh && !high
     return {
@@ -141,12 +170,16 @@ export default function NationalMap({
     }
   }
 
-  const tipHtml = (k, row) => `
+  const tipHtml = (k, row) => (blank ? `
+    <div class="mpop">
+      <div class="mpop-h">${row.sido} ${row.name}</div>
+      <div class="mtip-row"><span>지표를 고르면 점수가 나옵니다</span></div>
+    </div>` : `
     <div class="mpop">
       <div class="mpop-h">${row.sido} ${row.name}</div>
       <div class="mtip-row"><span>${metric.full || metric.label}</span><b>${metric.fmt(valOf(k))}</b></div>
       <div class="mtip-row"><span>순위 이동</span><b>${row[sector]?.ssiCamp}계단${row[sector]?.flag === 'high' ? ' · 민감' : ''}</b></div>
-    </div>`
+    </div>`)
 
   const onEach = (f, layer) => {
     const k = featKey(f); const row = byKey[k]
@@ -282,7 +315,7 @@ export default function NationalMap({
           const row = byKey[o.key]
           if (!row) return false
           if (o.key === selected) return true
-          if (onlyHigh && row[sector]?.flag !== 'high') return false
+          if (!blank && onlyHigh && row[sector]?.flag !== 'high') return false
           return o.span * per >= (compact ? 46 : 30)
         })
         // 선택한 지역이 맨 앞에 와야 겹침 다툼에서 이긴다
@@ -321,7 +354,7 @@ export default function NationalMap({
     draw()
     map.on('zoomend', draw)
     return () => { map.off('zoomend', draw); group.remove() }
-  }, [map, labelsOn, onlyHigh, selected, sector, byKey, compact, ver])
+  }, [map, labelsOn, onlyHigh, selected, sector, byKey, compact, ver, blank])
 
   // 통계창 접기/펼치기·창 크기 변화로 지도 폭이 바뀌면 Leaflet에 알린다
   useEffect(() => {
@@ -335,16 +368,20 @@ export default function NationalMap({
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [map])
 
-  const lowLab = metric.scale === 'rank' ? `하위(${ROWS.length}위)`
-    : metric.scale === 'div' ? '◀ 순위 상승' : '낮음'
-  const hiLab = metric.scale === 'rank' ? '상위(1위)'
-    : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
+  const lowLab = few ? metric.fmt(few[0])
+    : metric.scale === 'rank' ? `하위(${ROWS.length}위)`
+      : metric.scale === 'div' ? '◀ 순위 상승' : '낮음'
+  const hiLab = few ? metric.fmt(few[few.length - 1])
+    : metric.scale === 'rank' ? '상위(1위)'
+      : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
 
   // 범례 눈금 — 구간 경계값. 순위 지표는 색이 뒤집혀 있으므로 경계도 함께 뒤집는다.
   const showBreaks = metric.scale === 'rank' ? [...breaks].reverse() : breaks
   const bSpan = breaks.length ? Math.abs(breaks[breaks.length - 1] - breaks[0]) : 1
   const fmtB = (v) => (bSpan >= 20 ? String(Math.round(v)) : v.toFixed(1))
-  const tickTitle = `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
+  const tickTitle = few
+    ? `값 ${few.length}가지 · ${few.map((x) => metric.fmt(x)).join(' / ')}`
+    : `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
 
   // ── 내보내기 ────────────────────────────────────────────────────────────
   // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 전국 229개 시군구가 통째로 나간다.
@@ -395,8 +432,10 @@ export default function NationalMap({
           <button className={labelsOn ? 'on' : ''} onClick={() => setLabelsOn(!labelsOn)}
             aria-pressed={labelsOn} title={labelsOn ? '시군구 이름표 끄기' : '시군구 이름표 켜기'}
             aria-label="시군구 이름표">가</button>
-          <button className={dlOpen ? 'on' : ''} onClick={() => setDlOpen(!dlOpen)}
-            aria-expanded={dlOpen} title="지금 지도를 파일로 내보내기" aria-label="내보내기">⤓</button>
+          {!blank && (
+            <button className={dlOpen ? 'on' : ''} onClick={() => setDlOpen(!dlOpen)}
+              aria-expanded={dlOpen} title="지금 지도를 파일로 내보내기" aria-label="내보내기">⤓</button>
+          )}
         </div>
       )}
 
@@ -438,10 +477,10 @@ export default function NationalMap({
       {dlMsg && <div className="map-toast">{dlMsg}</div>}
 
       {/* 보기 옵션 — 오른쪽 아래. 지도를 보는 중에도 손이 닿는 자리 */}
-      {!compact && onlyHighToggle && (
+      {!compact && !blank && onlyHighToggle && (
         <div className="mapsw">
           <button className={`msw-t${onlyHigh ? ' on' : ''}`} onClick={onlyHighToggle}
-            aria-pressed={onlyHigh} title="순위 이동이 큰 상위 20%만 남기고 나머지는 흐리게">
+            aria-pressed={onlyHigh} title="표준화 방법을 바꿨을 때 순위가 10계단 이상 움직인 곳만 남기고 나머지는 흐리게">
             <i /><span>{onlyHigh ? 'ON' : 'OFF'} · 민감 지역만</span>
           </button>
           <button className="msw-r" onClick={fitAll} title="지도 위치를 처음으로">초기화</button>
@@ -452,28 +491,45 @@ export default function NationalMap({
       {!compact && shown && (
         <div className={`map-live${hovRow ? ' hov' : ''}`}>
           <b>{shown.sido} {shown.name}</b>
-          <span>{metric.full || metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>
-          <span>순위 이동<i>{shown[sector]?.ssiCamp}계단</i></span>
-          {shown[sector]?.flag === 'high' && <em className="ml-high">민감</em>}
+          {!blank && <span>{metric.full || metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>}
+          {!blank && <span>순위 이동<i>{shown[sector]?.ssiCamp}계단</i></span>}
+          {!blank && shown[sector]?.flag === 'high' && <em className="ml-high">민감</em>}
         </div>
       )}
 
       {!tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
 
+      {blank ? (
+        <div className={`maplegend mapblank${compact ? ' lg-mini' : ''}`}>
+          <h4>백지도</h4>
+          <p className="ml-note">
+            지표를 고르고 표준화 방법을 정하면 표준화 점수가 산출되고, 그 값으로 이 지도가
+            칠해집니다. 그 전까지는 경계와 이름만 보여 줍니다.
+          </p>
+        </div>
+      ) : (
       <div className={`maplegend${compact ? ' lg-mini' : ''}`}>
         <h4>{metric.full || metric.label}</h4>
         <div className="ml-scale" title={tickTitle}>
           {ramp.map((c, i) => <i key={i} style={{ background: c }} />)}
         </div>
-        <div className="ml-tk">
-          {showBreaks.map((b, i) => (i % 2 === 1
-            ? <span key={i} style={{ left: `${((i + 1) / 7) * 100}%` }}>{fmtB(b)}</span>
-            : null))}
-        </div>
+        {!few && (
+          <div className="ml-tk">
+            {showBreaks.map((b, i) => (i % 2 === 1
+              ? <span key={i} style={{ left: `${((i + 1) / 7) * 100}%` }}>{fmtB(b)}</span>
+              : null))}
+          </div>
+        )}
         <div className="ml-ends"><span>{lowLab}</span><span>{hiLab}</span></div>
 
         {/* 구간을 어떻게 끊었는지 — 지도가 달라 보이는 진짜 이유의 절반이 여기 있다 */}
-        {!compact && (
+        {!compact && few && (
+          <p className="ml-note">
+            값이 {few.length}가지뿐이라 구간을 나누지 않고 값 그대로 칠했습니다.
+          </p>
+        )}
+
+        {!compact && !few && (
           <div className="ml-cls">
             <div className="mlc-seg">
               <button className={cmode === 'auto' ? 'on' : ''} onClick={() => setCmode('auto')}
@@ -490,6 +546,7 @@ export default function NationalMap({
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

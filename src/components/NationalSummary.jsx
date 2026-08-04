@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import {
-  distribution, shapeText, topBottom, bySido, contribution, summaryFoot,
+  distribution, shapeText, topBottom, bySido, summaryFoot,
 } from '../lib/summary.js'
 import { pctOf, SECTORS, methodOf, shortSido } from '../lib/ssi.js'
 
@@ -8,11 +8,10 @@ import { pctOf, SECTORS, methodOf, shortSido } from '../lib/ssi.js'
 //
 // 지도만으로는 '전체가 어떤 모양인가'가 안 보인다. 색이 일곱 칸으로 끊겨 있어
 // 한 칸 안의 벌어짐이 지워지고, 상위·하위가 어디인지도 눈으로 세어야 한다.
-// 그래서 값을 네 각도에서 한 번씩 요약해 둔다. 계산은 summary.js가 하고
+// 그래서 값을 세 각도에서 한 번씩 요약해 둔다. 계산은 summary.js가 하고
 // 여기서는 그리기만 한다.
 
 const f1 = (x) => (x == null ? '—' : x.toFixed(1))
-const f2 = (x) => (x == null ? '—' : x.toFixed(2))
 
 // ── 1. 분포 요약 ─────────────────────────────────────────────────────
 function Distribution({ sector, method, selectedRow, ver }) {
@@ -149,62 +148,14 @@ function BySido({ sector, method, ver }) {
   )
 }
 
-// ── 4. 지표별 기여도 ─────────────────────────────────────────────────
-function Contribution({ sector, method, ver }) {
-  const rows = useMemo(() => contribution(sector, method), [sector, method, ver])
-  if (!rows.length) return <div className="empty-hint">선택된 지표가 없습니다</div>
-
-  const maxSd = Math.max(...rows.map((r) => r.sd || 0)) || 1
-
-  return (
-    <div className="ns-con">
-      <div className="ns-connote">
-        부문점수는 선택한 지표 {rows.length}개의 표준화값을 같은 무게로 평균한 값입니다.
-        그래서 <b>몫</b>(평균을 얼마나 끌어올리는가)과 <b>순위 영향</b>(지역 간 차이를 얼마나
-        만드는가)은 서로 다른 이야기입니다. 몫이 비슷해도, 편차가 큰 지표가 순위를 좌우합니다.
-      </div>
-      <div className="ns-ctbl">
-        <div className="ns-cth">
-          <span>지표</span><span>평균</span><span>편차</span>
-          <span>순위 영향</span><span>몫</span>
-        </div>
-        {rows.map((r) => (
-          <div key={r.id} className="ns-ctr" title={`${r.label}${r.year ? ` · ${r.year}년` : ''}${r.unit ? ` · ${r.unit}` : ''} · ${r.dir === '+' ? '높을수록 좋음' : '낮을수록 좋음'}`}>
-            <span className="ns-cnm">
-              <i className={r.dir === '+' ? 'up' : 'dn'}
-                title={r.dir === '+' ? '높을수록 좋음' : '낮을수록 좋음'}>
-                {r.dir === '+' ? '▲' : '▼'}</i>
-              {r.name || r.label}{r.year && <em>{r.year}</em>}
-            </span>
-            <span className="ns-cnum">{f1(r.mean)}</span>
-            <span className="ns-csd">
-              <i style={{ width: `${Math.round(((r.sd || 0) / maxSd) * 100)}%` }} />
-              <u>{f1(r.sd)}</u>
-            </span>
-            <span className="ns-ccor">
-              <i style={{ width: `${Math.round(Math.abs(r.corr || 0) * 100)}%` }} />
-              <u>{f2(r.corr)}</u>
-            </span>
-            <span className="ns-cshr">{r.share == null ? '—' : `${r.share.toFixed(1)}%`}</span>
-          </div>
-        ))}
-      </div>
-      <div className="ns-cfoot">
-        <b>▲ ▼</b> 지표 방향. ▼는 표준화 전에 값을 뒤집습니다.&nbsp;
-        <b>편차</b> 표준화값의 표준편차.&nbsp;
-        <b>순위 영향</b> 지표 표준화값과 부문점수의 상관계수.&nbsp;
-        <b>몫</b> 지표 평균 합계에서 이 지표가 차지하는 비율.
-      </div>
-    </div>
-  )
-}
-
 // ── 묶음 ─────────────────────────────────────────────────────────────
+// 21차에서 '지표별 기여도'를 뺐다. 지표별 편차·상관·몫은 부문점수를 뜯어보는
+// 값이라 전국 요약이 아니라 계산 과정 쪽에 가깝고, 전국 요약 안에서는 표가 가장
+// 길면서 읽는 사람이 가장 적게 쓰는 칸이었다.
 const BLOCKS = [
   { k: 'dist', t: '분포 요약', s: '구간별 시군구 수 · 평균 · 중앙값 · 표준편차', C: Distribution },
   { k: 'tb', t: '상위·하위 열 곳', s: '누르면 지도에서 선택됩니다', C: TopBottom },
   { k: 'sido', t: '시도별 평균 비교', s: '17개 시도 평균과 범위', C: BySido },
-  { k: 'con', t: '지표별 기여도', s: '지표별 편차 · 상관 · 몫', C: Contribution },
 ]
 
 export default function NationalSummary({

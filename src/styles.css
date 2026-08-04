@@ -317,6 +317,10 @@ button { font-family: inherit; }
 .ml-scale i { flex: 1; }
 .ml-ends { display: flex; justify-content: space-between; font-size: var(--fs-2); color: var(--ink3); margin-top: 4px; }
 .ml-note { font-size: var(--fs-2); color: var(--ink3); margin-top: 5px; }
+/* 백지도 안내 — 색 띠가 없으므로 폭을 글줄에 맞춘다 */
+.maplegend.mapblank { max-width: 244px; }
+.maplegend.mapblank h4 { margin-bottom: 3px; }
+.maplegend.mapblank .ml-note { margin-top: 0; }
 .leaflet-control-zoom { border: 1px solid var(--line) !important; border-radius: 12px !important;
   box-shadow: var(--shadow-float) !important; overflow: hidden; }
 .leaflet-control-zoom a { color: var(--ink2) !important; }
@@ -882,7 +886,8 @@ button { font-family: inherit; }
 /* ── 판독부: 구간 머리 ─────────────────────────────────────── */
 .csect { display: flex; flex-direction: column; gap: 10px; }
 .csect-head { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
-.csect-t { display: flex; align-items: baseline; gap: 7px; font-size: var(--fs-4); font-weight: 750; color: var(--ink); }
+.csect-t { display: flex; align-items: baseline; gap: 7px; font-size: var(--fs-4); font-weight: 750; color: var(--ink);
+  word-break: keep-all; }   /* '서울특별시 양천구'가 '양 / 천구'로 갈라지지 않게 */
 .csect-t em { font-style: normal; font-size: var(--fs-2); font-weight: 600; color: var(--ink3); }
 
 /* 카드 번호 제거에 따른 부제 정렬 보정 */

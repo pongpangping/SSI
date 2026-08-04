@@ -73,8 +73,35 @@ function jenksBreaks(v, k) {
 
   const out = []
   let kk = n
-  for (let j = k; j >= 2; j--) { const id = mat1[kk][j] - 1; out.unshift(s[id]); kk = id }
-  return dedupe(out, s)
+  for (let j = k; j >= 2; j--) {
+    const id = (mat1[kk]?.[j] || 1) - 1
+    if (id < 0) break                    // 나눌 자리가 더 없다 — 여기서 멈춘다
+    out.unshift(s[id]); kk = id
+  }
+  return out.length ? dedupe(out, s) : equalBreaks(v, k)
+}
+
+// 서로 다른 값이 단계 수보다 적을 때 — 참고 플래그처럼 '해당/해당 없음' 둘뿐인
+// 값이 대표적이다.
+//
+// 21차 전까지 이런 값은 자연분류(Jenks)로 넘어갔고, 229개 가운데 서로 다른 값이
+// 둘뿐이면 일곱 단계를 만들 수 없어 되짚어 가는 자리가 음수로 빠지면서 화면이
+// 통째로 멈췄다. 참고 플래그를 지도 색 기준으로 고르면 아무것도 안 나오던 것이
+// 이 때문이다.
+//
+// 여기서는 나눌 자리를 억지로 만들지 않는다. 값과 값 사이 한가운데를 경계로
+// 잡되, 그 경계를 색 띠 위에 고르게 벌려 놓아 값이 둘이면 양 끝 색, 셋이면
+// 양 끝과 가운데 색이 되게 한다.
+function fewBreaks(v, k) {
+  const d = [...new Set(v)].sort((a, b) => a - b)
+  const out = []
+  for (let j = 1; j < d.length; j++) {
+    const mid = (d[j - 1] + d[j]) / 2
+    const upto = Math.round((j * (k - 1)) / (d.length - 1))
+    while (out.length < upto) out.push(mid)
+  }
+  while (out.length < k - 1) out.push(d[d.length - 1])
+  return dedupe(out, d)
 }
 
 // 동점이 많아 경계가 겹치면 단계가 빈다 — 겹친 경계를 미세하게 밀어 단조 증가로 만든다.
@@ -91,6 +118,7 @@ export function breaksOf(values, mode = 'equal', k = 7) {
   const v = clean(values)
   if (!v.length) return []
   if (v.length === 1 || Math.min(...v) === Math.max(...v)) return equalBreaks([0, 1], k)
+  if (new Set(v).size <= k) return fewBreaks(v, k)
   return (FN[mode] || equalBreaks)(v, k)
 }
 

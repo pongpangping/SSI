@@ -156,19 +156,36 @@ export function computeSet(picks) {
   // 민감 구분: 순위가 10계단 넘게 흔들리면 '높음'
   const flag = camp.map((c) => (c == null ? null : c >= 10 ? 'high' : c >= 5 ? 'mid' : 'low'))
 
-  // 트레이드오프: 지표 간 백분위 순위 차이가 30%p를 넘는 곳
+  // 지표 간 순위 격차 = 선택 지표들의 백분위 순위 중 최댓값 − 최솟값(%p).
+  // 어느 지표로 보느냐에 따라 평가가 얼마나 갈리는지를 그대로 재는 값이다.
   const prAll = picks.map((_, j) => indRank.pctrank[j])
-  const tradeoff = ROWS.map((_, i) => {
+  const spread = ROWS.map((_, i) => {
     const p = prAll.map((r) => (num(r[i]) ? (N - r[i]) / N * 100 : null)).filter(num)
-    return p.length >= 2 && Math.max(...p) - Math.min(...p) > 30
+    return p.length >= 2 ? Math.max(...p) - Math.min(...p) : null
   })
+
+  // 트레이드오프 지역 — 격차가 유난히 큰 곳.
+  //
+  // 20차까지는 '격차 30%p 초과'라는 고정 기준을 썼다. 이 기준은 지표가 둘셋일
+  // 때를 염두에 둔 것이어서, 지표를 여섯 개 고르면 229곳 가운데 220곳이 '해당'이
+  // 되어 버렸다. 최댓값과 최솟값의 차이는 지표 수가 늘수록 저절로 커지기 때문이다.
+  // 표시가 거의 모든 지역에 붙으면 아무것도 가리키지 못한다.
+  //
+  // 그래서 기준을 전국 분포에서 끊는다 — 격차 상위 10%. 지표를 몇 개 고르든
+  // 눈에 띄는 곳만 남는다. 다만 지표들이 거의 같은 순위를 매기는 조합에서는
+  // 상위 10%라도 격차 자체가 작을 수 있으므로, 옛 기준 30%p를 바닥으로 둔다.
+  const okSp = spread.filter(num).sort((a, b) => a - b)
+  const tradeoffCut = okSp.length
+    ? Math.max(30, okSp[Math.min(okSp.length - 1, Math.floor(okSp.length * 0.9))])
+    : null
+  const tradeoff = spread.map((v) => (num(v) && tradeoffCut != null ? v >= tradeoffCut : false))
 
   const ciT = {}
   for (const mk of METHOD_KEYS) ciT[mk] = tScore(ci[mk])
   const indT = {}
   for (const mk of METHOD_KEYS) indT[mk] = std[mk].map(tScore)
 
-  const out = { picks, cols, std, ci, rank, ciT, indRank, indT, camp, range, rstd, flag, tradeoff }
+  const out = { picks, cols, std, ci, rank, ciT, indRank, indT, camp, range, rstd, flag, spread, tradeoff, tradeoffCut }
   if (cache.size > 60) cache.clear()
   cache.set(ck, out)
   return out

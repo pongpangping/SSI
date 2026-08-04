@@ -70,11 +70,15 @@ export default function App() {
   // 처음 들어오면 접혀 있다가, 꼭 골라야 하는 두 가지를 정하면 열린다.
   const [panelOpen, setPanelOpen] = useState(false)
   // 어디까지 왔는가. 1 지표 · 2 표준화 방법 · 3 다 골랐음
+  //
+  // 이 값이 지도의 성격도 정한다(21차). 3단계 전, 곧 표준화 점수가 아직 산출되지
+  // 않은 동안 지도는 백지도다. 20차까지는 부문을 고르자마자 기본 조합으로 계산한
+  // 주제도가 이미 칠해져 있었는데, 사용자가 아무것도 고르지 않았는데 색이 다 칠해져
+  // 있으면 그 색이 무엇을 뜻하는지 알 수 없고, 뒤이어 지표를 고르는 일도 이미 나온
+  // 결과를 손보는 일처럼 보인다. 지표와 방법을 정해 점수가 나온 다음에 주제도를 그린다.
   const [step, setStep] = useState(1)
   // 통계창 아래쪽 서랍 두 개. 처음부터 둘 다 펴 둔다.
   const [drawers, setDrawers] = useState(init.drawers || ALL_OPEN())
-  // 부문 종합(본문)이 펼쳐져 있는가. 지역을 고르면 접힌다.
-  const [sumOpen, setSumOpen] = useState(true)
   const [onlyHigh, setOnlyHigh] = useState(false)
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
@@ -126,7 +130,6 @@ export default function App() {
     setSector(k)
     setStarted(true)
     setCompare(false)
-    setSumOpen(true)
     setStep(1)
     setPanelOpen(false)
     if (resume) {
@@ -170,14 +173,13 @@ export default function App() {
   const sel = selected && byKey[selected] ? selected : null
   const selectedRow = sel ? byKey[sel] : null
 
-  // 지역을 고르면 그 결과가 통계창 맨 위로 올라온다. 전국 요약은 그 아래로
-  // 접히고, 머리를 눌러 다시 편다. 15차까지는 선택 지역 결과가 전국 요약
-  // 아래에 있어서, 지도를 눌러도 화면이 그대로인 것처럼 보였다.
+  // 지역을 고르면 그 결과가 통계창 맨 위로 올라오고, 전국 요약은 화면에서
+  // 빠진다(21차). 15차까지는 선택 지역 결과가 전국 요약 아래에 있어서, 지도를
+  // 눌러도 화면이 그대로인 것처럼 보였다.
   const prevSel = useRef(sel)
   useEffect(() => {
     if (prevSel.current === sel) return
     prevSel.current = sel
-    setSumOpen(!sel)
     if (!sel) return
     const el = document.querySelector('.center')
     if (el) el.scrollTo({ top: 0, behavior: 'smooth' })
@@ -239,7 +241,6 @@ export default function App() {
               selectedRow={selectedRow} link={link} ver={pickVer}
               xKey={xKey} yKey={yKey} onAxis={onAxis}
               drawers={drawers} onDrawer={toggleDrawer}
-              sumOpen={sumOpen} onSumOpen={setSumOpen}
               onOpenPicker={() => setPickerOpen(true)} />
           )}
         </div>
@@ -250,6 +251,7 @@ export default function App() {
           ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
               ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
           : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh}
+              blank={step < 3}
               ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
       </div>
       <CursorFx />
