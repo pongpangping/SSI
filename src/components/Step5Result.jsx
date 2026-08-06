@@ -100,6 +100,12 @@ export default function Step5Result({
   }, [selected, mk])
 
   const gradeColor = (g) => (g == null ? 'transparent' : rampOf(palette, 10)[10 - g])
+  const gradeInk = (g) => {
+    if (g == null) return 'inherit'
+    const h = gradeColor(g)
+    const L = 0.299 * parseInt(h.slice(1, 3), 16) + 0.587 * parseInt(h.slice(3, 5), 16) + 0.114 * parseInt(h.slice(5, 7), 16)
+    return L < 150 ? '#FFFFFF' : '#12314A'
+  }
 
   // ── 오른쪽 — 고른 지역의 지표 구성 ──────────────────────────────────────
   const selIdx = selected ? rowIndex(selected) : null
@@ -136,7 +142,7 @@ export default function Step5Result({
   const mapProps = (mm) => ({
     sector, metric: metricOf(mm), method: mm, methodLabel: methodOf(mm).label,
     selected, hovered, onSelect: (kk) => onSelect(kk === selected ? null : kk), onHover: setHovered,
-    dark: true, ramp, k: k10 ? 10 : 7, info, exportExtra, onlyHigh: false,
+    ramp, k: k10 ? 10 : 7, info, exportExtra, onlyHigh: false,
   })
 
   return (
@@ -157,7 +163,7 @@ export default function Step5Result({
               <u className="mono">{Math.round(r.rank)}</u>
               <span><em>{shortSido(r.sido)}</em>{r.name}</span>
               <b className="mono">{f1(r.ci)}</b>
-              <i className="e5l-g mono" style={{ background: gradeColor(r.grade) }}>{r.grade}</i>
+              <i className="e5l-g mono" style={{ background: gradeColor(r.grade), color: gradeInk(r.grade) }}>{r.grade}</i>
             </button>
           ))}
         </div>
@@ -167,39 +173,55 @@ export default function Step5Result({
       {/* ── 가운데 · 지도 ── */}
       <div className="e5-mid">
         <div className="e5-ctrl glass">
-          <div className="seg">
-            {METHODS.map((mm) => (
-              <button key={mm.key} className={mk === mm.key ? 'on' : ''}
-                onClick={() => onMethod(mm.key)}>{mm.label}</button>
-            ))}
-          </div>
-          <span className="e5c-sep" />
-          <div className="seg">
-            <button className={view === 'score' ? 'on' : ''} onClick={() => setView('score')}>점수</button>
-            <button className={view === 'grade' ? 'on' : ''} onClick={() => setView('grade')}>10등급</button>
-            <button className={view === 'rank' ? 'on' : ''} onClick={() => setView('rank')}>순위</button>
-          </div>
-          {view === 'grade' && (
+          <div className="e5c-group">
+            <u>표준화 방법</u>
             <div className="seg">
-              <button className={gradeMode === 'decile' ? 'on' : ''} onClick={() => onGradeMode('decile')}
-                title="순위 기준으로 열 칸에 고르게 — 각 등급 약 10%씩">십분위</button>
-              <button className={gradeMode === 'equal' ? 'on' : ''} onClick={() => onGradeMode('equal')}
-                title="값의 범위를 열 칸으로 등분 — 분포가 쏠리면 몰릴 수 있음">등간격</button>
+              {METHODS.map((mm) => (
+                <button key={mm.key} className={mk === mm.key ? 'on' : ''}
+                  onClick={() => onMethod(mm.key)}>{mm.label}</button>
+              ))}
             </div>
-          )}
-          <span className="e5c-sep" />
-          <div className="e5c-pal">
-            {PALETTES.map((p) => (
-              <button key={p.key} className={`palsw${palette === p.key ? ' on' : ''}`} title={p.label}
-                onClick={() => onPalette(p.key)}
-                style={{ background: `linear-gradient(90deg, ${rampOf(p.key, 5).join(',')})` }} />
-            ))}
           </div>
           <span className="e5c-sep" />
-          <button className={`ghost-btn${compare ? ' on' : ''}`} onClick={() => setCompare(!compare)}>
-            {compare ? '지도 한 장으로' : '2개 지도 비교'}
-          </button>
-          <button className="acc-btn" onClick={onReport}>최종 리포트 →</button>
+          <div className="e5c-group">
+            <u>보기</u>
+            <span>
+              <div className="seg">
+                <button className={view === 'score' ? 'on' : ''} onClick={() => setView('score')}>점수</button>
+                <button className={view === 'grade' ? 'on' : ''} onClick={() => setView('grade')}>10등급</button>
+                <button className={view === 'rank' ? 'on' : ''} onClick={() => setView('rank')}>순위</button>
+              </div>
+              {view === 'grade' && (
+                <div className="seg">
+                  <button className={gradeMode === 'decile' ? 'on' : ''} onClick={() => onGradeMode('decile')}
+                    title="순위 기준으로 열 칸에 고르게 — 각 등급 약 10%씩">십분위</button>
+                  <button className={gradeMode === 'equal' ? 'on' : ''} onClick={() => onGradeMode('equal')}
+                    title="값의 범위를 열 칸으로 등분 — 분포가 쏠리면 몰릴 수 있음">등간격</button>
+                </div>
+              )}
+            </span>
+          </div>
+          <span className="e5c-sep" />
+          <div className="e5c-group">
+            <u>지도 색</u>
+            <div className="e5c-pal">
+              {PALETTES.map((p) => (
+                <button key={p.key} className={`palsw${palette === p.key ? ' on' : ''}`} title={p.label}
+                  onClick={() => onPalette(p.key)}
+                  style={{ background: `linear-gradient(90deg, ${rampOf(p.key, 5).join(',')})` }} />
+              ))}
+            </div>
+          </div>
+          <span className="e5c-sep" />
+          <div className="e5c-group">
+            <u>비교 · 출력</u>
+            <span>
+              <button className={`ghost-btn${compare ? ' on' : ''}`} onClick={() => setCompare(!compare)}>
+                {compare ? '지도 한 장으로' : '2개 지도 비교'}
+              </button>
+              <button className="acc-btn" onClick={onReport}>최종 리포트 →</button>
+            </span>
+          </div>
         </div>
 
         {!compare ? (
@@ -244,11 +266,11 @@ export default function Step5Result({
             <div className="e5r-radar">
               <ResponsiveContainer width="100%" height={230}>
                 <RadarChart data={radar} outerRadius="72%">
-                  <PolarGrid stroke="rgba(255,255,255,0.14)" />
-                  <PolarAngleAxis dataKey="axis" tick={{ fill: 'rgba(235,240,248,0.75)', fontSize: 10 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: 'rgba(235,240,248,0.4)', fontSize: 9 }} tickCount={3} stroke="rgba(255,255,255,0.1)" />
-                  <Radar name="전국 중앙값" dataKey="nation" stroke="rgba(255,255,255,0.5)"
-                    fill="rgba(255,255,255,0.10)" strokeDasharray="4 3" />
+                  <PolarGrid stroke="rgba(15,23,42,0.14)" />
+                  <PolarAngleAxis dataKey="axis" tick={{ fill: '#46536B', fontSize: 10 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: 'rgba(70,83,107,0.55)', fontSize: 9 }} tickCount={3} stroke="rgba(15,23,42,0.1)" />
+                  <Radar name="전국 중앙값" dataKey="nation" stroke="rgba(15,23,42,0.45)"
+                    fill="rgba(15,23,42,0.06)" strokeDasharray="4 3" />
                   <Radar name={selRow.name} dataKey="region" stroke="var(--acc)"
                     fill="var(--acc)" fillOpacity={0.28} />
                 </RadarChart>

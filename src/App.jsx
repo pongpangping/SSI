@@ -16,6 +16,7 @@ import Step4Weights from './components/Step4Weights.jsx'
 import Step5Result from './components/Step5Result.jsx'
 import ShiftTab from './components/ShiftTab.jsx'
 import ReportView from './components/ReportView.jsx'
+import NationalMap from './components/NationalMap.jsx'
 
 // v3 (22차) — EDA 파이프라인으로 전면 개편.
 //
@@ -27,6 +28,11 @@ import ReportView from './components/ReportView.jsx'
 //
 // 설정은 지표(자료 열) 단위로 붙는다 — 부문을 오가도, 같은 지표를 다시 골라도
 // 방향·변환·윈저라이징·가중치가 그대로 남는다.
+
+// 백지도 배경용 빈 메트릭 — 값이 확정되기 전에는 지도에 칠할 것이 없다(21차 규칙).
+const BLANK_METRIC = {
+  key: 'blank', scale: 'blue', label: '', fmt: () => '—', get: () => null,
+}
 
 const STEPS = [
   { n: 0, t: '지표 선택', d: '부문 · 연도 · 지표' },
@@ -155,9 +161,19 @@ export default function App() {
         </div>
       )}
 
+      {/* ── 상시 배경 지도 — 값이 확정되기 전(0~4단계)에는 백지도 ── */}
+      {tab === 'flow' && step < 5 && (
+        <div className="v3-backmap">
+          <NationalMap sector={sector} metric={BLANK_METRIC} blank
+            selected={selected} hovered={null} onSelect={setSelected} onHover={() => {}} tips />
+        </div>
+      )}
+
       {/* ── 본문 ── */}
-      <main className={`v3-main${tab === 'flow' && step === 5 ? ' wide' : ''}`}>
-        {tab === 'flow' && step === 0 && (
+      <main className={`v3-main${tab === 'flow' && step === 5 ? ' wide' : ''}${tab === 'flow' && step < 5 ? ' sheetmode' : ''}`}>
+        {tab === 'flow' && step < 5 && (
+        <div className="v3-sheet glass">
+        {step === 0 && (
           <div className="e0-wrap">
             <div className="v3-lede">
               <b>{s.name}</b> 부문에서 계산에 넣을 지표와 연도를 정합니다.
@@ -189,18 +205,21 @@ export default function App() {
           </div>
         )}
 
-        {tab === 'flow' && step === 1 && <Step1Explore entries={entries} seriesOf={seriesOf} />}
-        {tab === 'flow' && step === 2 && (
+        {step === 1 && <Step1Explore entries={entries} seriesOf={seriesOf} />}
+        {step === 2 && (
           <Step2Transform entries={entries} seriesOf={seriesOf} cfg={cfg} onCfg={setCfg} />
         )}
-        {tab === 'flow' && step === 3 && (
+        {step === 3 && (
           <Step3Standardize entries={entries} result={result} cfg={cfg} onCfg={setCfg}
             method={method} onMethod={setMethod} alpha={alpha} onAlpha={setAlpha} />
         )}
-        {tab === 'flow' && step === 4 && (
+        {step === 4 && (
           <Step4Weights entries={entries} weights={weights}
             onWeights={(w) => setWeightsBy((prev) => ({ ...prev, ...w }))} />
         )}
+        </div>
+        )}
+
         {tab === 'flow' && step === 5 && (
           <Step5Result sector={sector} entries={entries} result={result}
             method={method} onMethod={setMethod}

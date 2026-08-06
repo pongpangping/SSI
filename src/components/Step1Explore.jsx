@@ -42,7 +42,7 @@ function Card({ e, values }) {
       </div>
       {e.desc && <p className="e1-desc">{e.desc}</p>}
       <HistBars values={values} color="var(--acc)"
-        marks={[{ v: st.mean, color: 'var(--acc2)' }, { v: st.med, color: '#ffffff', dash: true }]} />
+        marks={[{ v: st.mean, color: 'var(--acc2)' }, { v: st.med, color: '#334155', dash: true }]} />
       <div className="e1-legend mono">
         <span><i className="lg-solid" />평균 {fmtRaw(st.mean)}</span>
         <span><i className="lg-dash" />중위 {fmtRaw(st.med)}</span>

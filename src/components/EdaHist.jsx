@@ -30,7 +30,7 @@ export function HistBars({ values, bins = 26, h = 84, color = 'var(--acc)', lo =
         const x = ((m.v - H.lo) / d) * W
         return num(m.v) ? (
           <g key={`m${i}`}>
-            <line x1={x} x2={x} y1={2} y2={h} stroke={m.color || '#fff'} strokeWidth="1"
+            <line x1={x} x2={x} y1={2} y2={h} stroke={m.color || '#0F172A'} strokeWidth="1"
               strokeDasharray={m.dash ? '3 3' : 'none'} opacity="0.85" />
           </g>
         ) : null
@@ -60,9 +60,9 @@ export function ShapeCompare({ before, after, bins = 30, h = 96, color = 'var(--
   if (!pb) return <div className="eh-empty">자료 없음</div>
   return (
     <svg className="eh eh-cmp" viewBox={`0 0 ${W} ${h}`} preserveAspectRatio="none">
-      <line x1="0" x2={W} y1={h - 3} y2={h - 3} stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
+      <line x1="0" x2={W} y1={h - 3} y2={h - 3} stroke="rgba(15,23,42,0.18)" strokeWidth="1" />
       {/* 변환 전 — 점선 */}
-      <path d={pb} fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.55)"
+      <path d={pb} fill="rgba(15,23,42,0.05)" stroke="rgba(15,23,42,0.5)"
         strokeWidth="1.3" strokeDasharray="4 3" />
       {/* 변환 후 — 실선 */}
       {pa && <path d={pa} fill="color-mix(in srgb, currentColor 14%, transparent)"
