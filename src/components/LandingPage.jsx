@@ -33,7 +33,7 @@ export default function LandingPage({ onPick, resume = null }) {
     <div className="lp">
       <div className="lp-inner">
         <div className="lp-head">
-          <div className="lp-logo">SSI</div>
+          <div className="lp-logo">SAL</div>
           <h1>국토종합진단지수</h1>
           <p>
             전국 {META?.n || 229}개 시군구를 부문별로 표준화해 비교하고, 표준화 방법을 바꿨을 때

@@ -258,47 +258,51 @@ const YMD = () => {
 }
 
 // 화면에 보이는 대로(시도를 골랐으면 그 시도만) 한 벌을 만든다.
-export function mapExportSet({ geo, byKey, sector, method, metric, valOf, sido }) {
+export function mapExportSet({ geo, byKey, sector, method, metric, valOf, sido, extra = null, methodLabel = null }) {
   const feats = (geo.features || []).filter((f) => {
     const r = byKey[keyOfFeat(f)]
     if (!r) return false
     return !sido || r.sido === sido
   })
-  const t = ciT(sector, method)
+  const t = extra ? null : ciT(sector, method)
   const attrs = feats.map((f) => {
     const k = keyOfFeat(f)
     const r = byKey[k]
     const i = rowIndex(k)
     const d = r[sector] || null
     const v = valOf(k)
-    return {
+    const base = {
       SIDO: r.sido,
       SIGUNGU: r.name,
       SECTOR: SECTORS[sector]?.name || sector,
-      METHOD: methodOf(method)?.label || method,
+      METHOD: methodLabel || methodOf(method)?.label || method,
       METRIC: metric.label,
       VALUE: typeof v === 'number' ? v : null,
       VALUE_TXT: metric.fmt(v),
+    }
+    // v3(22차) — 부문점수·순위 등을 밖(파이프라인)에서 받는다. extra가 없으면 v2 계산값.
+    if (extra) return Object.assign(base, extra(r, i))
+    return Object.assign(base, {
       CI: d ? d.ci[method] : null,
       RANK: d ? d.rank[method] : null,
       TSCORE: t && i != null ? t[i] : null,
       PCTILE: d ? pctOf(d.rank[method]) : null,
       SSI_CAMP: d ? d.ssiCamp : null,
       SENSITIVE: d ? (d.flag === 'high' ? 'Y' : 'N') : '',
-    }
+    })
   })
   return { feats, attrs }
 }
 
 const keyOfFeat = (f) => keyOf(f.properties?.sido, f.properties?.name)
 
-function readmeText({ sector, method, metric, sido, n, base }) {
+function readmeText({ sector, method, metric, sido, n, base, methodLabel = null }) {
   const lines = [
     '국토종합진단지수 · 지도 내보내기',
     '',
     `만든 날짜   ${YMD().replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}`,
     `부문        ${SECTORS[sector]?.name || sector}`,
-    `표준화 방법 ${methodOf(method)?.label || method}`,
+    `표준화 방법 ${methodLabel || methodOf(method)?.label || method}`,
     `지도 색 기준 ${metric.label}`,
     `대상 범위   ${sido || '전국'} · ${n}개 시군구`,
     `좌표계      EPSG:4326 (경위도, WGS84)`,
