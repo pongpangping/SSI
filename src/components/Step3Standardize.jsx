@@ -18,18 +18,13 @@ export default function Step3Standardize({ entries, result, cfg, onCfg, method, 
   return (
     <div className="e3-wrap">
       <div className="v3-lede">
-        다섯 방법의 표준화값 분포를 지표별로 견줍니다. 열 하나가 방법 하나이고,
-        굵게 띈 열이 지금 고른 방법입니다. 합성은 다음 단계(가중치)에서 합니다.
+        다섯 방법의 표준화값 분포를 지표별로 비교합니다. 열 하나가 방법 하나이고,
+        열 머리를 누르면 그 방법이 선택됩니다. 합성은 다음 단계(가중치)에서 합니다.
       </div>
 
       <div className="e3-bar g-card">
-        <u className="e2-cap">기본 방법 선택</u>
-        <div className="seg">
-          {METHODS.map((mm) => (
-            <button key={mm.key} className={method === mm.key ? 'on' : ''}
-              onClick={() => onMethod(mm.key)}>{mm.label}</button>
-          ))}
-        </div>
+        <u className="e2-cap">표준화 방법 — 아래 표의 열 머리를 눌러 고릅니다</u>
+        <p className="e3-desc mono">지금 방법: {m.label} · {m.formula} · 범위 {m.range}</p>
         {method === 'minmaxA' && (
           <label className="e3-alpha mono">α =
             <input type="number" min="0.5" max="49" step="0.5" value={alpha}
@@ -37,16 +32,18 @@ export default function Step3Standardize({ entries, result, cfg, onCfg, method, 
             (범위 α ~ 100−α, α &gt; 0)
           </label>
         )}
-        <p className="e3-desc mono">{m.formula} · 범위 {m.range}</p>
       </div>
 
       <div className="e3-grid" style={{ '--mcols': METHODS.length }}>
         <div className="e3-hrow">
           <div className="e3-hname">지표</div>
           {METHODS.map((mm) => (
-            <div key={mm.key} className={`e3-hcell${method === mm.key ? ' cur' : ''}`}>
+            <button key={mm.key} className={`e3-hcell${method === mm.key ? ' cur' : ''}`}
+              onClick={() => onMethod(mm.key)}
+              title={`${mm.formula} · 범위 ${mm.range}`}>
+              <i className="e3-dot" aria-hidden="true" />
               <b>{mm.label}</b><span className="mono">{mm.range}</span>
-            </div>
+            </button>
           ))}
         </div>
         {result.stages.map((s) => {

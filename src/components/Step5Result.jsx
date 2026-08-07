@@ -6,7 +6,7 @@ import NationalMap from './NationalMap.jsx'
 import { HistBars } from './EdaHist.jsx'
 import { ROWS, N, METHODS, methodOf, pctFromRank } from '../lib/pipeline.js'
 import { rowKey, rowIndex, shortSido } from '../lib/ssi.js'
-import { PALETTES, rampOf } from '../lib/palettes.js'
+import { PALETTES, paletteOf, rampOf } from '../lib/palettes.js'
 
 // 5단계 — 종합점수.
 //
@@ -36,6 +36,9 @@ export default function Step5Result({
   const [view, setView] = useState('score')       // score | grade | rank
   const [compare, setCompare] = useState(false)
   const [methodB, setMethodB] = useState('pctrank')
+  const [paletteB, setPaletteB] = useState('purple')  // 비교 모드의 오른쪽 지도 색
+  const [leftOpen, setLeftOpen] = useState(true)      // 순위 패널 접기
+  const [rightOpen, setRightOpen] = useState(true)    // 구성 패널 접기
   const [q, setQ] = useState('')
   const [hovered, setHovered] = useState(null)
   const listRef = useRef(null)
@@ -43,7 +46,7 @@ export default function Step5Result({
   const mk = method
   const m = methodOf(mk)
   const k10 = view === 'grade'
-  const ramp = useMemo(() => rampOf(palette, k10 ? 10 : 7), [palette, k10])
+  const rampFor = (which) => rampOf(which === 'B' ? paletteB : palette, k10 ? 10 : 7)
 
   // ── 지도 색 기준(메트릭) — 파이프라인 결과를 그대로 읽는 임시 객체 ──────
   const metricOf = (mm) => {
@@ -139,37 +142,26 @@ export default function Step5Result({
 
   if (!entries.length) return <div className="v3-empty">0단계에서 지표를 먼저 골라 주세요.</div>
 
-  const mapProps = (mm) => ({
+  const mapProps = (mm, which = 'A') => ({
     sector, metric: metricOf(mm), method: mm, methodLabel: methodOf(mm).label,
     selected, hovered, onSelect: (kk) => onSelect(kk === selected ? null : kk), onHover: setHovered,
-    ramp, k: k10 ? 10 : 7, info, exportExtra, onlyHigh: false,
+    ramp: rampFor(which), k: k10 ? 10 : 7, info, exportExtra, onlyHigh: false,
   })
+
+  // 팔레트 견본 — 다섯 칸 나뉜 칩
+  const Swatches = ({ cur, onPick }) => (
+    <div className="e5c-pal">
+      {PALETTES.map((p) => (
+        <button key={p.key} className={`palsw${cur === p.key ? ' on' : ''}`} title={p.label}
+          onClick={() => onPick(p.key)}>
+          {rampOf(p.key, 5).map((c) => <i key={c} style={{ background: c }} />)}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="e5-wrap">
-      {/* ── 왼쪽 · 순위표 ── */}
-      <aside className="e5-left glass">
-        <div className="e5l-head">
-          <b>지역별 점수 순위</b>
-          <span className="mono">{m.label}</span>
-        </div>
-        <input className="e5l-q mono" placeholder="시군구 찾기…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="e5l-cols mono"><span>순위</span><span>지역</span><span>점수</span><span>등급</span></div>
-        <div className="e5l-list" ref={listRef}>
-          {table.map((r) => (
-            <button key={r.key} data-on={r.key === selected ? '1' : '0'}
-              className={`e5l-row${r.key === selected ? ' on' : ''}`}
-              onClick={() => onSelect(r.key === selected ? null : r.key)}>
-              <u className="mono">{Math.round(r.rank)}</u>
-              <span><em>{shortSido(r.sido)}</em>{r.name}</span>
-              <b className="mono">{f1(r.ci)}</b>
-              <i className="e5l-g mono" style={{ background: gradeColor(r.grade), color: gradeInk(r.grade) }}>{r.grade}</i>
-            </button>
-          ))}
-        </div>
-        <button className="ghost-btn e5l-dl" onClick={csvDown}>순위표 CSV 내려받기</button>
-      </aside>
-
       {/* ── 가운데 · 지도 ── */}
       <div className="e5-mid">
         <div className="e5-ctrl glass">
@@ -203,14 +195,15 @@ export default function Step5Result({
           </div>
           <span className="e5c-sep" />
           <div className="e5c-group">
-            <u>지도 색</u>
-            <div className="e5c-pal">
-              {PALETTES.map((p) => (
-                <button key={p.key} className={`palsw${palette === p.key ? ' on' : ''}`} title={p.label}
-                  onClick={() => onPalette(p.key)}
-                  style={{ background: `linear-gradient(90deg, ${rampOf(p.key, 5).join(',')})` }} />
-              ))}
-            </div>
+            <u>지도 색 · {paletteOf(palette).label}{compare ? ` / ${paletteOf(paletteB).label}` : ''}</u>
+            <span className="e5c-palrows">
+              <span className="e5c-palrow">{compare && <em className="mono">A</em>}
+                <Swatches cur={palette} onPick={onPalette} /></span>
+              {compare && (
+                <span className="e5c-palrow"><em className="mono">B</em>
+                  <Swatches cur={paletteB} onPick={setPaletteB} /></span>
+              )}
+            </span>
           </div>
           <span className="e5c-sep" />
           <div className="e5c-group">
@@ -224,13 +217,14 @@ export default function Step5Result({
           </div>
         </div>
 
+        <div className="e5-stage">
         {!compare ? (
-          <div className="e5-map glass-edge"><NationalMap {...mapProps(mk)} /></div>
+          <div className="e5-map glass-edge"><NationalMap {...mapProps(mk)} padLeft={leftOpen ? 300 : 0} /></div>
         ) : (
           <div className="e5-two">
             <div className="e5-map glass-edge">
               <div className="e5t-cap mono">A · {m.label}</div>
-              <NationalMap {...mapProps(mk)} compact tips />
+              <NationalMap {...mapProps(mk, 'A')} compact tips />
             </div>
             <div className="e5-map glass-edge">
               <div className="e5t-cap mono">
@@ -241,19 +235,52 @@ export default function Step5Result({
                   ))}
                 </select>
               </div>
-              <NationalMap {...mapProps(methodB)} compact tips />
+              <NationalMap {...mapProps(methodB, 'B')} compact tips />
             </div>
           </div>
         )}
-      </div>
 
-      {/* ── 오른쪽 · 지표 구성 ── */}
-      <aside className="e5-right glass">
+      {/* ── 왼쪽 · 순위표 (지도 위 도킹 · 접기 가능) ── */}
+      {leftOpen ? (
+      <aside className="e5-left glass e5-dock e5-dock-l">
+        <div className="e5l-head">
+          <b>지역별 점수 순위</b>
+          <span className="mono">{m.label}</span>
+          <button className="e5-fold" onClick={() => setLeftOpen(false)} title="패널 접기">⟨</button>
+        </div>
+        <input className="e5l-q mono" placeholder="시군구 찾기…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="e5l-cols mono"><span>순위</span><span>지역</span><span>점수</span><span>등급</span></div>
+        <div className="e5l-list" ref={listRef}>
+          {table.map((r) => (
+            <button key={r.key} data-on={r.key === selected ? '1' : '0'}
+              className={`e5l-row${r.key === selected ? ' on' : ''}`}
+              onClick={() => onSelect(r.key === selected ? null : r.key)}>
+              <u className="mono">{Math.round(r.rank)}</u>
+              <span><em>{shortSido(r.sido)}</em>{r.name}</span>
+              <b className="mono">{f1(r.ci)}</b>
+              <i className="e5l-g mono" style={{ background: gradeColor(r.grade), color: gradeInk(r.grade) }}>{r.grade}</i>
+            </button>
+          ))}
+        </div>
+        <button className="ghost-btn e5l-dl" onClick={csvDown}>순위표 CSV 내려받기</button>
+      </aside>
+      ) : (
+        <button className="e5-tab e5-tab-l glass" onClick={() => setLeftOpen(true)} title="순위 패널 펴기">
+          <i>⟩</i><span>지역별 점수 순위</span>
+        </button>
+      )}
+
+      {/* ── 오른쪽 · 지표 구성 (지도 위 도킹 · 접기 가능) ── */}
+      {rightOpen ? (
+      <aside className="e5-right glass e5-dock e5-dock-r">
         {selRow ? (
           <>
             <div className="e5r-head">
               <b>{selRow.sido} {selRow.name}</b>
-              <button className="x" onClick={() => onSelect(null)} title="선택 해제">✕</button>
+              <span className="e5r-hbtns">
+                <button className="x" onClick={() => onSelect(null)} title="선택 해제">✕</button>
+                <button className="e5-fold" onClick={() => setRightOpen(false)} title="패널 접기">⟩</button>
+              </span>
             </div>
             <div className="e5r-kpi">
               <div><u>부문지수</u><b className="mono">{f1(result.ci[mk]?.[selIdx])}</b></div>
@@ -300,7 +327,8 @@ export default function Step5Result({
           </>
         ) : (
           <>
-            <div className="e5r-head"><b>전국 요약</b></div>
+            <div className="e5r-head"><b>전국 요약</b>
+              <button className="e5-fold" onClick={() => setRightOpen(false)} title="패널 접기">⟩</button></div>
             <p className="e5r-note">지도나 왼쪽 표에서 시군구를 고르면 그 지역의 지표 구성이
               방사 차트로 나옵니다.</p>
             <div className="e5r-cap">부문지수 분포 · {m.label}</div>
@@ -326,6 +354,13 @@ export default function Step5Result({
           </>
         )}
       </aside>
+      ) : (
+        <button className="e5-tab e5-tab-r glass" onClick={() => setRightOpen(true)} title="구성 패널 펴기">
+          <i>⟨</i><span>{selRow ? `${selRow.name} 구성` : '전국 요약'}</span>
+        </button>
+      )}
+        </div>
+      </div>
     </div>
   )
 }

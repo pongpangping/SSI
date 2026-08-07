@@ -10,20 +10,11 @@ import { HistBars } from './EdaHist.jsx'
 // 있으면 수치를 못 옮겨 적기 때문이다.
 //
 // 여기서 읽어야 할 것은 하나다: "이 지표, 이대로 표준화해도 되는 분포인가."
-// 왜도가 크면 카드가 스스로 말을 얹는다(→ 2단계에서 로그화·반로그화).
-
-const SK = (s) => {
-  if (s == null) return { t: '왜도 계산 불가', cls: '' }
-  if (s >= 1) return { t: `오른쪽 꼬리가 길다 (왜도 +${s.toFixed(2)}) → 로그화 고려`, cls: 'warn' }
-  if (s <= -1) return { t: `왼쪽 꼬리가 길다 (왜도 ${s.toFixed(2)}) → 반로그화 고려`, cls: 'warn' }
-  if (Math.abs(s) >= 0.5) return { t: `약한 쏠림 (왜도 ${s > 0 ? '+' : ''}${s.toFixed(2)})`, cls: 'mild' }
-  return { t: `대칭에 가까움 (왜도 ${s > 0 ? '+' : ''}${s.toFixed(2)})`, cls: 'ok' }
-}
+// 판단에 쓰는 값(왜도 등)은 통계 칸에 그대로 있고, 훈수는 달지 않는다.
 
 function Card({ e, values }) {
   const st = useMemo(() => describe(values), [values])
   if (!st) return null
-  const sk = SK(st.skew)
   const rows = [
     ['평균', fmtRaw(st.mean)], ['중위', fmtRaw(st.med)],
     ['최소', fmtRaw(st.lo)], ['최대', fmtRaw(st.hi)],
@@ -52,7 +43,6 @@ function Card({ e, values }) {
           <div key={k} className="e1-stat"><u>{k}</u><b className="mono">{v}</b></div>
         ))}
       </div>
-      <div className={`e1-skew ${sk.cls}`}>{sk.t}</div>
     </div>
   )
 }
