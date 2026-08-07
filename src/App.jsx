@@ -16,6 +16,7 @@ import Step4Weights from './components/Step4Weights.jsx'
 import Step5Result from './components/Step5Result.jsx'
 import ShiftTab from './components/ShiftTab.jsx'
 import ReportView from './components/ReportView.jsx'
+import V3DataTable from './components/V3DataTable.jsx'
 import NationalMap from './components/NationalMap.jsx'
 
 // v3 (22차) — EDA 파이프라인으로 전면 개편.
@@ -52,22 +53,46 @@ const STEPS = [
   { n: 5, t: '종합점수', d: '지도 · 순위 · 방사 차트' },
 ]
 
+// 주소 해시 — #s=S1&t=flow&p=5&m=minmax&c=blue
+// 링크를 받은 사람도 시작 화면은 먼저 본다(21차 규칙). 해시의 부문 카드에
+// '이어보던 부문' 띠가 붙고, 누르면 방법·팔레트·단계가 복원된다.
+function parseHash() {
+  const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+  const o = {}
+  if (SECTOR_KEYS.includes(h.get('s'))) o.sector = h.get('s')
+  if (h.get('m')) o.method = h.get('m')
+  if (h.get('c')) o.palette = h.get('c')
+  const st = parseInt(h.get('p'), 10)
+  if (Number.isFinite(st) && st >= 0 && st <= 5) o.step = st
+  if (['flow', 'shift', 'report'].includes(h.get('t'))) o.tab = h.get('t')
+  return o
+}
+
 export default function App() {
+  const init = useMemo(parseHash, [])
   const [started, setStarted] = useState(false)
-  const [sector, setSector] = useState(SECTOR_KEYS[0])
-  const [tab, setTab] = useState('flow')            // flow | shift | report
-  const [step, setStep] = useState(0)
+  const [sector, setSector] = useState(init.sector || SECTOR_KEYS[0])
+  const [tab, setTab] = useState(init.tab || 'flow')  // flow | shift | report
+  const [step, setStep] = useState(init.step ?? 0)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [ver, setVer] = useState(0)                 // applyPicks 반영 신호
 
   // 지표(열) 단위 설정 — 방향·변환·윈저·표준화 여부 / 가중치
   const [cfgBy, setCfgBy] = useState({})
   const [weightsBy, setWeightsBy] = useState({})
-  const [method, setMethod] = useState('minmax')
+  const [method, setMethod] = useState(init.method || 'minmax')
   const [alpha, setAlpha] = useState(5)
   const [gradeMode, setGradeMode] = useState('decile')
-  const [palette, setPalette] = useState('blue')
+  const [palette, setPalette] = useState(init.palette || 'blue')
   const [selected, setSelected] = useState(null)
+  const [tableOpen, setTableOpen] = useState(false)
+
+  // 상태를 주소에 남긴다 — 링크로 같은 화면을 다시 연다
+  useEffect(() => {
+    if (!started) return
+    const h = `#s=${sector}&t=${tab}&p=${step}&m=${method}&c=${palette}`
+    try { window.history.replaceState(null, '', h) } catch (e) { /* noop */ }
+  }, [started, sector, tab, step, method, palette])
 
   const entries = useMemo(() => indsOf(sector), [sector, ver])
 
@@ -113,7 +138,7 @@ export default function App() {
   if (!started) return (
     <>
       <CursorFx />
-      <LandingPage onPick={pickSector} />
+      <LandingPage onPick={pickSector} resume={init.sector || null} />
     </>
   )
 
@@ -145,6 +170,7 @@ export default function App() {
         <div className="v3h-right">
           <DataDefsModal sector={sector} />
           <GlossaryModal />
+          <button className="src-btn" disabled={!canGo} onClick={() => setTableOpen(true)}>▤ 전체 데이터표</button>
         </div>
       </header>
 
@@ -245,6 +271,9 @@ export default function App() {
       </main>
       </div>
 
+      {tableOpen && (
+        <V3DataTable result={result} method={method} onClose={() => setTableOpen(false)} />
+      )}
       {pickerOpen && (
         <IndicatorPicker sector={sector}
           picksBy={Object.fromEntries(SECTOR_KEYS.map((k) => [k, picksOf(k)]))}

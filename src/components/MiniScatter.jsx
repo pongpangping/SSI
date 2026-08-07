@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import DlMenu from './DlMenu.jsx'
+import { ROWS } from '../lib/pipeline.js'
 
 // 산점도 — 통계 패널용. v2의 산점도(축을 골라 두 값의 관계를 본다)를
 // v3 파이프라인 값으로 다시 만들었다. 축 후보는 부문지수·T점수와
@@ -9,6 +11,7 @@ const num = (x) => x != null && Number.isFinite(x)
 export default function MiniScatter({ options, selectedIdx = null }) {
   const [xi, setXi] = useState(Math.min(2, options.length - 1))
   const [yi, setYi] = useState(0)
+  const svgRef = useRef(null)
   const X = options[Math.min(xi, options.length - 1)]
   const Y = options[Math.min(yi, options.length - 1)]
   const pts = useMemo(
@@ -46,17 +49,26 @@ export default function MiniScatter({ options, selectedIdx = null }) {
           </select>
         </label>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="msc-svg">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="msc-svg rf-svg" ref={svgRef}>
         <rect x="0" y="0" width={W} height={H} rx="8" fill="rgba(255,255,255,0.6)" stroke="rgba(15,23,42,0.10)" />
         {pts.map((p) => (
           <circle key={p[2]} cx={sx(p[0])} cy={sy(p[1])} r="2.1"
-            fill="var(--acc)" opacity={sel && p[2] === sel[2] ? 0 : 0.4} />
+            fill="#008AE0" opacity={sel && p[2] === sel[2] ? 0 : 0.4} />
         ))}
         {sel && <circle cx={sx(sel[0])} cy={sy(sel[1])} r="4.4" fill="#E8420C" stroke="#fff" strokeWidth="1.4" />}
       </svg>
       <div className="msc-foot mono">
         <span>n={n}</span><span>상관 r = {r.toFixed(3)}</span>
         {sel && <span className="msc-sel">● 선택 지역</span>}
+        <span className="msc-dl"><DlMenu cls="e5r-dl" label="저장" wide up
+          elRef={{ current: svgRef.current?.parentElement }}
+          pack={() => ({
+            base: 'SSI_산점도', title: '산점도',
+            sub: `X ${X.label} · Y ${Y.label} · r=${r.toFixed(3)}`,
+            cols: ['시도', '시군구', X.label, Y.label],
+            rows: pts.map(([x, y, i]) => [ROWS[i].sido, ROWS[i].name,
+              Math.round(x * 100) / 100, Math.round(y * 100) / 100]),
+          })} /></span>
       </div>
     </div>
   )

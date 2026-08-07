@@ -60,7 +60,7 @@ body { background: var(--bg); color: var(--ink); }
 .glass { position: relative; background: var(--glass); backdrop-filter: blur(18px) saturate(1.4);
   border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.9); }
-.glass::before { content: ''; position: absolute; inset: -1px; border-radius: 16px; padding: 1px;
+.glass::before { content: ''; position: absolute; inset: 0; border-radius: 15px; padding: 1px;
   background: var(--edge); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: 0.7; }
 .glass-edge { position: relative; border-radius: 15px; overflow: hidden;
@@ -395,6 +395,39 @@ body { background: var(--bg); color: var(--ink); }
 .e5-map { flex: 1; position: relative; min-height: 0; display: flex; }
 .e5-map .map-canvas { min-width: 0; border-radius: 0; border: 0; }
 .e5-two { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; }
+/* 지도 값 고르기 — 네 묶음 셀렉트 (v2 지도 색 기준 복원) */
+.e5-mval { background: rgba(255,255,255,0.85); color: var(--ink); border: 1px solid var(--line-strong);
+  border-radius: 8px; font-size: 11px; padding: 6px 8px; max-width: 240px; }
+.e5-mval.mini { font-size: 10px; padding: 3.5px 6px; max-width: 175px; }
+
+/* 통계 카드 저장 단추 */
+.e5r-cap.withdl { display: flex; align-items: center; justify-content: space-between; }
+.e5r-dl { border: 1px solid var(--line); background: rgba(255,255,255,0.65); color: var(--ink3);
+  font-size: 9px; font-weight: 700; border-radius: 6px; padding: 2.5px 7px; cursor: pointer; }
+.e5r-dl:hover { color: var(--acc); border-color: var(--acc); }
+.msc-dl { margin-left: auto; }
+.e5l-dl .ghost-btn, .e5l-dl button { width: 100%; }
+
+/* 전체 데이터표 창 */
+.v3-modal-body.dtb { width: min(1360px, 96vw); max-height: 90vh; display: flex; flex-direction: column; }
+.dtb-tools { display: flex; align-items: center; gap: 8px; }
+.dtb-tools .e5l-q { width: 170px; margin: 0; }
+.dtb-note { margin: 0 0 10px; font-size: var(--fs-2); color: var(--ink3); }
+.dtb-scroll { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.dtb-tbl { border-collapse: collapse; font-size: 10px; white-space: nowrap; }
+.dtb-tbl th { position: sticky; top: 0; background: #F2F5FA; color: var(--ink2); font-weight: 700;
+  padding: 6px 9px; border-bottom: 1px solid var(--line-strong); cursor: pointer; text-align: right; z-index: 2; }
+.dtb-tbl th:first-child, .dtb-tbl th:nth-child(2) { text-align: left; }
+.dtb-tbl th.on { color: var(--acc); }
+.dtb-tbl td { padding: 4px 9px; border-bottom: 1px solid rgba(15,23,42,0.05); text-align: right; }
+.dtb-tbl td.l { text-align: left; }
+.dtb-tbl tbody tr:hover { background: rgba(0,138,224,0.05); }
+
+/* 순위 흐름 범프차트 */
+.sh-bump { width: 100%; height: auto; background: rgba(255,255,255,0.6); border: 1px solid var(--line);
+  border-radius: 10px; margin-bottom: 8px; flex: none; }
+.sh-cap2 { margin-top: 2px; font-size: 10px; color: var(--ink3); }
+
 /* 비교 모드 — 각 지도 왼쪽 위에 그 지도의 방법·색 조작부 */
 .e5m-bar { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 620;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;

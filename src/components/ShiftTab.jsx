@@ -14,6 +14,45 @@ import { rowKey, shortSido } from '../lib/ssi.js'
 
 const num = (x) => x != null && Number.isFinite(x)
 
+// 순위 흐름 — 이동이 큰 시군구들이 다섯 방법 사이에서 어떻게 오르내리는지.
+// x축 = 방법(순서 고정), y축 = 그 방법에서의 순위(위가 1위). v2 범프차트의 복원.
+function BumpChart({ rows }) {
+  const top = rows.slice(0, 14)
+  if (!top.length) return null
+  const W = 340, H = 190, PL = 8, PR = 66, PT = 14, PB = 18
+  const n = METHOD_KEYS.length
+  const xs = (j) => PL + (j / (n - 1)) * (W - PL - PR)
+  const allR = top.flatMap((r) => r.ranks).filter(num)
+  const lo = Math.min(...allR), hi = Math.max(...allR)
+  const ys = (rk) => PT + ((rk - lo) / ((hi - lo) || 1)) * (H - PT - PB)
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="sh-bump rf-svg" width={W} height={H}>
+      {METHOD_KEYS.map((mk2, j) => (
+        <g key={mk2}>
+          <line x1={xs(j)} x2={xs(j)} y1={PT - 4} y2={H - PB + 4} stroke="rgba(15,23,42,0.10)" />
+          <text x={xs(j)} y={H - 4} textAnchor="middle" fontSize="7.5" fill="#7C8698">
+            {methodOf(mk2).short || methodOf(mk2).label}
+          </text>
+        </g>
+      ))}
+      {top.map((r) => {
+        const pts = r.ranks.map((rk, j) => (num(rk) ? `${xs(j)},${ys(rk)}` : null)).filter(Boolean)
+        const col = r.flag === 'high' ? '#E8720C' : r.flag === 'mid' ? '#F5B54C' : 'rgba(15,23,42,0.30)'
+        return (
+          <g key={r.key}>
+            <polyline points={pts.join(' ')} fill="none" stroke={col} strokeWidth="1.4" opacity="0.85" />
+            {num(r.ranks[n - 1]) && (
+              <text x={xs(n - 1) + 5} y={ys(r.ranks[n - 1]) + 2.5} fontSize="7.5" fill="#46536B">
+                {r.name} {Math.round(r.ranks[n - 1])}위
+              </text>
+            )}
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 function BumpRow({ r, maxCamp }) {
   const w = maxCamp ? Math.min(100, (r.camp / maxCamp) * 100) : 0
   return (
@@ -101,6 +140,8 @@ export default function ShiftTab({ entries, result }) {
 
         <div className="glass sh-card">
           <div className="sh-cap">순위 이동이 큰 시군구 <em className="mono">Min-Max ↔ 백분위순위 · 5계단 이상</em></div>
+          <BumpChart rows={movers} />
+          <div className="sh-cap sh-cap2">이동 폭 순 목록</div>
           <div className="sh-movers">
             {movers.length
               ? movers.map((r) => <BumpRow key={r.key} r={r} maxCamp={maxCamp} />)

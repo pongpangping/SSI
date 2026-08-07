@@ -7,7 +7,8 @@ import { HistBars } from './EdaHist.jsx'
 import MiniScatter from './MiniScatter.jsx'
 import { ROWS, N, METHODS, methodOf, pctFromRank, describe } from '../lib/pipeline.js'
 import { rowKey, rowIndex, shortSido, fmtRaw } from '../lib/ssi.js'
-import { PALETTES, paletteOf, rampOf } from '../lib/palettes.js'
+import { PALETTES, paletteOf, rampOf, divRamp } from '../lib/palettes.js'
+import DlMenu from './DlMenu.jsx'
 
 // 5단계 — 종합점수.
 //
@@ -34,7 +35,9 @@ export default function Step5Result({
   sector, entries, result, method, onMethod, gradeMode, onGradeMode,
   palette, onPalette, selected, onSelect, onReport,
 }) {
-  const [view, setView] = useState('score')       // score | grade | rank
+  const [mval, setMval] = useState('ci')          // 지도 값 — 4묶음 22값 (v2 지도 색 기준 복원)
+  const [mvalB, setMvalB] = useState('ci')        // 비교 모드 B 지도의 값
+  const [onlyHigh, setOnlyHigh] = useState(false) // 민감 지역만 보기
   const [compare, setCompare] = useState(false)
   const [methodB, setMethodB] = useState('pctrank')
   const [paletteB, setPaletteB] = useState('purple')  // 비교 모드의 오른쪽 지도 색
@@ -46,32 +49,129 @@ export default function Step5Result({
 
   const mk = method
   const m = methodOf(mk)
-  const k10 = view === 'grade'
-  const rampFor = (which) => rampOf(which === 'B' ? paletteB : palette, k10 ? 10 : 7)
 
-  // ── 지도 색 기준(메트릭) — 파이프라인 결과를 그대로 읽는 임시 객체 ──────
-  const metricOf = (mm) => {
+  // ── 지도 값 카탈로그 — v2 지도 색 기준 네 묶음 복원 ─────────────────────
+  //   ① 부문 종합 6  ② 원데이터 지표별 4  ③ 표준화 민감도 3  ④ 참고 플래그 2
+  const OTHER = (mm) => (mm === 'pctrank' ? 'minmax' : 'pctrank')
+  const metricFor = (mv, mm) => {
     const lab = methodOf(mm).label
-    if (view === 'grade') return {
-      key: 'grade', scale: 'rank', discrete: 10,
-      label: `10등급 · ${lab}`, full: `부문지수 10등급 (${gradeMode === 'decile' ? '십분위' : '등간격'}) · ${lab}`,
-      fmt: (v) => (v == null ? '—' : `${v}등급`), ends: ['10등급', '1등급'],
-      get: (r, i) => result.grade[mm]?.[i] ?? null,
+    const ind = mv.match(/^ind:(\d+):(raw|std|it|ir)$/)
+    if (ind) {
+      const j = +ind[1], st = result.stages[j]
+      if (!st) return metricFor('ci', mm)
+      const e = st.pick
+      if (ind[2] === 'raw') return {
+        key: mv, scale: 'blue', label: `${e.label} · 원값`, full: `${e.label} · 원값${e.unit ? ` (${e.unit})` : ''}`,
+        fmt: (v) => (v == null ? '—' : `${fmtRaw(v)}${e.unit || ''}`), get: (r, i) => st.raw[i] ?? null,
+      }
+      if (ind[2] === 'std') return {
+        key: mv, scale: 'blue', label: `${e.label} · 표준화 · ${lab}`, full: `${e.label} · 표준화값 (${lab})`,
+        fmt: f1, get: (r, i) => st.std[mm]?.[i] ?? null,
+      }
+      if (ind[2] === 'it') return {
+        key: mv, scale: 'blue', label: `${e.label} · T점수 · ${lab}`, full: `${e.label} · 표준점수 T (${lab})`,
+        fmt: f1, get: (r, i) => result.indT[mm]?.[j]?.[i] ?? null,
+      }
+      return {
+        key: mv, scale: 'rank', label: `${e.label} · 지표 순위`, full: `${e.label} · 지표 전국 순위`,
+        fmt: (v) => (v == null ? '—' : `${Math.round(v)}위`), get: (r, i) => result.indRank[mm]?.[j]?.[i] ?? null,
+      }
     }
-    if (view === 'rank') return {
-      key: 'rank', scale: 'rank',
-      label: `전국 순위 · ${lab}`, full: `부문지수 전국 순위 · ${lab}`,
-      fmt: (v) => (v == null ? '—' : `${Math.round(v)}위`),
-      get: (r, i) => result.rank[mm]?.[i] ?? null,
-    }
-    return {
-      key: 'ci', scale: 'blue',
-      label: `부문지수 · ${lab}`, full: `가중 합성 부문지수 · ${lab}`,
-      fmt: f1,
-      get: (r, i) => result.ci[mm]?.[i] ?? null,
+    switch (mv) {
+      case 'grade': return {
+        key: 'grade', scale: 'rank', discrete: 10,
+        label: `10등급 · ${lab}`, full: `부문지수 10등급 (${gradeMode === 'decile' ? '십분위' : '등간격'}) · ${lab}`,
+        fmt: (v) => (v == null ? '—' : `${v}등급`), ends: ['10등급', '1등급'],
+        get: (r, i) => result.grade[mm]?.[i] ?? null,
+      }
+      case 'rank': return {
+        key: 'rank', scale: 'rank',
+        label: `전국 순위 · ${lab}`, full: `부문지수 전국 순위 · ${lab}`,
+        fmt: (v) => (v == null ? '—' : `${Math.round(v)}위`),
+        get: (r, i) => result.rank[mm]?.[i] ?? null,
+      }
+      case 'ciT': return {
+        key: 'ciT', scale: 'blue', label: `T점수 · ${lab}`, full: `부문지수 표준점수 T (전국 평균 50) · ${lab}`,
+        fmt: f1, get: (r, i) => result.ciT[mm]?.[i] ?? null,
+      }
+      case 'pct': return {
+        key: 'pct', scale: 'blue', label: `백분위 · ${lab}`, full: `부문지수 백분위 (100 = 최상위) · ${lab}`,
+        fmt: (v) => (v == null ? '—' : `${v.toFixed(1)}%`),
+        get: (r, i) => pctFromRank(result.rank[mm]?.[i]),
+      }
+      case 'shift': {
+        const ot = OTHER(mm)
+        return {
+          key: 'shift', scale: 'div',
+          label: `순위 변화 · ${lab} → ${methodOf(ot).label}`,
+          full: `순위 변화 · ${lab} → ${methodOf(ot).label}`,
+          ends: ['◀ 순위 상승', '순위 하락 ▶'],
+          fmt: (v) => (v == null ? '—' : v > 0 ? `▲${Math.round(v)}계단 하락` : v < 0 ? `▼${-Math.round(v)}계단 상승` : '변동 없음'),
+          get: (r, i) => {
+            const a = result.rank[mm]?.[i], b = result.rank[ot]?.[i]
+            return num(a) && num(b) ? b - a : null
+          },
+        }
+      }
+      case 'camp': return {
+        key: 'camp', scale: 'blue', label: '순위 이동 폭', full: '순위 이동 폭 (Min-Max ↔ 백분위순위)',
+        fmt: (v) => (v == null ? '—' : `${Math.round(v)}계단`), get: (r, i) => result.camp[i] ?? null,
+      }
+      case 'range': return {
+        key: 'range', scale: 'blue', label: '순위 최대-최소 차', full: `순위 최대-최소 차 (${METHODS.length}개 방법)`,
+        fmt: (v) => (v == null ? '—' : `${Math.round(v)}계단`), get: (r, i) => result.range[i] ?? null,
+      }
+      case 'rstd': return {
+        key: 'rstd', scale: 'blue', label: '순위 표준편차', full: `순위 표준편차 (${METHODS.length}개 방법)`,
+        fmt: (v) => (v == null ? '—' : v.toFixed(2)), get: (r, i) => result.rstd[i] ?? null,
+      }
+      case 'spread': return {
+        key: 'spread', scale: 'blue', label: '지표 간 순위 격차', full: '지표 간 순위 격차 (백분위 순위 최대−최소, %p)',
+        fmt: (v) => (v == null ? '—' : `${v.toFixed(1)}%p`), get: (r, i) => result.spread[i] ?? null,
+      }
+      case 'tradeoff': return {
+        key: 'tradeoff', scale: 'blue',
+        label: '트레이드오프 지역', full: `트레이드오프 지역 (격차 상위 10%${result.tradeoffCut != null ? ` · ${result.tradeoffCut.toFixed(1)}%p 이상` : ''})`,
+        fmt: (v) => (v ? '해당' : '해당 없음'), get: (r, i) => result.tradeoff[i] ?? 0,
+      }
+      default: return {
+        key: 'ci', scale: 'blue',
+        label: `부문지수 · ${lab}`, full: `가중 합성 부문지수 · ${lab}`,
+        fmt: f1, get: (r, i) => result.ci[mm]?.[i] ?? null,
+      }
     }
   }
-  const metric = useMemo(metricOf, [view, mk, result, gradeMode])
+  const mvalOf = (which) => (which === 'B' ? mvalB : mval)
+  const metricOf = (mm, which = 'A') => metricFor(mvalOf(which), mm)
+  const k10 = (which = 'A') => (mvalOf(which) === 'grade' ? 10 : 7)
+  const rampFor = (which) => {
+    if (mvalOf(which) === 'shift') return divRamp(7)
+    return rampOf(which === 'B' ? paletteB : palette, k10(which))
+  }
+  const metric = useMemo(() => metricFor(mval, mk), [mval, mk, result, gradeMode])
+
+  // 지도 값 고르기 목록 — 네 묶음
+  const MVAL_GROUPS = useMemo(() => {
+    const g = [
+      ['부문 종합', [
+        ['ci', '부문지수 (점수)'], ['grade', '10등급'], ['rank', '전국 순위'],
+        ['ciT', 'T점수'], ['pct', '백분위'], ['shift', '순위 변화 (방법 전환)'],
+      ]],
+      ['원데이터', result.stages.flatMap((st, j) => [
+        [`ind:${j}:raw`, `${st.pick.label} · 원값`],
+        [`ind:${j}:std`, `${st.pick.label} · 표준화값`],
+        [`ind:${j}:it`, `${st.pick.label} · T점수`],
+        [`ind:${j}:ir`, `${st.pick.label} · 지표 순위`],
+      ])],
+      ['표준화 민감도', [
+        ['camp', '순위 이동 폭 (MM ↔ 백분위)'], ['range', '순위 최대-최소 차'], ['rstd', '순위 표준편차'],
+      ]],
+    ]
+    if (result.stages.length >= 2) g.push(['참고 플래그', [
+      ['spread', '지표 간 순위 격차'], ['tradeoff', '트레이드오프 지역'],
+    ]])
+    return g
+  }, [result])
   const info = (r, i) => [
     ['전국 순위', result.rank[mk]?.[i] != null ? `${Math.round(result.rank[mk][i])}위 / ${N}` : '—'],
     ['10등급', result.grade[mk]?.[i] != null ? `${result.grade[mk][i]}등급` : '—'],
@@ -150,30 +250,69 @@ export default function Step5Result({
     return o
   }, [result, mk, m.label])
 
-  const csvDown = () => {
-    const cols = ['시도', '시군구', '부문지수', 'T점수', '백분위', '전국순위', '10등급',
-      ...result.stages.map((s) => `${s.pick.label}_표준화`)]
-    const esc = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
-    const lines = ROWS.map((r, i) => [
-      r.sido, r.name, f1(result.ci[mk]?.[i]), f1(result.ciT[mk]?.[i]),
-      f1(pctFromRank(result.rank[mk]?.[i])), result.rank[mk]?.[i] ?? '', result.grade[mk]?.[i] ?? '',
-      ...result.stages.map((s) => f1(s.std[mk][i])),
-    ].map(esc).join(','))
-    const blob = new Blob(['﻿' + [cols.join(','), ...lines].join('\n')], { type: 'text/csv' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `SSI_종합점수_${m.short || m.key}.csv`
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000)
-  }
+  // 카드별 내려받기 팩 — 화면에 그린 값 그대로 CSV·Excel·PNG (v2 방식 복원)
+  const r1v = (x) => (x == null ? null : Math.round(x * 10) / 10)
+  const rankPack = () => ({
+    base: `SSI_순위표_${m.label}`, title: `지역별 점수 순위 · ${m.label}`,
+    sub: `전국 ${N}개 시군구 · 가중 합성 부문지수`, pngCols: 7,
+    cols: ['순위', '시도', '시군구', '부문지수', 'T점수', '백분위', '10등급',
+      ...result.stages.map((st) => `${st.pick.label}_표준화`)],
+    rows: [...ROWS.keys()]
+      .filter((i) => num(result.rank[mk]?.[i]))
+      .sort((a, b) => result.rank[mk][a] - result.rank[mk][b])
+      .map((i) => [Math.round(result.rank[mk][i]), ROWS[i].sido, ROWS[i].name,
+        r1v(result.ci[mk]?.[i]), r1v(result.ciT[mk]?.[i]), r1v(pctFromRank(result.rank[mk]?.[i])),
+        result.grade[mk]?.[i] ?? null,
+        ...result.stages.map((st) => r1v(st.std[mk][i]))]),
+  })
+  const summaryPack = () => ({
+    base: `SSI_전국요약_${m.label}`, title: `전국 요약 · ${m.label}`,
+    sub: `부문지수 분포와 상·하위 10 · 전국 ${N}개 시군구`,
+    cols: ['구분', '값·지역', '점수'],
+    rows: [
+      ['평균', '', r1v(dist?.mean)], ['중앙값', '', r1v(dist?.med)], ['표준편차', '', r1v(dist?.sd)],
+      ['최저', '', r1v(dist?.lo)], ['최고', '', r1v(dist?.hi)],
+      ...table.slice(0, 10).map((r) => [`상위 ${Math.round(r.rank)}위`, `${r.sido} ${r.name}`, r1v(r.ci)]),
+      ...table.slice(-10).map((r) => [`하위 ${Math.round(r.rank)}위`, `${r.sido} ${r.name}`, r1v(r.ci)]),
+    ],
+  })
+  const sidoPack = () => ({
+    base: `SSI_시도별평균_${m.label}`, title: `시도별 평균 비교 · ${m.label}`,
+    sub: '시군구 부문지수의 시도 안 단순평균',
+    cols: ['시도', '시군구 수', '평균 부문지수'],
+    rows: sidoAvg.map((o) => [o.sd, o.n, r1v(o.m)]),
+  })
+  const regionPack = () => (selRow ? {
+    base: `SSI_${selRow.name}_지표상세_${m.label}`, title: `${selRow.sido} ${selRow.name} · 지표 상세`,
+    sub: `표준화 ${m.label} · 부문지수 ${f1(result.ci[mk]?.[selIdx])} · 전국 ${Math.round(result.rank[mk]?.[selIdx] ?? 0)}위`,
+    cols: ['지표', '원값', '표준화값', '지표 순위'],
+    rows: result.stages.map((st, j) => [st.pick.label, fmtRaw(st.raw[selIdx]),
+      r1v(st.std[mk][selIdx]),
+      result.indRank[mk]?.[j]?.[selIdx] != null ? Math.round(result.indRank[mk][j][selIdx]) : null]),
+  } : null)
 
   if (!entries.length) return <div className="v3-empty">0단계에서 지표를 먼저 골라 주세요.</div>
 
   const mapProps = (mm, which = 'A') => ({
-    sector, metric: metricOf(mm), method: mm, methodLabel: methodOf(mm).label,
+    sector, metric: metricOf(mm, which), method: mm, methodLabel: methodOf(mm).label,
     selected, hovered, onSelect: (kk) => onSelect(kk === selected ? null : kk), onHover: setHovered,
-    ramp: rampFor(which), k: k10 ? 10 : 7, info, exportExtra, onlyHigh: false,
+    ramp: rampFor(which), k: k10(which), info, exportExtra,
+    onlyHigh, onlyHighToggle: () => setOnlyHigh(!onlyHigh),
+    flagOf: (r, i) => result.flag[i] || null,
   })
+
+  // 지도 값 고르기 — 네 묶음 셀렉트 (v2 지도 색 기준)
+  const MvalSelect = ({ which = 'A', mini = false }) => (
+    <select className={`e5-mval mono${mini ? ' mini' : ''}`}
+      value={mvalOf(which)}
+      onChange={(e) => (which === 'B' ? setMvalB(e.target.value) : setMval(e.target.value))}>
+      {MVAL_GROUPS.map(([g, items]) => (
+        <optgroup key={g} label={g}>
+          {items.map(([k2, lab]) => <option key={k2} value={k2}>{lab}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  )
 
   // 팔레트 견본 — 다섯 칸 나뉜 칩
   const Swatches = ({ cur, onPick, mini = false }) => (
@@ -206,15 +345,12 @@ export default function Step5Result({
               <span className="e5c-sep" />
             </>
           )}
+          {!compare && (
           <div className="e5c-group">
-            <u>보기</u>
+            <u>지도 값 · 네 묶음</u>
             <span>
-              <div className="seg">
-                <button className={view === 'score' ? 'on' : ''} onClick={() => setView('score')}>점수</button>
-                <button className={view === 'grade' ? 'on' : ''} onClick={() => setView('grade')}>10등급</button>
-                <button className={view === 'rank' ? 'on' : ''} onClick={() => setView('rank')}>순위</button>
-              </div>
-              {view === 'grade' && (
+              <MvalSelect which="A" />
+              {mval === 'grade' && (
                 <div className="seg">
                   <button className={gradeMode === 'decile' ? 'on' : ''} onClick={() => onGradeMode('decile')}
                     title="순위 기준으로 열 칸에 고르게 — 각 등급 약 10%씩">십분위</button>
@@ -224,6 +360,7 @@ export default function Step5Result({
               )}
             </span>
           </div>
+          )}
           {!compare && (
             <>
               <span className="e5c-sep" />
@@ -260,6 +397,7 @@ export default function Step5Result({
                       onClick={() => onMethod(mm.key)}>{mm.label}</button>
                   ))}
                 </div>
+                <MvalSelect which="A" mini />
                 <Swatches cur={palette} onPick={onPalette} mini />
               </div>
               <NationalMap {...mapProps(mk, 'A')} compact tips />
@@ -273,6 +411,7 @@ export default function Step5Result({
                       onClick={() => setMethodB(mm.key)}>{mm.label}</button>
                   ))}
                 </div>
+                <MvalSelect which="B" mini />
                 <Swatches cur={paletteB} onPick={setPaletteB} mini />
               </div>
               <NationalMap {...mapProps(methodB, 'B')} compact tips />
@@ -302,7 +441,7 @@ export default function Step5Result({
             </button>
           ))}
         </div>
-        <button className="ghost-btn e5l-dl" onClick={csvDown}>순위표 CSV 내려받기</button>
+        <div className="e5l-dl"><DlMenu pack={rankPack} up wide label="순위표 저장 (CSV·Excel·PNG)" cls="ghost-btn" /></div>
       </aside>
       ) : (
         <button className="e5-tab e5-tab-l glass" onClick={() => setLeftOpen(true)} title="순위 패널 펴기">
@@ -352,7 +491,8 @@ export default function Step5Result({
             <HistBars values={result.ci[mk] || []} h={64} color="var(--acc)"
               marks={[{ v: result.ci[mk]?.[selIdx], color: '#E8420C' }]} />
 
-            <div className="e5r-cap">지표 상세</div>
+            <div className="e5r-cap withdl">지표 상세
+              <DlMenu pack={regionPack} cls="e5r-dl" label="저장" wide /></div>
             <div className="e5r-tbl mono">
               <div className="e5rt-h"><span>지표</span><span>원값</span><span>표준화</span><span>순위</span></div>
               {result.stages.map((st, j) => (
@@ -388,7 +528,8 @@ export default function Step5Result({
               <button className="e5-fold" onClick={() => setRightOpen(false)} title="패널 접기">⟩</button></div>
             <p className="e5r-note">지도나 왼쪽 표에서 시군구를 고르면 그 지역의 지표 구성이
               방사 차트로 나옵니다.</p>
-            <div className="e5r-cap">부문지수 분포 · {m.label}</div>
+            <div className="e5r-cap withdl">부문지수 분포 · {m.label}
+              <DlMenu pack={summaryPack} cls="e5r-dl" label="저장" wide /></div>
             {dist && (
               <div className="e5r-figs mono">
                 <span><u>평균</u><b>{f1(dist.mean)}</b></span>
@@ -422,7 +563,8 @@ export default function Step5Result({
         )}
 
         {/* 공통 — 시도별 평균 · 산점도 (v2 통계창 내용) */}
-        <div className="e5r-cap">시도별 평균 비교</div>
+        <div className="e5r-cap withdl">시도별 평균 비교
+          <DlMenu pack={sidoPack} cls="e5r-dl" label="저장" wide /></div>
         <div className="e5r-sido">
           {sidoAvg.map((o) => {
             const lo = sidoAvg[sidoAvg.length - 1]?.m ?? 0

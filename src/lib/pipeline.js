@@ -238,7 +238,7 @@ export function runPipeline(picks, cfg, alpha, weights, gradeMode = 'decile') {
   const wOk = w.every(num) && w.some((x) => x > 0)
   const wArr = wOk ? w : picks.map(() => 1)
 
-  const ci = {}, rank = {}, ciT = {}, grade = {}, indRank = {}
+  const ci = {}, rank = {}, ciT = {}, grade = {}, indRank = {}, indT = {}
   for (const mk of METHOD_KEYS) {
     ci[mk] = ROWS.map((_, i) => {
       let sum = 0, tw = 0
@@ -252,6 +252,7 @@ export function runPipeline(picks, cfg, alpha, weights, gradeMode = 'decile') {
     ciT[mk] = tScore(ci[mk])
     grade[mk] = grade10(ci[mk], gradeMode)
     indRank[mk] = stages.map((s) => rankDesc(s.std[mk]))
+    indT[mk] = stages.map((s) => tScore(s.std[mk]))
   }
 
   // 표준화 민감도 — 방법을 바꿨을 때 순위가 얼마나 흔들리는가 (순위 이동 탭)
@@ -267,7 +268,20 @@ export function runPipeline(picks, cfg, alpha, weights, gradeMode = 'decile') {
   })
   const flag = camp.map((c) => (c == null ? null : c >= 10 ? 'high' : c >= 5 ? 'mid' : 'low'))
 
-  const out = { stages, weights: wArr, ci, rank, ciT, grade, indRank, camp, range, rstd, flag }
+  // 참고 플래그 — 지표 간 순위 격차(백분위 순위 %p)와 트레이드오프 지역.
+  // 기준은 v2(21차)와 같다: 격차 상위 10%에서 끊되 바닥은 30%p.
+  const prAll = stages.map((_, j) => indRank.pctrank[j])
+  const spread = ROWS.map((_, i) => {
+    const p = prAll.map((r) => (num(r[i]) ? (N - r[i]) / N * 100 : null)).filter(num)
+    return p.length >= 2 ? Math.max(...p) - Math.min(...p) : null
+  })
+  const okSp = spread.filter(num).sort((a, b) => a - b)
+  const tradeoffCut = okSp.length
+    ? Math.max(30, okSp[Math.min(okSp.length - 1, Math.floor(okSp.length * 0.9))])
+    : null
+  const tradeoff = spread.map((v) => (num(v) && tradeoffCut != null ? (v >= tradeoffCut ? 1 : 0) : 0))
+
+  const out = { stages, weights: wArr, ci, rank, ciT, grade, indRank, indT, camp, range, rstd, flag, spread, tradeoff, tradeoffCut }
   if (cache.size > 40) cache.clear()
   cache.set(ck, out)
   return out

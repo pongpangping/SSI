@@ -6,6 +6,7 @@ import rawGeo from '../data/sigungu_geo.json'
 import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
+import { saveMapPng } from '../lib/mappng.js'
 
 const okRing = (r) => Array.isArray(r) && r.length >= 4 &&
   r.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]))
@@ -112,7 +113,7 @@ export default function NationalMap({
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
   autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0, blank = false,
   ramp: rampOver = null, k = 7, dark = false, info = null,
-  exportExtra = null, methodLabel = null, bare = false,
+  exportExtra = null, methodLabel = null, bare = false, flagOf = null,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -184,7 +185,9 @@ export default function NationalMap({
       opacity: 1,
     }
 
-    const high = !info && row && row[sector]?.flag === 'high'
+    const high = flagOf
+      ? (row && flagOf(row, rowIndex(k)) === 'high')
+      : (!info && row && row[sector]?.flag === 'high')
     const dim = onlyHigh && !high
     return {
       fillColor: color(valOf(k)),
@@ -350,7 +353,10 @@ export default function NationalMap({
           const row = byKey[o.key]
           if (!row) return false
           if (o.key === selected) return true
-          if (!blank && onlyHigh && row[sector]?.flag !== 'high') return false
+          if (!blank && onlyHigh) {
+            const hg = flagOf ? flagOf(row, rowIndex(o.key)) === 'high' : row[sector]?.flag === 'high'
+            if (!hg) return false
+          }
           return o.span * per >= (compact ? 46 : 30)
         })
         // 선택한 지역이 맨 앞에 와야 겹침 다툼에서 이긴다
@@ -423,13 +429,26 @@ export default function NationalMap({
 
   // ── 내보내기 ────────────────────────────────────────────────────────────
   // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 전국 229개 시군구가 통째로 나간다.
-  const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표' }
-  const doExport = (kind) => {
+  const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표', png: '지도 PNG' }
+  const doExport = async (kind) => {
     setDlOpen(false)
     let n = 0
     try {
-      const o = { geo, byKey, sector, method, metric, valOf, extra: exportExtra, methodLabel }
-      n = kind === 'shp' ? exportShapefile(o) : kind === 'geojson' ? exportGeoJSON(o) : exportCSV(o)
+      if (kind === 'png') {
+        const lowLab0 = metric.ends ? metric.ends[0] : metric.scale === 'rank' ? `하위(${ROWS.length}위)` : '낮음'
+        const hiLab0 = metric.ends ? metric.ends[1] : metric.scale === 'rank' ? '상위(1위)' : '높음'
+        const okPng = await saveMapPng({
+          base: `SSI_지도_${(metric.full || metric.label).replace(/\s+/g, '_')}`,
+          title: metric.full || metric.label,
+          sub: `${SECTORS[sector]?.name || ''} · ${methodLabel || ''} · 전국 ${ROWS.length}개 시군구`,
+          colorOf: (i) => (i == null ? '#E9ECF1' : color(vals[i])),
+          legend: { ramp, low: lowLab0, high: hiLab0 },
+        })
+        n = okPng ? ROWS.length : 0
+      } else {
+        const o = { geo, byKey, sector, method, metric, valOf, extra: exportExtra, methodLabel }
+        n = kind === 'shp' ? exportShapefile(o) : kind === 'geojson' ? exportGeoJSON(o) : exportCSV(o)
+      }
     } catch (e) {
       setDlMsg('내보내는 중 문제가 생겼습니다')
       setTimeout(() => setDlMsg(''), 3200)
@@ -507,6 +526,9 @@ export default function NationalMap({
             </button>
             <button onClick={() => doExport('csv')}>
               <b>표 (.csv)</b><span>도형 없이 값만 · 엑셀에서 바로 열립니다</span>
+            </button>
+            <button onClick={() => doExport('png')}>
+              <b>지도 그림 (.png)</b><span>지금 칠해진 색 그대로 · 보고서에 바로 붙입니다</span>
             </button>
             <p className="mapdl-n">
               시도·시군구·지도 색 기준 값·부문점수·순위·표준점수(T)·백분위·순위 이동이 함께 들어갑니다.
