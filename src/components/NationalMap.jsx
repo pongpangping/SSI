@@ -6,7 +6,6 @@ import rawGeo from '../data/sigungu_geo.json'
 import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
-import { saveMapPng } from '../lib/mappng.js'
 
 const okRing = (r) => Array.isArray(r) && r.length >= 4 &&
   r.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]))
@@ -100,20 +99,10 @@ const pxPerDeg = (z) => (256 * Math.pow(2, z)) / 360
 // 백지도를 그린다. 지역을 눌러 어디가 어디인지 확인하는 일은 그대로 되고,
 // 값에 딸린 것들 — 색 구간, 범례, 민감 지역만 보기, 내보내기 — 은 값이
 // 생긴 뒤에 나온다. 표준화 점수가 산출되면 그 자리에 주제도가 채워진다.
-// v3(22차) 확장 — 이 지도는 이제 두 벌의 화면이 함께 쓴다.
-//   ramp  팔레트 배열을 밖에서 준다(사용자가 색을 고른다). 없으면 예전 색.
-//   k     색 구간 수. 기본 7, 10등급 보기에서는 10.
-//   dark  다크 글래스 화면용 — 어두운 바탕타일과 어두운 빈칸색.
-//   info  말풍선·실시간 표시에 얹을 줄들을 밖에서 만든다: (row, i) => [[이름, 값], …]
-//         v2 화면은 안 주므로 예전처럼 순위 이동 줄이 나온다.
-//   metric.discrete = n  값이 이미 1~n 계급(10등급)일 때 — 구간을 다시 나누지 않는다.
-//   metric.ends = [low, high]  범례 양 끝 글귀 덮어쓰기.
 export default function NationalMap({
   sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
   autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0, blank = false,
-  ramp: rampOver = null, k = 7, dark = false, info = null,
-  exportExtra = null, methodLabel = null, bare = false, flagOf = null,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -135,35 +124,26 @@ export default function NationalMap({
   const [cmode, setCmode] = useState('auto')
   const auto = useMemo(() => autoMode(vals, metric.scale), [vals, metric.scale])
   const eff = cmode === 'auto' ? auto : cmode
-  const disc = metric.discrete || 0              // 값이 이미 1~n 계급이면 구간을 다시 안 나눈다
-  const breaks = useMemo(() => (disc ? [] : breaksOf(vals, eff, k)), [vals, eff, k, disc])
-  const ramp = rampOver || RAMP[metric.scale] || BLUE
-  const MISS = dark ? '#2A2F38' : '#E9ECF1'
+  const breaks = useMemo(() => breaksOf(vals, eff, 7), [vals, eff])
+  const ramp = RAMP[metric.scale] || BLUE
   const color = useMemo(() => {
-    const rev = metric.scale === 'rank'          // 1위(1등급)가 가장 진하게
-    if (disc) return (v) => {
-      if (v == null || Number.isNaN(v)) return MISS
-      const i = Math.min(disc - 1, Math.max(0, Math.round(v) - 1))
-      const j = Math.round(i / (disc - 1) * (ramp.length - 1))
-      return ramp[rev ? ramp.length - 1 - j : j]
-    }
     const at = classOf(breaks)
+    const rev = metric.scale === 'rank'          // 1위가 가장 진하게
     return (v) => {
       const i = at(v)
-      if (i < 0) return MISS
+      if (i < 0) return '#E9ECF1'
       return ramp[rev ? ramp.length - 1 - i : Math.min(ramp.length - 1, i)]
     }
-  }, [breaks, metric.scale, ramp, disc, MISS])
+  }, [breaks, metric.scale, ramp])
   const valOf = (k) => { const i = rowIndex(k); return i == null ? null : vals[i] }
 
   // 서로 다른 값이 몇 가지뿐인 지표 — 참고 플래그의 '해당 / 해당 없음'이 그렇다.
   // 이런 값은 구간을 일곱으로 나눌 것이 없다. 경계 숫자(0.5)를 눈금에 적어 봐야
   // 읽을 것이 없으므로, 눈금 대신 값 이름을 양 끝에 적고 구간 나누기 단추를 뺀다.
   const few = useMemo(() => {
-    if (disc) return null
     const u = [...new Set(vals.filter((x) => x != null && Number.isFinite(x)))].sort((a, b) => a - b)
     return u.length >= 2 && u.length <= 7 ? u : null
-  }, [vals, disc])
+  }, [vals])
 
   const styleFor = (f) => {
     const k = featKey(f)
@@ -171,13 +151,7 @@ export default function NationalMap({
     const isSel = k === selected, isHov = k === hovered
 
     // 백지도 — 옅은 면에 회색 경계. 누른 곳과 커서 아래만 진하게 남긴다.
-    if (blank) return dark ? {
-      fillColor: isSel ? '#3B4656' : isHov ? '#333B48' : '#272C35',
-      fillOpacity: 1,
-      color: isSel ? '#EAF2FB' : isHov ? '#B9C4D4' : '#454C59',
-      weight: isSel ? 2.4 : isHov ? 1.6 : 0.7,
-      opacity: 1,
-    } : {
+    if (blank) return {
       fillColor: isSel ? '#D6E7F7' : isHov ? '#E7EDF4' : '#F2F5F8',
       fillOpacity: 1,
       color: isSel ? '#0F172A' : isHov ? '#334155' : '#C3CDD9',
@@ -185,37 +159,27 @@ export default function NationalMap({
       opacity: 1,
     }
 
-    const high = flagOf
-      ? (row && flagOf(row, rowIndex(k)) === 'high')
-      : (!info && row && row[sector]?.flag === 'high')
+    const high = row && row[sector]?.flag === 'high'
     const dim = onlyHigh && !high
     return {
       fillColor: color(valOf(k)),
       fillOpacity: dim ? 0.06 : isSel ? 0.95 : isHov ? 0.88 : 0.82,
-      color: isSel ? (dark ? '#FFFFFF' : '#0F172A') : isHov ? (dark ? '#D6DEE9' : '#334155')
-        : (high && !dim) ? '#B91C1C' : dark ? 'rgba(10,13,18,0.85)' : '#ffffff',
+      color: isSel ? '#0F172A' : isHov ? '#334155' : (high && !dim) ? '#B91C1C' : '#ffffff',
       weight: isSel ? 2.6 : isHov ? 1.8 : (high && !dim) ? 1.1 : 0.5,
       opacity: dim ? 0.3 : 1,
     }
   }
 
-  const tipHtml = (k, row) => {
-    if (blank) return `
+  const tipHtml = (k, row) => (blank ? `
     <div class="mpop">
       <div class="mpop-h">${row.sido} ${row.name}</div>
       <div class="mtip-row"><span>지표를 고르면 점수가 나옵니다</span></div>
-    </div>`
-    // v3 — 부가 줄을 밖에서 받는다. 안 주면(v2) 예전 그대로 순위 이동 줄.
-    const extra = info
-      ? info(row, rowIndex(k)).map(([a, b]) => `<div class="mtip-row"><span>${a}</span><b>${b}</b></div>`).join('')
-      : `<div class="mtip-row"><span>순위 이동</span><b>${row[sector]?.ssiCamp}계단${row[sector]?.flag === 'high' ? ' · 민감' : ''}</b></div>`
-    return `
+    </div>` : `
     <div class="mpop">
       <div class="mpop-h">${row.sido} ${row.name}</div>
       <div class="mtip-row"><span>${metric.full || metric.label}</span><b>${metric.fmt(valOf(k))}</b></div>
-      ${extra}
-    </div>`
-  }
+      <div class="mtip-row"><span>순위 이동</span><b>${row[sector]?.ssiCamp}계단${row[sector]?.flag === 'high' ? ' · 민감' : ''}</b></div>
+    </div>`)
 
   const onEach = (f, layer) => {
     const k = featKey(f); const row = byKey[k]
@@ -312,8 +276,6 @@ export default function NationalMap({
     if (!geoRef.current || !firstRef.current) return
     firstRef.current = false
     try { fitAll(0) } catch (e) { /* noop */ }
-    const t = setTimeout(() => { try { fitAll(0) } catch (e) { /* noop */ } }, 380)
-    return () => clearTimeout(t)
   }, [map])
 
   // 통계창을 접거나 펴면 '가려지지 않은 영역'의 한가운데가 옆으로 움직인다.
@@ -353,10 +315,7 @@ export default function NationalMap({
           const row = byKey[o.key]
           if (!row) return false
           if (o.key === selected) return true
-          if (!blank && onlyHigh) {
-            const hg = flagOf ? flagOf(row, rowIndex(o.key)) === 'high' : row[sector]?.flag === 'high'
-            if (!hg) return false
-          }
+          if (!blank && onlyHigh && row[sector]?.flag !== 'high') return false
           return o.span * per >= (compact ? 46 : 30)
         })
         // 선택한 지역이 맨 앞에 와야 겹침 다툼에서 이긴다
@@ -409,46 +368,30 @@ export default function NationalMap({
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [map])
 
-  const lowLab = metric.ends ? metric.ends[0]
-    : few ? metric.fmt(few[0])
-      : metric.scale === 'rank' ? `하위(${ROWS.length}위)`
-        : metric.scale === 'div' ? '◀ 순위 상승' : '낮음'
-  const hiLab = metric.ends ? metric.ends[1]
-    : few ? metric.fmt(few[few.length - 1])
-      : metric.scale === 'rank' ? '상위(1위)'
-        : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
+  const lowLab = few ? metric.fmt(few[0])
+    : metric.scale === 'rank' ? `하위(${ROWS.length}위)`
+      : metric.scale === 'div' ? '◀ 순위 상승' : '낮음'
+  const hiLab = few ? metric.fmt(few[few.length - 1])
+    : metric.scale === 'rank' ? '상위(1위)'
+      : metric.scale === 'div' ? '순위 하락 ▶' : (metric.scale === 'heat' ? '높음(민감)' : '높음')
 
   // 범례 눈금 — 구간 경계값. 순위 지표는 색이 뒤집혀 있으므로 경계도 함께 뒤집는다.
   const showBreaks = metric.scale === 'rank' ? [...breaks].reverse() : breaks
   const bSpan = breaks.length ? Math.abs(breaks[breaks.length - 1] - breaks[0]) : 1
   const fmtB = (v) => (bSpan >= 20 ? String(Math.round(v)) : v.toFixed(1))
-  const tickTitle = disc ? `1~${disc}등급 · 값 그대로`
-    : few
-      ? `값 ${few.length}가지 · ${few.map((x) => metric.fmt(x)).join(' / ')}`
-      : `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
+  const tickTitle = few
+    ? `값 ${few.length}가지 · ${few.map((x) => metric.fmt(x)).join(' / ')}`
+    : `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
 
   // ── 내보내기 ────────────────────────────────────────────────────────────
   // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 전국 229개 시군구가 통째로 나간다.
-  const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표', png: '지도 PNG' }
-  const doExport = async (kind) => {
+  const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표' }
+  const doExport = (kind) => {
     setDlOpen(false)
     let n = 0
     try {
-      if (kind === 'png') {
-        const lowLab0 = metric.ends ? metric.ends[0] : metric.scale === 'rank' ? `하위(${ROWS.length}위)` : '낮음'
-        const hiLab0 = metric.ends ? metric.ends[1] : metric.scale === 'rank' ? '상위(1위)' : '높음'
-        const okPng = await saveMapPng({
-          base: `SSI_지도_${(metric.full || metric.label).replace(/\s+/g, '_')}`,
-          title: metric.full || metric.label,
-          sub: `${SECTORS[sector]?.name || ''} · ${methodLabel || ''} · 전국 ${ROWS.length}개 시군구`,
-          colorOf: (i) => (i == null ? '#E9ECF1' : color(vals[i])),
-          legend: { ramp, low: lowLab0, high: hiLab0 },
-        })
-        n = okPng ? ROWS.length : 0
-      } else {
-        const o = { geo, byKey, sector, method, metric, valOf, extra: exportExtra, methodLabel }
-        n = kind === 'shp' ? exportShapefile(o) : kind === 'geojson' ? exportGeoJSON(o) : exportCSV(o)
-      }
+      const o = { geo, byKey, sector, method, metric, valOf }
+      n = kind === 'shp' ? exportShapefile(o) : kind === 'geojson' ? exportGeoJSON(o) : exportCSV(o)
     } catch (e) {
       setDlMsg('내보내는 중 문제가 생겼습니다')
       setTimeout(() => setDlMsg(''), 3200)
@@ -470,13 +413,9 @@ export default function NationalMap({
       <MapContainer ref={setMap} center={[36.4, 127.8]} zoom={compact ? 6 : 7} zoomControl={false}
         zoomSnap={0} zoomDelta={0.5} wheelPxPerZoomLevel={90}
         preferCanvas={true} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-        {/* bare — 바탕타일 없이 경계만. 배경 백지도처럼 지도가 주인공이 아닐 때
-            주변 나라 지명이 시선을 끌지 않게 한다. */}
-        {!bare && (
-          <TileLayer url={`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`}
-            attribution='&copy; OpenStreetMap &copy; CARTO' subdomains="abcd" maxZoom={19}
-            eventHandlers={{ load: () => setTilesReady(true) }} />
-        )}
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; OpenStreetMap &copy; CARTO' subdomains="abcd" maxZoom={19}
+          eventHandlers={{ load: () => setTilesReady(true) }} />
         <GeoJSON ref={geoRef} data={geo} style={styleFor} onEachFeature={onEach} />
       </MapContainer>
 
@@ -527,9 +466,6 @@ export default function NationalMap({
             <button onClick={() => doExport('csv')}>
               <b>표 (.csv)</b><span>도형 없이 값만 · 엑셀에서 바로 열립니다</span>
             </button>
-            <button onClick={() => doExport('png')}>
-              <b>지도 그림 (.png)</b><span>지금 칠해진 색 그대로 · 보고서에 바로 붙입니다</span>
-            </button>
             <p className="mapdl-n">
               시도·시군구·지도 색 기준 값·부문점수·순위·표준점수(T)·백분위·순위 이동이 함께 들어갑니다.
               항목 이름 풀이는 압축 파일 안 <b>읽어보기.txt</b>에 있습니다.
@@ -556,14 +492,12 @@ export default function NationalMap({
         <div className={`map-live${hovRow ? ' hov' : ''}`}>
           <b>{shown.sido} {shown.name}</b>
           {!blank && <span>{metric.full || metric.label}<i>{metric.fmt(valOf(rowKey(shown)))}</i></span>}
-          {!blank && (info
-            ? info(shown, rowIndex(rowKey(shown))).map(([a, b], i) => <span key={i}>{a}<i>{b}</i></span>)
-            : <span>순위 이동<i>{shown[sector]?.ssiCamp}계단</i></span>)}
-          {!blank && !info && shown[sector]?.flag === 'high' && <em className="ml-high">민감</em>}
+          {!blank && <span>순위 이동<i>{shown[sector]?.ssiCamp}계단</i></span>}
+          {!blank && shown[sector]?.flag === 'high' && <em className="ml-high">민감</em>}
         </div>
       )}
 
-      {!bare && !tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
+      {!tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
 
       {blank ? (
         <div className={`maplegend mapblank${compact ? ' lg-mini' : ''}`}>
@@ -577,21 +511,12 @@ export default function NationalMap({
       <div className={`maplegend${compact ? ' lg-mini' : ''}`}>
         <h4>{metric.full || metric.label}</h4>
         <div className="ml-scale" title={tickTitle}>
-          {(disc ? Array.from({ length: disc }, (_, i) => color(metric.scale === 'rank' ? disc - i : i + 1)) : ramp)
-            .map((c, i) => <i key={i} style={{ background: c }} />)}
+          {ramp.map((c, i) => <i key={i} style={{ background: c }} />)}
         </div>
-        {disc ? (
-          <div className="ml-tk ml-tk-disc">
-            {Array.from({ length: disc }, (_, i) => (
-              <span key={i} style={{ left: `${((i + 0.5) / disc) * 100}%` }}>
-                {metric.scale === 'rank' ? disc - i : i + 1}
-              </span>
-            ))}
-          </div>
-        ) : !few && (
+        {!few && (
           <div className="ml-tk">
             {showBreaks.map((b, i) => (i % 2 === 1
-              ? <span key={i} style={{ left: `${((i + 1) / k) * 100}%` }}>{fmtB(b)}</span>
+              ? <span key={i} style={{ left: `${((i + 1) / 7) * 100}%` }}>{fmtB(b)}</span>
               : null))}
           </div>
         )}
@@ -604,7 +529,7 @@ export default function NationalMap({
           </p>
         )}
 
-        {!compact && !few && !disc && (
+        {!compact && !few && (
           <div className="ml-cls">
             <div className="mlc-seg">
               <button className={cmode === 'auto' ? 'on' : ''} onClick={() => setCmode('auto')}

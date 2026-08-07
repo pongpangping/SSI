@@ -15,7 +15,7 @@ export default function Header({ onTable, sector, onHome }) {
   return (
     <header className="header">
       <div className="hd-left">
-        <div className="hd-logo">SSI</div>
+        <div className="hd-logo">SAL</div>
         <div className="hd-title">국토종합진단지수 · 표준화 방법 민감도 진단</div>
         {s && (
           <button className="hd-sector" onClick={onHome} title="다른 부문 고르기">

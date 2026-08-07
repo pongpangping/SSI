@@ -1,284 +1,264 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  SECTORS, SECTOR_KEYS, applyPicks, defaultPicks, indsOf, picksOf,
+  ROWS, metricFor, rowKey, METHOD_KEYS, SECTOR_KEYS,
+  applyPicks, defaultPicks, picksOf, picksToHash, picksFromHash,
 } from './lib/ssi.js'
-import { SERIES, runPipeline, defaultCfg } from './lib/pipeline.js'
+import Header from './components/Header.jsx'
 import LandingPage from './components/LandingPage.jsx'
-import IndicatorPicker from './components/IndicatorPicker.jsx'
-import DataDefsModal from './components/DataDefsModal.jsx'
-import GlossaryModal from './components/GlossaryModal.jsx'
-import SectorIcon from './components/SectorIcon.jsx'
-import CursorFx from './components/CursorFx.jsx'
-import Step1Explore from './components/Step1Explore.jsx'
-import Step2Transform from './components/Step2Transform.jsx'
-import Step3Standardize from './components/Step3Standardize.jsx'
-import Step4Weights from './components/Step4Weights.jsx'
-import Step5Result from './components/Step5Result.jsx'
-import ShiftTab from './components/ShiftTab.jsx'
-import ReportView from './components/ReportView.jsx'
-import V3DataTable from './components/V3DataTable.jsx'
+import Sidebar from './components/Sidebar.jsx'
 import NationalMap from './components/NationalMap.jsx'
+import CompareMaps from './components/CompareMaps.jsx'
+import CenterPanel from './components/CenterPanel.jsx'
+import PanelTab from './components/PanelTab.jsx'
+import DataTable from './components/DataTable.jsx'
+import IndicatorPicker from './components/IndicatorPicker.jsx'
+import CursorFx from './components/CursorFx.jsx'
 
-// v3 (22차) — EDA 파이프라인으로 전면 개편.
+// ── URL 해시 상태 공유 ────────────────────────────────────────────────
+// #s=S8&m=minmax&k=rank&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT&d=sens
+// i(선택 지표)까지 포함하기 때문에, 링크를 받은 사람은 '같은 조합으로 계산한 화면'을 본다.
 //
-// 화면은 세 탭이다.
-//   분석 플로우   0 지표 선택 → 1 지표 탐색 → 2 변환·방향 → 3 표준화
-//                → 4 가중치 → 5 종합점수(순위표 · 지도 · 방사 차트)
-//   순위 이동     표준화 민감도 검증 — 플로우에서 아예 따로 뺐다
-//   리포트        인쇄용 최종 화면 (브라우저 인쇄 → PDF)
+// 다만 링크에 부문(s)이 적혀 있어도 시작 화면을 건너뛰지는 않는다. 예전에는
+// 곧장 들어가게 해 두었는데, 주소창에 지난 해시가 남아 있으면 새로 열 때마다
+// 부문 고르는 화면이 아예 뜨지 않았다. 지금은 시작 화면을 항상 먼저 띄우고,
+// 해시에 적힌 부문 카드에 '이어보던 부문' 띠를 붙여 맨 앞에 놓는다. 그 카드를
+// 누르면 방법·지표 조합·선택 지역까지 그대로 복원되므로 링크 공유는 그대로다.
 //
-// 설정은 지표(자료 열) 단위로 붙는다 — 부문을 오가도, 같은 지표를 다시 골라도
-// 방향·변환·윈저라이징·가중치가 그대로 남는다.
-
-// 백지도 배경용 빈 메트릭 — 값이 확정되기 전에는 지도에 칠할 것이 없다(21차 규칙).
-const BLANK_METRIC = {
-  key: 'blank', scale: 'blue', label: '', fmt: () => '—', get: () => null,
-}
-
-// 시트 머리에 적는 단계별 설명 — 이 단계에서 무엇을 결정하는가 한 줄.
-const STEP_DESC = {
-  0: '부문에서 계산에 넣을 지표와 연도를 정합니다.',
-  1: '지표마다 기술통계와 분포를 보고, 이대로 표준화해도 되는 모양인지 확인합니다.',
-  2: '지표마다 방향(P/N) · 윈저라이징 · 로그화 여부를 정합니다.',
-  3: '다섯 가지 표준화 방법의 분포를 비교하고 기본 방법을 고릅니다.',
-  4: '지표별 가중치를 정합니다. 기본은 동일 가중, 합은 항상 100입니다.',
-}
-
-const STEPS = [
-  { n: 0, t: '지표 선택', d: '부문 · 연도 · 지표' },
-  { n: 1, t: '지표 탐색', d: '기술통계 · 분포' },
-  { n: 2, t: '변환 · 방향', d: 'P/N · 로그화 · 윈저라이징' },
-  { n: 3, t: '표준화', d: '5개 방법 · 분포 비교' },
-  { n: 4, t: '가중치', d: '합 100 분할' },
-  { n: 5, t: '종합점수', d: '지도 · 순위 · 방사 차트' },
-]
-
-// 주소 해시 — #s=S1&t=flow&p=5&m=minmax&c=blue
-// 링크를 받은 사람도 시작 화면은 먼저 본다(21차 규칙). 해시의 부문 카드에
-// '이어보던 부문' 띠가 붙고, 누르면 방법·팔레트·단계가 복원된다.
+// 시·도 범위(g)는 뺐다. 이 지수는 전국 229개 시군구를 한 번에 세우는 지수라,
+// 시·도로 걸러 놓고 보면 순위·평균이 전국 기준과 어긋나 읽힌다.
+// 탭(t)도 뺐다. 통계창이 탭에서 본문+서랍으로 바뀌면서 자리가 없어졌다.
+// 대신 접은 서랍을 d에 적는다(기본은 둘 다 펼침). 옛 링크의 t는 읽지 않고 무시한다.
 function parseHash() {
   const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
   const o = {}
   if (SECTOR_KEYS.includes(h.get('s'))) o.sector = h.get('s')
-  if (h.get('m')) o.method = h.get('m')
-  if (h.get('c')) o.palette = h.get('c')
-  const st = parseInt(h.get('p'), 10)
-  if (Number.isFinite(st) && st >= 0 && st <= 5) o.step = st
-  if (['flow', 'shift', 'report'].includes(h.get('t'))) o.tab = h.get('t')
+  if (METHOD_KEYS.includes(h.get('m'))) o.method = h.get('m')
+  if (h.get('k')) o.metricKey = h.get('k')
+  if (h.get('r')) o.selected = decodeURIComponent(h.get('r'))
+  if (h.get('c') === '1') o.compare = true
+  if (h.get('p') === '0') o.panelOpen = false
+  if (h.get('i')) o.picks = picksFromHash(h.get('i'))
+  if (h.get('x')) o.xKey = h.get('x')
+  if (h.get('y')) o.yKey = h.get('y')
+  if (h.get('d')) {
+    // d 는 '접어 둔 서랍'을 적는다. 서랍은 기본이 펼침이라, 기본 상태에서는
+    // d 가 아예 붙지 않는다. (16차의 d 는 '펼친 서랍'이었다 — 규칙이 뒤집혔다.)
+    o.drawers = { sens: true, raw: true }
+    h.get('d').split('.').forEach((k) => { if (k === 'sens' || k === 'raw') o.drawers[k] = false })
+  }
   return o
 }
 
+// 서랍 기본값 — 둘 다 펼침.
+// 16차에서는 접은 채로 시작했는데, 그러면 분포·범프 차트·산점도·순위 이동 목록이
+// 화면에서 통째로 사라진 것처럼 보인다. 차례(본문이 먼저, 서랍이 나중)와 머리
+// 모양만으로도 무엇이 주(主)인지는 충분히 드러나므로, 접어 감출 이유가 없다.
+const ALL_OPEN = () => ({ sens: true, raw: true })
+
+// 부문별 기본 조합 = 그 부문의 모든 지표를 가장 최근 연도로.
+const basePicks = () => Object.fromEntries(SECTOR_KEYS.map((k) => [k, defaultPicks(k)]))
+
 export default function App() {
   const init = useMemo(parseHash, [])
+  // 시작 화면은 언제나 먼저 뜬다. 해시에 부문이 있어도 건너뛰지 않는다.
   const [started, setStarted] = useState(false)
   const [sector, setSector] = useState(init.sector || SECTOR_KEYS[0])
-  const [tab, setTab] = useState(init.tab || 'flow')  // flow | shift | report
-  const [step, setStep] = useState(init.step ?? 0)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [ver, setVer] = useState(0)                 // applyPicks 반영 신호
-
-  // 지표(열) 단위 설정 — 방향·변환·윈저·표준화 여부 / 가중치
-  const [cfgBy, setCfgBy] = useState({})
-  const [weightsBy, setWeightsBy] = useState({})
-  const [method, setMethod] = useState(init.method || 'minmax')
-  const [alpha, setAlpha] = useState(5)
-  const [gradeMode, setGradeMode] = useState('decile')
-  const [palette, setPalette] = useState(init.palette || 'blue')
+  const [method, setMethod] = useState(init.method || METHOD_KEYS[0])
+  const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
+  const [compare, setCompare] = useState(false)
+  // 조작부는 항상 열려 있다. 접을 수 있는 것은 통계 패널 하나뿐.
+  // 처음 들어오면 접혀 있다가, 꼭 골라야 하는 두 가지를 정하면 열린다.
+  const [panelOpen, setPanelOpen] = useState(false)
+  // 어디까지 왔는가. 1 지표 · 2 표준화 방법 · 3 다 골랐음
+  //
+  // 이 값이 지도의 성격도 정한다(21차). 3단계 전, 곧 표준화 점수가 아직 산출되지
+  // 않은 동안 지도는 백지도다. 20차까지는 부문을 고르자마자 기본 조합으로 계산한
+  // 주제도가 이미 칠해져 있었는데, 사용자가 아무것도 고르지 않았는데 색이 다 칠해져
+  // 있으면 그 색이 무엇을 뜻하는지 알 수 없고, 뒤이어 지표를 고르는 일도 이미 나온
+  // 결과를 손보는 일처럼 보인다. 지표와 방법을 정해 점수가 나온 다음에 주제도를 그린다.
+  const [step, setStep] = useState(1)
+  // 통계창 아래쪽 서랍 두 개. 처음부터 둘 다 펴 둔다.
+  const [drawers, setDrawers] = useState(init.drawers || ALL_OPEN())
+  const [onlyHigh, setOnlyHigh] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [hovered, setHovered] = useState(null)
   const [tableOpen, setTableOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [xKey, setXKey] = useState(init.xKey || null)
+  const [yKey, setYKey] = useState(init.yKey || null)
 
-  // 상태를 주소에 남긴다 — 링크로 같은 화면을 다시 연다
-  useEffect(() => {
-    if (!started) return
-    const h = `#s=${sector}&t=${tab}&p=${step}&m=${method}&c=${palette}`
-    try { window.history.replaceState(null, '', h) } catch (e) { /* noop */ }
-  }, [started, sector, tab, step, method, palette])
+  // 선택 지표. 링크로 받은 조합이 있으면 그 부문만 갈아 끼운다.
+  const [picksBy, setPicksBy] = useState(() => {
+    const base = basePicks()
+    if (init.picks && init.sector) {
+      base[init.sector] = init.picks
+      applyPicks(init.sector, init.picks)
+    }
+    return base
+  })
+  // 계산 결과는 ROWS 위에 덮어써지므로 참조가 바뀌지 않는다.
+  // 화면이 다시 그려지도록 판올림 번호를 하나 둔다.
+  const [pickVer, setPickVer] = useState(0)
 
-  const entries = useMemo(() => indsOf(sector), [sector, ver])
-
-  // 고른 지표마다 설정이 반드시 있게 채운다 (없으면 지표체계의 기본 방향)
-  const cfg = useMemo(() => {
-    const o = {}
-    entries.forEach((e) => { o[e.col] = cfgBy[e.col] || defaultCfg(e.dir) })
-    return o
-  }, [entries, cfgBy])
-  const setCfg = (col, c) => setCfgBy((prev) => ({ ...prev, [col]: c }))
-
-  const weights = useMemo(() => {
-    const o = {}
-    entries.forEach((e) => {
-      o[e.col] = Number.isFinite(weightsBy[e.col]) ? weightsBy[e.col] : 100 / (entries.length || 1)
+  const applyDraft = (draft, cur) => {
+    SECTOR_KEYS.forEach((k) => {
+      const a = draft[k] || [], b = picksBy[k] || []
+      const same = a.length === b.length && a.every((p, i) => p.id === b[i].id && p.year === b[i].year)
+      if (!same) applyPicks(k, a)
     })
-    return o
-  }, [entries, weightsBy])
+    setPicksBy(draft)
+    setPickVer((v) => v + 1)
+    // 지표가 바뀌면 산점도 축 이름도 바뀐다. 기본 축으로 되돌린다.
+    setXKey(null); setYKey(null)
+    if (cur && cur !== sector && SECTOR_KEYS.includes(cur)) setSector(cur)
+    // 지표를 확정했으면 다음 칸(표준화 방법)으로 넘어간다.
+    if (step === 1) setStep(2)
+  }
 
-  const result = useMemo(() => runPipeline(
-    entries.map((e) => ({ col: e.col, id: e.id, label: e.label, year: e.year, unit: e.unit, dir: e.dir })),
-    cfg, alpha, weights, gradeMode,
-  ), [entries, cfg, alpha, weights, gradeMode])
-
-  const seriesOf = (col) => SERIES[col] || []
-
-  const pickSector = (k) => {
-    if (!indsOf(k).length) applyPicks(k, defaultPicks(k))
+  // 시작 화면에서 부문을 골랐을 때.
+  //
+  // 어느 부문을 고르든 언제나 1 지표 선택부터 시작한다. 16차에서는 해시에 적힌
+  // 부문을 다시 고르면 '이어보기'로 보고 곧장 3단계(지도 색 기준)로 뛰었는데,
+  // 그러면 부문을 고르자마자 화면이 조작부 아래쪽으로 감겨 내려가, 무엇을
+  // 골라야 하는지가 아니라 색 고르는 칸이 먼저 보였다.
+  //
+  // 이어보기는 이제 '되살리기'만 한다 — 표준화 방법·지도 색 기준·선택 지역·
+  // 산점도 축은 링크에 담긴 대로 두되, 단계는 1로 되돌리고 통계창은 접어 둔다.
+  // 지표를 확인하고 넘어가면 그 자리에 그대로 이어진다.
+  const openSector = (k) => {
+    const resume = !!init.sector && k === init.sector
     setSector(k)
     setStarted(true)
-    setTab('flow')
-    setStep(0)
-    setVer((v) => v + 1)
+    setCompare(false)
+    setStep(1)
+    setPanelOpen(false)
+    if (resume) {
+      setMethod(init.method || METHOD_KEYS[0])
+      setMetricKey(init.metricKey || 'rank')
+      setSelected(init.selected || null)
+      setDrawers(init.drawers || ALL_OPEN())
+      setXKey(init.xKey || null); setYKey(init.yKey || null)
+    } else {
+      setMethod(METHOD_KEYS[0])
+      setMetricKey('rank')
+      setSelected(null)
+      setDrawers(ALL_OPEN())
+      setXKey(null); setYKey(null)
+    }
   }
-  const applyDraft = (draft, next) => {
-    Object.entries(draft).forEach(([k, picks]) => applyPicks(k, picks))
-    setSector(next)
-    setVer((v) => v + 1)
+
+  const goHome = () => {
+    setStarted(false)
+    setPanelOpen(false)
+    setStep(1)
+    setSelected(null)
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
   }
 
-  useEffect(() => { setSelected(null) }, [sector])
+  // 단계가 끝나면 통계창을 연다. 다 고르기 전에 열어 두면, 아직 아무것도
+  // 정하지 않은 화면에 숫자가 가득 차 무엇을 보라는 것인지 알 수 없다.
+  const goStep = (n) => {
+    setStep(n)
+    if (n >= 3) setPanelOpen(true)
+  }
 
-  if (!started) return (
-    <>
-      <CursorFx />
-      <LandingPage onPick={pickSector} resume={init.sector || null} />
-    </>
-  )
+  const toggleDrawer = (k, v) => setDrawers((d) => ({ ...d, [k]: v }))
 
-  const canGo = entries.length > 0
-  const s = SECTORS[sector]
+  const metric = metricFor(sector, method, metricKey)
+  const byKey = useMemo(() => Object.fromEntries(ROWS.map((r) => [rowKey(r), r])), [])
+
+  // 지도에서 아직 아무 곳도 고르지 않았으면 선택 지역은 비워 둔다.
+  // 예전에는 순위 이동이 가장 큰 곳을 임의로 골라 두었는데, 사람이 고른 것과
+  // 프로그램이 고른 것이 화면에서 구분되지 않아 오해를 샀다.
+  const sel = selected && byKey[selected] ? selected : null
+  const selectedRow = sel ? byKey[sel] : null
+
+  // 지역을 고르면 그 결과가 통계창 맨 위로 올라오고, 전국 요약은 화면에서
+  // 빠진다(21차). 15차까지는 선택 지역 결과가 전국 요약 아래에 있어서, 지도를
+  // 눌러도 화면이 그대로인 것처럼 보였다.
+  const prevSel = useRef(sel)
+  useEffect(() => {
+    if (prevSel.current === sel) return
+    prevSel.current = sel
+    if (!sel) return
+    const el = document.querySelector('.center')
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [sel])
+
+  useEffect(() => {
+    if (!started) return
+    const p = new URLSearchParams()
+    p.set('s', sector); p.set('m', method); p.set('k', metric.key)
+    if (sel) p.set('r', encodeURIComponent(sel))
+    if (compare) p.set('c', '1')
+    if (!panelOpen) p.set('p', '0')
+    const shut = ['sens', 'raw'].filter((k) => !drawers[k])
+    if (shut.length) p.set('d', shut.join('.'))   // 접은 것만 적는다. 기본(둘 다 펼침)이면 안 적는다
+    const cur = picksOf(sector)
+    const base = defaultPicks(sector)
+    const same = cur.length === base.length && cur.every((q, i) => q.id === base[i].id && q.year === base[i].year)
+    if (!same) p.set('i', picksToHash(cur))       // 기본 조합이면 굳이 적지 않는다
+    if (xKey) p.set('x', xKey)
+    if (yKey) p.set('y', yKey)
+    window.history.replaceState(null, '', `#${p.toString()}`)
+  }, [started, sector, method, metric.key, sel, compare, panelOpen, drawers, pickVer, xKey, yKey])
+
+  const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
+  const onAxis = (which, key) => (which === 'x' ? setXKey(key) : setYKey(key))
+
+  // 지도 위에 떠 있는 조작·통계 덱의 실제 폭(px).
+  // 왼쪽 여백 14 + 덱 테두리 2 + 조작부 300 + (칸 사이 선 1 + 통계창 366)
+  // + 덱 밖으로 물린 손잡이 25 + 지도와의 간격 14
+  const deckW = 14 + 302 + (panelOpen ? 367 : 0) + 25 + 14
+
+  if (!started) {
+    return (
+      <>
+        <LandingPage onPick={openSector} resume={init.sector || null} />
+        <CursorFx />
+      </>
+    )
+  }
 
   return (
-    <div className="v3-shell">
-      <CursorFx />
-      <div className="v3-atmo" aria-hidden="true" />
-
-      {/* ── 머리줄 — 유리 알약 ── */}
-      <header className="v3-head glass noprint">
-        <div className="v3h-left">
-          <div className="v3h-logo mono">SAL</div>
-          <div className="v3h-title">국토종합진단지수 <em>EDA 대시보드</em></div>
-          <button className="v3h-sector" onClick={() => setStarted(false)} title="다른 부문 고르기">
-            <SectorIcon k={sector} state="on" size={15} />
-            <b>{s.name}</b><u>바꾸기</u>
-          </button>
-        </div>
-        <nav className="v3h-tabs">
-          <button className={tab === 'flow' ? 'on' : ''} onClick={() => setTab('flow')}>분석 플로우</button>
-          <button className={tab === 'shift' ? 'on' : ''} disabled={!canGo}
-            onClick={() => setTab('shift')}>순위 이동</button>
-          <button className={tab === 'report' ? 'on' : ''} disabled={!canGo}
-            onClick={() => setTab('report')}>리포트</button>
-        </nav>
-        <div className="v3h-right">
-          <DataDefsModal sector={sector} />
-          <GlossaryModal />
-          <button className="src-btn" disabled={!canGo} onClick={() => setTableOpen(true)}>▤ 전체 데이터표</button>
-        </div>
-      </header>
-
-      {/* ── 상시 배경 지도 — 값이 확정되기 전(0~4단계)에는 백지도 ── */}
-      {tab === 'flow' && step < 5 && (
-        <div className="v3-backmap">
-          <NationalMap sector={sector} metric={BLANK_METRIC} blank bare
-            selected={selected} hovered={null} onSelect={setSelected} onHover={() => {}} tips />
-        </div>
-      )}
-
-      {/* ── 본문 — 왼쪽 세로 단계 레일 + 가운데 작업 창 ── */}
-      <div className="v3-body">
-      {tab === 'flow' && (
-        <aside className="v3-rail glass noprint">
-          <div className="v3r-cap mono">분석 단계</div>
-          {STEPS.map((st) => (
-            <button key={st.n}
-              className={`v3s${step === st.n ? ' on' : ''}${st.n < step ? ' done' : ''}${st.n > 0 && !canGo ? ' off' : ''}`}
-              disabled={st.n > 0 && !canGo}
-              onClick={() => setStep(st.n)}>
-              <u className="mono">{st.n < step ? '✓' : st.n}</u>
-              <span><b>{st.t}</b><em>{st.d}</em></span>
-            </button>
-          ))}
-          <p className="v3r-hint">지표와 방법이 정해지면 5단계에서 지도에 색이 칠해집니다. 그 전까지는 백지도입니다.</p>
-        </aside>
-      )}
-      <main className={`v3-main${tab === 'flow' && step === 5 ? ' wide' : ''}${tab === 'flow' && step < 5 ? ' sheetmode' : ''}`}>
-        {tab === 'flow' && step < 5 && (
-        <div className={`v3-sheet glass v3-sheet-s${step}`}>
-        <div className="v3-sh-head">
-          <span className="mono">STEP {step} / 5</span>
-          <h2>{STEPS[step].t}</h2>
-          <p>{STEP_DESC[step]}</p>
-        </div>
-        {step === 0 && (
-          <div className="e0-wrap">
-            <div className="e0-head">
-              <b>{s.name} · 담긴 지표 {entries.length}개</b>
-              <span className="e0-note">연도가 다른 같은 지표를 함께 담아 비교할 수도 있습니다.</span>
-            </div>
-            <div className="e0-list">
-              {entries.map((e) => (
-                <div key={e.col} className="e0-item">
-                  <b>{e.label}</b>
-                  <span className="mono">{e.year}년{e.unit ? ` · ${e.unit}` : ''}</span>
-                  <em className={`dirb ${e.dir === '+' ? 'p' : 'n'}`}>{e.dir === '+' ? 'P' : 'N'}</em>
-                  {e.desc && <p>{e.desc}</p>}
-                </div>
-              ))}
-              <button className="e0-add" onClick={() => setPickerOpen(true)}>
-                <i>＋</i><b>지표 추가 · 변경</b>
-                <span>부문의 지표 목록에서 골라 담습니다</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 1 && <Step1Explore entries={entries} seriesOf={seriesOf} />}
-        {step === 2 && (
-          <Step2Transform entries={entries} seriesOf={seriesOf} cfg={cfg} onCfg={setCfg} />
-        )}
-        {step === 3 && (
-          <Step3Standardize entries={entries} result={result} cfg={cfg} onCfg={setCfg}
-            method={method} onMethod={setMethod} alpha={alpha} onAlpha={setAlpha} />
-        )}
-        {step === 4 && (
-          <Step4Weights entries={entries} weights={weights}
-            onWeights={(w) => setWeightsBy((prev) => ({ ...prev, ...w }))} />
-        )}
-        <div className="v3-sheetnav">
-          {step > 0
-            ? <button className="ghost-btn" onClick={() => setStep(step - 1)}>← 이전 · {STEPS[step - 1].t}</button>
-            : <span />}
-          <button className="acc-btn" disabled={!canGo} onClick={() => setStep(step + 1)}>
-            다음 단계 · {STEPS[step + 1].t} →
-          </button>
-        </div>
-        </div>
-        )}
-
-        {tab === 'flow' && step === 5 && (
-          <Step5Result sector={sector} entries={entries} result={result}
+    <div className="shell">
+      <Header onTable={() => setTableOpen(true)} sector={sector} onHome={goHome} />
+      <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
+        {/* 조작부 + 통계창 + 손잡이는 테두리 하나·모서리 하나를 함께 쓰는 한 덩어리다.
+            따로 놀던 상자 두 개가 맞물린 것처럼 보이지 않게 하기 위한 껍데기. */}
+        <div className={`deck${panelOpen ? ' open' : ''}`}>
+          <Sidebar
+            sector={sector}
             method={method} onMethod={setMethod}
-            gradeMode={gradeMode} onGradeMode={setGradeMode}
-            palette={palette} onPalette={setPalette}
-            selected={selected} onSelect={setSelected}
-            onReport={() => setTab('report')} />
-        )}
-
-        {tab === 'shift' && <ShiftTab entries={entries} result={result} />}
-        {tab === 'report' && (
-          <ReportView sector={sector} entries={entries} result={result}
-            method={method} alpha={alpha} gradeMode={gradeMode} palette={palette}
-            onBack={() => { setTab('flow'); setStep(5) }} />
-        )}
-      </main>
+            metric={metric} metricKey={metric.key} onMetric={setMetricKey}
+            onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
+            compare={compare} onCompare={setCompare}
+            onOpenPicker={() => setPickerOpen(true)}
+            step={step} onStep={goStep}
+          />
+          {panelOpen && (
+            <CenterPanel sector={sector} method={method} metric={metric}
+              selectedRow={selectedRow} link={link} ver={pickVer}
+              xKey={xKey} yKey={yKey} onAxis={onAxis}
+              drawers={drawers} onDrawer={toggleDrawer}
+              onOpenPicker={() => setPickerOpen(true)} />
+          )}
+        </div>
+        {/* 손잡이는 덱 밖으로 물려 나온 책갈피 — 덱과 같은 바탕·테두리를 쓰고
+            맞닿는 왼쪽 변만 지워, 덱에서 그대로 뻗어 나온 것처럼 보이게 한다. */}
+        <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
+        {compare
+          ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
+              ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
+          : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh}
+              blank={step < 3}
+              ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
       </div>
-
-      {tableOpen && (
-        <V3DataTable result={result} method={method} onClose={() => setTableOpen(false)} />
-      )}
-      {pickerOpen && (
-        <IndicatorPicker sector={sector}
-          picksBy={Object.fromEntries(SECTOR_KEYS.map((k) => [k, picksOf(k)]))}
-          onApply={applyDraft} onClose={() => setPickerOpen(false)} />
-      )}
+      <CursorFx />
+      {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
+        selected={sel} onSelect={setSelected} ver={pickVer} />}
+      {pickerOpen && <IndicatorPicker sector={sector} picksBy={picksBy}
+        onApply={applyDraft} onClose={() => setPickerOpen(false)} />}
     </div>
   )
 }
