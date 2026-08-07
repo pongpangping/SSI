@@ -274,3 +274,51 @@
 .rkp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 /* 비교 모드 — 오른쪽 위 작은 되돌아오기 */
 .mapbar-mini { left: auto !important; right: 14px; top: 64px; padding: 6px; }
+
+/* ============================================================
+   31.1차 — 마감 다듬기: 0단계 재설계 · 카드 대비 · 여정 바 연결감
+   ============================================================ */
+
+/* ── 0단계 ─────────────────────────────────────────────────── */
+.s0-bar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 12px; }
+.s0-sum { display: flex; align-items: baseline; gap: 9px; }
+.s0-sum b { font-size: var(--fs-6); font-weight: 750; }
+.s0-sum em { font-style: normal; font-size: var(--fs-3); color: var(--ink3); }
+.s0-note { font-size: var(--fs-2); color: var(--ink3); }
+.s0-card { position: relative; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 13px; padding: 13px 15px; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; gap: 7px; }
+.s0-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+.s0-top { display: flex; align-items: center; gap: 9px; }
+.s0-top u { text-decoration: none; width: 21px; height: 21px; border-radius: 7px; flex: none;
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  background: var(--accent-weak); color: var(--accent-strong); }
+.s0-top b { font-size: var(--fs-5); line-height: 1.3; margin-right: auto; }
+.s0-x { border: 0; background: transparent; color: var(--ink3); width: 24px; height: 24px;
+  border-radius: 7px; cursor: pointer; font-size: 11px; flex: none; }
+.s0-x:hover { background: rgba(227, 73, 72, 0.1); color: #C03A39; }
+.s0-meta { display: flex; gap: 5px; flex-wrap: wrap; }
+.s0-meta span { font-size: 10px; color: var(--ink2); background: var(--muted);
+  border-radius: 6px; padding: 2.5px 8px; }
+.s0-meta .s0-src { max-width: 220px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.s0-card > p { margin: 0; color: var(--ink3); font-size: var(--fs-3); line-height: 1.55; }
+.stp-add { min-height: 108px; }
+
+/* ── 카드 대비 — 회색 바탕 위 흰 카드로 통일 ───────────────── */
+.e1-card, .e2-row, .e3-row { background: var(--surface); box-shadow: var(--shadow-card); }
+.e1-stat { background: var(--bg); }
+.e3-name > span em, .e1-tags em { background: var(--bg); }
+.stp-wbox { background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
+  padding: 16px 18px; box-shadow: var(--shadow-card); }
+
+/* ── 여정 바 — 단계 사이 연결 화살표 + 가운데 정렬 ─────────── */
+.jb { justify-content: center; gap: 0; }
+.jb-step { margin: 0 2px; }
+.jb-step:not(:last-child)::after { content: '›'; margin-left: 10px; color: var(--line-strong);
+  font-size: 14px; font-weight: 700; }
+.jb-step.done:not(:last-child)::after { color: rgba(29, 154, 85, 0.55); }
+
+/* ── 지표 고르기 창 — 얼굴 다듬기 ──────────────────────────── */
+.ip-box, .ipk { border-radius: 16px; }
+.ip-head b, .ipk-head b { letter-spacing: -0.02em; }

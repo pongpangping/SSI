@@ -6,7 +6,6 @@ import {
   cfgOf, setCfg, weightsOf, setWeights, clearWeights,
 } from '../lib/eda.js'
 import { HistBars, ShapeCompare } from './EdaCharts.jsx'
-import PickedSummary from './PickedSummary.jsx'
 
 // 준비 단계 페이지 0~4 — 여정 바에서 열리는 전폭 화면.
 //
@@ -41,27 +40,44 @@ export function NavBtns({ onPrev, onNext, nextLabel = '다음 단계 →', prevL
 }
 
 /* ══ 0. 지표 선택 ══════════════════════════════════════════════════════════ */
-export function Step0Page({ sector, onOpenPicker, onNext }) {
+export function Step0Page({ sector, onOpenPicker, onRemovePick, onNext }) {
   const inds = indsOf(sector)
+  const years = []
+  inds.forEach((e) => { if (!years.includes(e.year)) years.push(e.year) })
+  years.sort()
+  const yr = years.length === 0 ? '' : years.length === 1 ? `${years[0]}년` : `${years[0]}~${years[years.length - 1]}년`
   return (
     <PageShell no={0} title="지표 선택"
       desc={`${SECTORS[sector].name} 부문에서 계산에 넣을 지표와 연도를 정합니다. 연도가 다른 같은 지표를 함께 담아 비교할 수도 있습니다.`}
       nav={<NavBtns onNext={onNext} nextDisabled={!inds.length}
         nextLabel={inds.length ? '이 지표로 계산 시작 · 지표 탐색 →' : '지표를 골라 주세요'} />}>
-      <div className="stp-pick">
-        <PickedSummary sector={sector} onOpen={onOpenPicker} />
+      <div className="s0-bar">
+        <div className="s0-sum">
+          <b>담긴 지표 {inds.length}개</b>
+          {yr && <em>{yr}</em>}
+        </div>
+        <span className="s0-note">카드의 ✕ 로 빼고, 추가·연도 변경은 [＋] 카드에서 합니다.</span>
       </div>
       <div className="stp-cards">
-        {inds.map((e) => (
-          <div key={e.col} className="stp-ind">
-            <b>{e.label}</b>
-            <span>{e.year}년{e.unit ? ` · ${e.unit}` : ''}</span>
-            <em className={`dirb ${e.dir === '+' ? 'p' : 'n'}`}>{e.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}</em>
+        {inds.map((e, i) => (
+          <div key={e.col} className="s0-card">
+            <div className="s0-top">
+              <u>{i + 1}</u>
+              <b>{e.label}</b>
+              <em className={`dirb ${e.dir === '+' ? 'p' : 'n'}`}>{e.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}</em>
+              <button className="s0-x" title="이 지표를 조합에서 뺍니다"
+                onClick={() => onRemovePick(e.id, e.year)}>✕</button>
+            </div>
+            <div className="s0-meta">
+              <span>{e.year}년</span>
+              {e.unit && <span>{e.unit}</span>}
+              {e.source && <span className="s0-src" title={e.source}>{e.source}</span>}
+            </div>
             {e.desc && <p>{e.desc}</p>}
           </div>
         ))}
         <button className="stp-add" onClick={onOpenPicker}>
-          <i>＋</i><b>지표 추가 · 변경</b><span>정의 · 산식 · 출처를 보고 골라 담습니다</span>
+          <i>＋</i><b>지표 추가 · 변경</b><span>정의 · 산식 · 출처 · 연도를 보고 골라 담습니다</span>
         </button>
       </div>
     </PageShell>

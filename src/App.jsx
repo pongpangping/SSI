@@ -174,6 +174,17 @@ export default function App() {
     window.history.replaceState(null, '', window.location.pathname + window.location.search)
   }
 
+  // 0단계 카드에서 지표 하나를 바로 뺀다
+  const removePick = (id, year) => {
+    const cur = picksBy[sector] || []
+    const next = cur.filter((p) => !(p.id === id && p.year === year))
+    const draft = { ...picksBy, [sector]: next }
+    applyPicks(sector, next)
+    setPicksBy(draft)
+    setPickVer((v) => v + 1)
+    setXKey(null); setYKey(null)
+  }
+
   // 여정 이동 — 지나간 화면은 visited에 남아 여정 바에 체크가 붙는다
   const goView = (v) => {
     setView(v)
@@ -260,7 +271,8 @@ export default function App() {
         /* ── 준비 단계 페이지 (0~4) — 전폭 문서형 화면 ── */
         <div className="journey-scroll">
           {view === 'step0' && (
-            <Step0Page sector={sector} onOpenPicker={() => setPickerOpen(true)} onNext={confirmPicks} />
+            <Step0Page sector={sector} onOpenPicker={() => setPickerOpen(true)}
+              onRemovePick={removePick} onNext={confirmPicks} />
           )}
           {view === 'step1' && (
             <Step1Page sector={sector} onPrev={() => goView('step0')} onNext={() => goView('step2')} />
