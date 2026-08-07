@@ -179,6 +179,9 @@ export function Step2Page({ sector, onRecalc, onPrev, onNext }) {
     <PageShell no={2} title="변환 · 방향"
       desc="지표마다 방향(P/N)을 정하고, 분포 모양을 보며 로그화·반로그화와 윈저라이징을 겁니다. 바꾸는 즉시 그림이 겹쳐 보이고 계산도 다시 됩니다."
       nav={<NavBtns onPrev={onPrev} onNext={onNext} nextLabel="다음 단계 · 표준화 →" />}>
+      <p className="stp-lede">점선이 변환 전, 파란 실선이 변환 후 분포입니다.
+        <button className="eda-link" onClick={() => setHelp(true)}>어떤 모양일 때 무엇을 쓰나 — 설명</button></p>
+      <div className="s2-grid">
       {inds.map((e, idx) => {
         const c = cfgOf(e.col, e.dir)
         const raw = SERIES[e.col] || []
@@ -187,83 +190,64 @@ export function Step2Page({ sector, onRecalc, onPrev, onNext }) {
         const st0 = describe(raw), st1 = describe(after)
         return (
           <div key={e.col} className="s2-card">
-            {/* 머리줄 — 이름 · 메타, 오른쪽에 방향(분포 모양과 무관한 뜻의 문제라 따로) */}
+            {/* 머리줄 — 이름 · 메타 · 방향(P/N) */}
             <div className="s2-head">
               <u>{idx + 1}</u>
               <div className="s2-title">
                 <b>{e.label}</b>
-                <span>{e.year}년{e.unit ? ` · ${e.unit}` : ''} · 지표체계 방향 {e.dir === '+' ? 'P(▲)' : 'N(▼)'}</span>
+                <span>{e.year}년{e.unit ? ` · ${e.unit}` : ''}{c.dir !== e.dir ? ' · 기본 방향과 다름' : ''}</span>
               </div>
-              <div className="s2-dir">
-                <em>방향</em>
-                <div className="s2-dirseg">
-                  <button className={c.dir === '+' ? 'on p' : ''}
-                    onClick={() => upd(e.col, { ...c, dir: '+' })}>P · 커질수록 좋음</button>
-                  <button className={c.dir === '-' ? 'on n' : ''}
-                    onClick={() => upd(e.col, { ...c, dir: '-' })}>N · 작을수록 좋음</button>
-                </div>
-                {c.dir !== e.dir && <i className="s2-dirwarn">기본 방향과 다르게 골랐습니다</i>}
+              <div className="s2-dirseg">
+                <button className={c.dir === '+' ? 'on p' : ''} title="커질수록 좋음"
+                  onClick={() => upd(e.col, { ...c, dir: '+' })}>P ▲</button>
+                <button className={c.dir === '-' ? 'on n' : ''} title="작을수록 좋음"
+                  onClick={() => upd(e.col, { ...c, dir: '-' })}>N ▼</button>
               </div>
             </div>
 
-            <div className="s2-body">
-              {/* 왼쪽 — 큰 분포 그림이 주인공. 전(점선)/후(실선) 겹침 + 변화량 */}
-              <div className="s2-chart">
-                <div className="s2-lg">
-                  <span><i className="lg-b" />변환 전</span>
-                  {changed && <span><i className="lg-a2" />변환 후</span>}
-                </div>
-                <ShapeCompare before={raw} after={after} changed={changed} W={520} h={104} bins={36} />
-                <div className="s2-delta">
-                  {changed ? (
-                    <>
-                      <span>왜도 <b>{f2(st0?.skew)}</b> <i>→</i> <b className="acc">{f2(st1?.skew)}</b></span>
-                      <span>범위 <b>{fmtRaw(st0?.lo)}~{fmtRaw(st0?.hi)}</b> <i>→</i> <b className="acc">{fmtRaw(st1?.lo)}~{fmtRaw(st1?.hi)}</b></span>
-                    </>
-                  ) : (
-                    <>
-                      <span>왜도 <b>{f2(st0?.skew)}</b></span>
-                      <span>범위 <b>{fmtRaw(st0?.lo)} ~ {fmtRaw(st0?.hi)}</b></span>
-                      <span className="dim">오른쪽에서 변환을 고르면 바뀐 분포가 파란 실선으로 겹쳐집니다</span>
-                    </>
-                  )}
-                </div>
+            {/* 분포 — 전(점선)/후(실선) 겹침 + 변화량 */}
+            <div className="s2-chart">
+              <div className="s2-lg">
+                <span><i className="lg-b" />변환 전</span>
+                {changed && <span><i className="lg-a2" />변환 후</span>}
               </div>
+              <ShapeCompare before={raw} after={after} changed={changed} W={520} h={104} bins={34} />
+              <div className="s2-delta">
+                <span>왜도 <b>{f2(st0?.skew)}</b>{changed && <><i>→</i><b className="acc">{f2(st1?.skew)}</b></>}</span>
+                <span>범위 <b>{fmtRaw(st0?.lo)}~{fmtRaw(st0?.hi)}</b>{changed && <><i>→</i><b className="acc">{fmtRaw(st1?.lo)}~{fmtRaw(st1?.hi)}</b></>}</span>
+              </div>
+            </div>
 
-              {/* 오른쪽 — 처방. 변환은 모양 그림이 달린 선택 카드, 윈저는 스위치 한 줄 */}
-              <div className="s2-rx">
-                <div className="s2-cap">변환
-                  <button className="s2-help" onClick={() => setHelp(true)} title="어떤 모양일 때 무엇을 쓰나">? 설명</button>
-                </div>
-                <div className="s2-opts">
-                  {TRANSFORMS.map((t) => (
-                    <button key={t.key} className={`s2-opt${c.transform === t.key ? ' on' : ''}`}
-                      onClick={() => upd(e.col, { ...c, transform: t.key })}>
-                      <svg viewBox="0 0 52 24" className="s2-glyph">{RX_GLYPH[t.key]}</svg>
-                      <span><b>{t.label}</b><em>{RX_DESC[t.key]}</em></span>
-                      <i className="s2-radio" />
-                    </button>
-                  ))}
-                </div>
-                <div className="s2-cap s2-cap2">극단값</div>
-                <label className={`s2-wz${c.winsor.on ? ' on' : ''}`}>
-                  <input type="checkbox" checked={c.winsor.on}
-                    onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, on: ev.target.checked } })} />
-                  <span><b>윈저라이징</b><em>경계 밖 값을 경계값으로 눌러 담습니다</em></span>
-                </label>
-                {c.winsor.on && (
-                  <div className="s2-winz">
-                    하위 <input type="number" min="0" max="25" step="0.5" value={c.winsor.lo}
-                      onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, lo: +ev.target.value } })} />%
-                    <i>·</i> 상위 <input type="number" min="75" max="100" step="0.5" value={c.winsor.hi}
-                      onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, hi: +ev.target.value } })} />%
-                  </div>
-                )}
+            {/* 아래 한 줄 — 변환(모양 달린 세그) + 윈저라이징 */}
+            <div className="s2-foot">
+              <div className="s2-opts">
+                {TRANSFORMS.map((t) => (
+                  <button key={t.key} className={`s2-opt${c.transform === t.key ? ' on' : ''}`}
+                    title={RX_DESC[t.key]}
+                    onClick={() => upd(e.col, { ...c, transform: t.key })}>
+                    <svg viewBox="0 0 52 24" className="s2-glyph">{RX_GLYPH[t.key]}</svg>
+                    <b>{t.label}</b>
+                  </button>
+                ))}
               </div>
+              <label className={`s2-wz${c.winsor.on ? ' on' : ''}`} title="경계 밖 값을 경계값으로 눌러 담습니다">
+                <input type="checkbox" checked={c.winsor.on}
+                  onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, on: ev.target.checked } })} />
+                <b>윈저</b>
+              </label>
+              {c.winsor.on && (
+                <div className="s2-winz">
+                  <input type="number" min="0" max="25" step="0.5" value={c.winsor.lo}
+                    onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, lo: +ev.target.value } })} />
+                  ~<input type="number" min="75" max="100" step="0.5" value={c.winsor.hi}
+                    onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, hi: +ev.target.value } })} />%
+                </div>
+              )}
             </div>
           </div>
         )
       })}
+      </div>
       {help && <TransformHelp onClose={() => setHelp(false)} />}
     </PageShell>
   )
