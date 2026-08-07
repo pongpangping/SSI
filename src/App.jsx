@@ -5,7 +5,8 @@ import {
 } from './lib/ssi.js'
 import Header from './components/Header.jsx'
 import LandingPage from './components/LandingPage.jsx'
-import Sidebar from './components/Sidebar.jsx'
+import { JourneyBar, RankPanel, MapBar } from './components/ResultChrome.jsx'
+import { Step0Page, Step1Page, Step2Page, Step3Page, Step4Page } from './components/StepPages.jsx'
 import NationalMap from './components/NationalMap.jsx'
 import CompareMaps from './components/CompareMaps.jsx'
 import CenterPanel from './components/CenterPanel.jsx'
@@ -13,7 +14,6 @@ import PanelTab from './components/PanelTab.jsx'
 import DataTable from './components/DataTable.jsx'
 import IndicatorPicker from './components/IndicatorPicker.jsx'
 import CursorFx from './components/CursorFx.jsx'
-import { ExploreModal, TransformModal, StdCompareModal, WeightModal } from './components/EdaModals.jsx'
 
 // ── URL 해시 상태 공유 ────────────────────────────────────────────────
 // #s=S8&m=minmax&k=rank&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT&d=sens
@@ -41,6 +41,7 @@ function parseHash() {
   if (h.get('i')) o.picks = picksFromHash(h.get('i'))
   if (h.get('x')) o.xKey = h.get('x')
   if (h.get('y')) o.yKey = h.get('y')
+  if (/^(step[0-4]|result)$/.test(h.get('v') || '')) o.view = h.get('v')
   if (h.get('d')) {
     // d 는 '접어 둔 서랍'을 적는다. 서랍은 기본이 펼침이라, 기본 상태에서는
     // d 가 아예 붙지 않는다. (16차의 d 는 '펼친 서랍'이었다 — 규칙이 뒤집혔다.)
@@ -77,7 +78,11 @@ export default function App() {
   // 주제도가 이미 칠해져 있었는데, 사용자가 아무것도 고르지 않았는데 색이 다 칠해져
   // 있으면 그 색이 무엇을 뜻하는지 알 수 없고, 뒤이어 지표를 고르는 일도 이미 나온
   // 결과를 손보는 일처럼 보인다. 지표와 방법을 정해 점수가 나온 다음에 주제도를 그린다.
-  const [step, setStep] = useState(1)
+  // 여정 — 어느 화면에 있는가. step0~step4는 준비 페이지, result가 지도 화면이다.
+  const [view, setView] = useState('step0')
+  const [visited, setVisited] = useState(['step0'])
+  // 0단계에서 '이 지표로 계산 시작'을 눌러야 지도에 색이 칠해진다(백지도 규칙 유지)
+  const [confirmed, setConfirmed] = useState(false)
   // 통계창 아래쪽 서랍 두 개. 처음부터 둘 다 펴 둔다.
   const [drawers, setDrawers] = useState(init.drawers || ALL_OPEN())
   const [onlyHigh, setOnlyHigh] = useState(false)
@@ -85,8 +90,6 @@ export default function App() {
   const [hovered, setHovered] = useState(null)
   const [tableOpen, setTableOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
-  // EDA 모달 — 지표 탐색 · 변환·방향 · 방법별 분포 · 가중치 (작업요령 1~4단계)
-  const [edaOpen, setEdaOpen] = useState(null)   // 'explore' | 'transform' | 'stdcmp' | 'weights'
   const [xKey, setXKey] = useState(init.xKey || null)
   const [yKey, setYKey] = useState(init.yKey || null)
 
@@ -120,8 +123,6 @@ export default function App() {
     // 지표가 바뀌면 산점도 축 이름도 바뀐다. 기본 축으로 되돌린다.
     setXKey(null); setYKey(null)
     if (cur && cur !== sector && SECTOR_KEYS.includes(cur)) setSector(cur)
-    // 지표를 확정했으면 다음 칸(표준화 방법)으로 넘어간다.
-    if (step === 1) setStep(2)
   }
 
   // 시작 화면에서 부문을 골랐을 때.
@@ -139,8 +140,16 @@ export default function App() {
     setSector(k)
     setStarted(true)
     setCompare(false)
-    setStep(1)
-    setPanelOpen(false)
+    setPanelOpen(true)
+    if (resume && init.view) {
+      setView(init.view)
+      setVisited(['step0', 'step1', 'step2', 'step3', 'step4', init.view])
+      setConfirmed(true)
+    } else {
+      setView('step0')
+      setVisited(['step0'])
+      setConfirmed(false)
+    }
     if (resume) {
       setMethod(init.method || METHOD_KEYS[0])
       setMetricKey(init.metricKey || 'rank')
@@ -158,17 +167,26 @@ export default function App() {
 
   const goHome = () => {
     setStarted(false)
-    setPanelOpen(false)
-    setStep(1)
+    setView('step0')
+    setVisited(['step0'])
+    setConfirmed(false)
     setSelected(null)
     window.history.replaceState(null, '', window.location.pathname + window.location.search)
   }
 
-  // 단계가 끝나면 통계창을 연다. 다 고르기 전에 열어 두면, 아직 아무것도
-  // 정하지 않은 화면에 숫자가 가득 차 무엇을 보라는 것인지 알 수 없다.
-  const goStep = (n) => {
-    setStep(n)
-    if (n >= 3) setPanelOpen(true)
+  // 여정 이동 — 지나간 화면은 visited에 남아 여정 바에 체크가 붙는다
+  const goView = (v) => {
+    setView(v)
+    setVisited((a) => (a.includes(v) ? a : [...a, v]))
+    if (v === 'result') setPanelOpen(true)
+    const el = document.querySelector('.journey-scroll')
+    if (el) el.scrollTo({ top: 0 })
+  }
+  // 0단계 확정 — 이때부터 지도에 색이 칠해진다
+  const confirmPicks = () => {
+    setConfirmed(true)
+    recalc()
+    goView('step1')
   }
 
   const toggleDrawer = (k, v) => setDrawers((d) => ({ ...d, [k]: v }))
@@ -209,8 +227,9 @@ export default function App() {
     if (!same) p.set('i', picksToHash(cur))       // 기본 조합이면 굳이 적지 않는다
     if (xKey) p.set('x', xKey)
     if (yKey) p.set('y', yKey)
+    p.set('v', view)
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [started, sector, method, metric.key, sel, compare, panelOpen, drawers, pickVer, xKey, yKey])
+  }, [started, sector, method, metric.key, sel, compare, panelOpen, drawers, pickVer, xKey, yKey, view])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
   const onAxis = (which, key) => (which === 'x' ? setXKey(key) : setYKey(key))
@@ -232,54 +251,66 @@ export default function App() {
   return (
     <div className="shell">
       <Header onTable={() => setTableOpen(true)} sector={sector} onHome={goHome} />
-      <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
-        {/* 조작부 + 통계창 + 손잡이는 테두리 하나·모서리 하나를 함께 쓰는 한 덩어리다.
-            따로 놀던 상자 두 개가 맞물린 것처럼 보이지 않게 하기 위한 껍데기. */}
-        <div className={`deck${panelOpen ? ' open' : ''}`}>
-          <Sidebar
-            sector={sector}
-            method={method} onMethod={setMethod}
-            metric={metric} metricKey={metric.key} onMetric={setMetricKey}
-            onlyHigh={onlyHigh} onOnlyHigh={setOnlyHigh}
-            compare={compare} onCompare={setCompare}
-            onOpenPicker={() => setPickerOpen(true)}
-            step={step} onStep={goStep}
-            onOpenExplore={() => setEdaOpen('explore')}
-            onOpenTransform={() => setEdaOpen('transform')}
-            onOpenStdCmp={() => setEdaOpen('stdcmp')}
-            onOpenWeights={() => setEdaOpen('weights')}
-            edaVer={pickVer}
-          />
-          {panelOpen && (
-            <CenterPanel sector={sector} method={method} metric={metric}
-              selectedRow={selectedRow} link={link} ver={pickVer}
-              xKey={xKey} yKey={yKey} onAxis={onAxis}
-              drawers={drawers} onDrawer={toggleDrawer}
-              onOpenPicker={() => setPickerOpen(true)} />
+
+      {/* 여정 바 — 0 지표 선택 → … → 5 종합점수·지도 */}
+      <JourneyBar view={view} visited={visited} onGo={goView}
+        canGo={(picksBy[sector] || []).length > 0} />
+
+      {view !== 'result' ? (
+        /* ── 준비 단계 페이지 (0~4) — 전폭 문서형 화면 ── */
+        <div className="journey-scroll">
+          {view === 'step0' && (
+            <Step0Page sector={sector} onOpenPicker={() => setPickerOpen(true)} onNext={confirmPicks} />
+          )}
+          {view === 'step1' && (
+            <Step1Page sector={sector} onPrev={() => goView('step0')} onNext={() => goView('step2')} />
+          )}
+          {view === 'step2' && (
+            <Step2Page sector={sector} onRecalc={recalc}
+              onPrev={() => goView('step1')} onNext={() => goView('step3')} />
+          )}
+          {view === 'step3' && (
+            <Step3Page sector={sector} method={method} onMethod={setMethod}
+              onPrev={() => goView('step2')} onNext={() => goView('step4')} />
+          )}
+          {view === 'step4' && (
+            <Step4Page sector={sector} onRecalc={recalc}
+              onPrev={() => goView('step3')} onNext={() => goView('result')} />
           )}
         </div>
-        {/* 손잡이는 덱 밖으로 물려 나온 책갈피 — 덱과 같은 바탕·테두리를 쓰고
-            맞닿는 왼쪽 변만 지워, 덱에서 그대로 뻗어 나온 것처럼 보이게 한다. */}
-        <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
-        {compare
-          ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
-              ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
-          : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh}
-              blank={step < 3}
-              ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
-      </div>
+      ) : (
+        /* ── 결과 화면 — 순위 패널 | 지도(명령바) | 통계창 ── */
+        <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
+          <div className={`deck${panelOpen ? ' open' : ''}`}>
+            <RankPanel sector={sector} method={method} confirmed={confirmed}
+              selected={sel} onSelect={setSelected} ver={pickVer} />
+            {panelOpen && (
+              <CenterPanel sector={sector} method={method} metric={metric}
+                selectedRow={selectedRow} link={link} ver={pickVer}
+                xKey={xKey} yKey={yKey} onAxis={onAxis}
+                drawers={drawers} onDrawer={toggleDrawer}
+                onOpenPicker={() => setPickerOpen(true)} />
+            )}
+          </div>
+          <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
+          {confirmed && (
+            <MapBar sector={sector} method={method} onMethod={setMethod}
+              metricKey={metric.key} onMetric={setMetricKey}
+              compare={compare} onCompare={setCompare} deckW={deckW} />
+          )}
+          {compare
+            ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
+                ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
+            : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh}
+                blank={!confirmed}
+                ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
+        </div>
+      )}
       <CursorFx />
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
         selected={sel} onSelect={setSelected} ver={pickVer} />}
       {pickerOpen && <IndicatorPicker sector={sector} picksBy={picksBy}
         onApply={applyDraft} onClose={() => setPickerOpen(false)} />}
-      {edaOpen === 'explore' && <ExploreModal sector={sector} onClose={() => setEdaOpen(null)} />}
-      {edaOpen === 'transform' && <TransformModal sector={sector} onRecalc={recalc}
-        onClose={() => setEdaOpen(null)} />}
-      {edaOpen === 'stdcmp' && <StdCompareModal sector={sector} method={method}
-        onMethod={setMethod} onClose={() => setEdaOpen(null)} />}
-      {edaOpen === 'weights' && <WeightModal sector={sector} onRecalc={recalc}
-        onClose={() => setEdaOpen(null)} />}
     </div>
   )
 }

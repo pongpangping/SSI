@@ -20,7 +20,7 @@ export function rankRows(sector, method) {
   return out
 }
 
-export function RankCard({ sector, method, selected, onSelect, ver }) {
+export function RankCard({ sector, method, selected, onSelect, ver, tall = false }) {
   const [q, setQ] = useState('')
   const box = useRef(null)
   const rows = useMemo(() => rankRows(sector, method), [sector, method, ver])
@@ -37,7 +37,7 @@ export function RankCard({ sector, method, selected, onSelect, ver }) {
     <div className="rkc">
       <input className="rkc-q" placeholder="시군구 찾기…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="rkc-cols"><span>순위</span><span>지역</span><span>점수</span></div>
-      <div className="rkc-list" ref={box}>
+      <div className={`rkc-list${tall ? ' tall' : ''}`} ref={box}>
         {view.map((r) => (
           <button key={r.key} data-on={r.key === selected ? '1' : '0'}
             className={`rkc-row${r.key === selected ? ' on' : ''}`}

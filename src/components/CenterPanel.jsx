@@ -10,7 +10,7 @@ import ScatterPlot from './ScatterPlot.jsx'
 import SensitivityScatter from './SensitivityScatter.jsx'
 import SensitiveList from './SensitiveList.jsx'
 import NationalSummary from './NationalSummary.jsx'
-import { RankCard, RadarCard, rankRows } from './StatsExtras.jsx'
+import { RadarCard } from './StatsExtras.jsx'
 import SectorIcon from './SectorIcon.jsx'
 import DlMenu from './DlMenu.jsx'
 import Drawer from './Drawer.jsx'
@@ -102,15 +102,6 @@ export default function CenterPanel({
 
   const one = (fn) => () => (selectedRow ? fn(sector, method, selectedRow) : null)
 
-  // 지역별 점수 순위 팩 — 화면의 표 그대로
-  const rankPack = () => ({
-    base: `${SECTORS[sector].name}_지역별_점수순위_${m.label}`,
-    title: `지역별 점수 순위 · ${m.label}`, sub: `전국 ${N}개 시군구 · 부문점수(CI)`,
-    cols: ['순위', '시도', '시군구', '부문점수'],
-    rows: rankRows(sector, method).map((r) => [Math.round(r.rank), r.sido, r.name,
-      r.ci == null ? null : Math.round(r.ci * 10) / 10]),
-  })
-
   // 전국 요약 세 칸의 내려받기. 이쪽은 recharts가 아니라 직접 그린 막대라
   // elRef를 넘기지 않는다 — PNG는 값에서 표를 다시 그리는 쪽으로 간다.
   const NS_DL = {
@@ -171,11 +162,6 @@ export default function CenterPanel({
           <Card title="지표 구성 방사 차트" sub={`표준화값 · 전국 중앙값과 겹침 · ${m.label}`}>
             <RadarCard row={selectedRow} sector={sector} method={method} ver={ver} />
           </Card>
-          <Card title="지역별 점수 순위" sub="선택 지역이 표시된 전국 순위표"
-            dl={rankPack} dlTip={`${N}개 시군구 순위 전체`}>
-            <RankCard sector={sector} method={method} selected={link.selected}
-              onSelect={link.onSelect} ver={ver} />
-          </Card>
           <Card title="표준화 방법별 점수와 순위" dl={one(dlMethods)} dlTip="선택 지역의 방법별 점수·순위">
             <MethodCompare row={selectedRow} sector={sector} method={method} onMethod={link.onMethod} />
           </Card>
@@ -195,11 +181,6 @@ export default function CenterPanel({
               통계창을 열자마자 보이는 첫 칸이 통계가 아니라 안내문이라, 전국 통계는
               아래로 밀리고 화면은 아직 아무것도 없는 것처럼 보였다.
               같은 안내는 흐름줄 한 줄로 이미 하고 있으므로 상자는 없앤다. */}
-          <Card title="지역별 점수 순위" sub={`가중 합성 부문점수 · ${m.label}`}
-            dl={rankPack} dlTip={`${N}개 시군구 순위 전체`}>
-            <RankCard sector={sector} method={method} selected={link.selected}
-              onSelect={link.onSelect} ver={ver} />
-          </Card>
           <NationalSummary sector={sector} method={method} selected={link.selected}
             selectedRow={selectedRow} onSelect={link.onSelect} ver={ver} dlOf={nsDl} />
           <div className="nsum-all">
