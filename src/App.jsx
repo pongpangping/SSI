@@ -139,9 +139,18 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── 단계줄 — 분석 플로우에서만 ── */}
+      {/* ── 상시 배경 지도 — 값이 확정되기 전(0~4단계)에는 백지도 ── */}
+      {tab === 'flow' && step < 5 && (
+        <div className="v3-backmap">
+          <NationalMap sector={sector} metric={BLANK_METRIC} blank
+            selected={selected} hovered={null} onSelect={setSelected} onHover={() => {}} tips />
+        </div>
+      )}
+
+      {/* ── 본문 — 왼쪽 세로 단계 레일 + 가운데 작업 창 ── */}
+      <div className="v3-body">
       {tab === 'flow' && (
-        <div className="v3-steps glass noprint">
+        <aside className="v3-rail glass noprint">
           {STEPS.map((st) => (
             <button key={st.n}
               className={`v3s${step === st.n ? ' on' : ''}${st.n > 0 && !canGo ? ' off' : ''}`}
@@ -151,25 +160,8 @@ export default function App() {
               <span><b>{st.t}</b><em>{st.d}</em></span>
             </button>
           ))}
-          <div className="v3s-nav">
-            {step > 0 && <button className="ghost-btn" onClick={() => setStep(step - 1)}>← 이전</button>}
-            {step < 5 && (
-              <button className="acc-btn" disabled={!canGo}
-                onClick={() => setStep(step + 1)}>다음 단계 →</button>
-            )}
-          </div>
-        </div>
+        </aside>
       )}
-
-      {/* ── 상시 배경 지도 — 값이 확정되기 전(0~4단계)에는 백지도 ── */}
-      {tab === 'flow' && step < 5 && (
-        <div className="v3-backmap">
-          <NationalMap sector={sector} metric={BLANK_METRIC} blank
-            selected={selected} hovered={null} onSelect={setSelected} onHover={() => {}} tips />
-        </div>
-      )}
-
-      {/* ── 본문 ── */}
       <main className={`v3-main${tab === 'flow' && step === 5 ? ' wide' : ''}${tab === 'flow' && step < 5 ? ' sheetmode' : ''}`}>
         {tab === 'flow' && step < 5 && (
         <div className="v3-sheet glass">
@@ -184,7 +176,6 @@ export default function App() {
                 <b>담긴 지표 {entries.length}개</b>
                 <span>
                   <button className="ghost-btn" onClick={() => setPickerOpen(true)}>지표 선택 열기</button>
-                  <button className="acc-btn" disabled={!canGo} onClick={() => setStep(1)}>1단계 지표 탐색 →</button>
                 </span>
               </div>
               {entries.length ? (
@@ -217,6 +208,14 @@ export default function App() {
           <Step4Weights entries={entries} weights={weights}
             onWeights={(w) => setWeightsBy((prev) => ({ ...prev, ...w }))} />
         )}
+        <div className="v3-sheetnav">
+          {step > 0
+            ? <button className="ghost-btn" onClick={() => setStep(step - 1)}>← 이전 · {STEPS[step - 1].t}</button>
+            : <span />}
+          <button className="acc-btn" disabled={!canGo} onClick={() => setStep(step + 1)}>
+            다음 단계 · {STEPS[step + 1].t} →
+          </button>
+        </div>
         </div>
         )}
 
@@ -236,6 +235,7 @@ export default function App() {
             onBack={() => { setTab('flow'); setStep(5) }} />
         )}
       </main>
+      </div>
 
       {pickerOpen && (
         <IndicatorPicker sector={sector}

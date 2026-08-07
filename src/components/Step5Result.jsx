@@ -4,7 +4,8 @@ import {
 } from 'recharts'
 import NationalMap from './NationalMap.jsx'
 import { HistBars } from './EdaHist.jsx'
-import { ROWS, N, METHODS, methodOf, pctFromRank } from '../lib/pipeline.js'
+import MiniScatter from './MiniScatter.jsx'
+import { ROWS, N, METHODS, methodOf, pctFromRank, describe } from '../lib/pipeline.js'
 import { rowKey, rowIndex, shortSido } from '../lib/ssi.js'
 import { PALETTES, paletteOf, rampOf } from '../lib/palettes.js'
 
@@ -123,6 +124,32 @@ export default function Step5Result({
   }, [result, mk, selIdx])
   const wSum = result.weights.reduce((a, b) => a + b, 0) || 1
 
+  // 통계 패널 — 분포 요약 · 시도별 평균 · 산점도 축 후보 (v2 통계창 내용 복원)
+  const dist = useMemo(() => describe(result.ci[mk] || []), [result, mk])
+  const sidoAvg = useMemo(() => {
+    const bag = {}
+    ROWS.forEach((r, i) => {
+      const v = result.ci[mk]?.[i]
+      if (num(v)) (bag[r.sido] ||= []).push(v)
+    })
+    const out = Object.entries(bag).map(([sd, arr]) => ({
+      sd, n: arr.length, m: arr.reduce((a, b) => a + b, 0) / arr.length,
+    }))
+    out.sort((a, b) => b.m - a.m)
+    return out
+  }, [result, mk])
+  const scatterOpts = useMemo(() => {
+    const o = [
+      { key: 'ci', label: `부문지수 · ${m.label}`, vals: result.ci[mk] || [] },
+      { key: 'ciT', label: 'T점수', vals: result.ciT[mk] || [] },
+    ]
+    result.stages.forEach((st) => {
+      o.push({ key: `std:${st.pick.col}`, label: `${st.pick.label} · 표준화`, vals: st.std[mk] })
+      o.push({ key: `raw:${st.pick.col}`, label: `${st.pick.label} · 원값`, vals: st.raw })
+    })
+    return o
+  }, [result, mk, m.label])
+
   const csvDown = () => {
     const cols = ['시도', '시군구', '부문지수', 'T점수', '백분위', '전국순위', '10등급',
       ...result.stages.map((s) => `${s.pick.label}_표준화`)]
@@ -166,13 +193,27 @@ export default function Step5Result({
       <div className="e5-mid">
         <div className="e5-ctrl glass">
           <div className="e5c-group">
-            <u>표준화 방법</u>
-            <div className="seg">
-              {METHODS.map((mm) => (
-                <button key={mm.key} className={mk === mm.key ? 'on' : ''}
-                  onClick={() => onMethod(mm.key)}>{mm.label}</button>
-              ))}
-            </div>
+            <u>표준화 방법{compare ? ` · A ${m.label} / B ${methodOf(methodB).label}` : ''}</u>
+            <span className="e5c-palrows">
+              <span className="e5c-palrow">{compare && <em className="mono">A</em>}
+                <div className="seg">
+                  {METHODS.map((mm) => (
+                    <button key={mm.key} className={mk === mm.key ? 'on' : ''}
+                      onClick={() => onMethod(mm.key)}>{mm.label}</button>
+                  ))}
+                </div>
+              </span>
+              {compare && (
+                <span className="e5c-palrow"><em className="mono">B</em>
+                  <div className="seg">
+                    {METHODS.map((mm) => (
+                      <button key={mm.key} className={methodB === mm.key ? 'on' : ''}
+                        onClick={() => setMethodB(mm.key)}>{mm.label}</button>
+                    ))}
+                  </div>
+                </span>
+              )}
+            </span>
           </div>
           <span className="e5c-sep" />
           <div className="e5c-group">
@@ -227,14 +268,7 @@ export default function Step5Result({
               <NationalMap {...mapProps(mk, 'A')} compact tips />
             </div>
             <div className="e5-map glass-edge">
-              <div className="e5t-cap mono">
-                B ·
-                <select value={methodB} onChange={(e) => setMethodB(e.target.value)}>
-                  {METHODS.filter((x) => x.key !== mk).map((x) => (
-                    <option key={x.key} value={x.key}>{x.label}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="e5t-cap mono">B · {methodOf(methodB).label}</div>
               <NationalMap {...mapProps(methodB, 'B')} compact tips />
             </div>
           </div>
@@ -332,19 +366,29 @@ export default function Step5Result({
             <p className="e5r-note">지도나 왼쪽 표에서 시군구를 고르면 그 지역의 지표 구성이
               방사 차트로 나옵니다.</p>
             <div className="e5r-cap">부문지수 분포 · {m.label}</div>
-            <HistBars values={result.ci[mk] || []} h={90} color="var(--acc)" />
-            <div className="e5r-cap">상위 5</div>
+            {dist && (
+              <div className="e5r-figs mono">
+                <span><u>평균</u><b>{f1(dist.mean)}</b></span>
+                <span><u>중앙값</u><b>{f1(dist.med)}</b></span>
+                <span><u>표준편차</u><b>{f1(dist.sd)}</b></span>
+                <span><u>최저</u><b>{f1(dist.lo)}</b></span>
+                <span><u>최고</u><b>{f1(dist.hi)}</b></span>
+                <span><u>중간 절반</u><b>{f1(dist.q1)}~{f1(dist.q3)}</b></span>
+              </div>
+            )}
+            <HistBars values={result.ci[mk] || []} h={84} color="var(--acc)" />
+            <div className="e5r-cap">상위 10</div>
             <div className="e5r-mini">
-              {table.slice(0, 5).map((r) => (
+              {table.slice(0, 10).map((r) => (
                 <button key={r.key} onClick={() => onSelect(r.key)}>
                   <u className="mono">{Math.round(r.rank)}</u><span>{shortSido(r.sido)} {r.name}</span>
                   <b className="mono">{f1(r.ci)}</b>
                 </button>
               ))}
             </div>
-            <div className="e5r-cap">하위 5</div>
+            <div className="e5r-cap">하위 10</div>
             <div className="e5r-mini">
-              {table.slice(-5).map((r) => (
+              {table.slice(-10).map((r) => (
                 <button key={r.key} onClick={() => onSelect(r.key)}>
                   <u className="mono">{Math.round(r.rank)}</u><span>{shortSido(r.sido)} {r.name}</span>
                   <b className="mono">{f1(r.ci)}</b>
@@ -353,6 +397,25 @@ export default function Step5Result({
             </div>
           </>
         )}
+
+        {/* 공통 — 시도별 평균 · 산점도 (v2 통계창 내용) */}
+        <div className="e5r-cap">시도별 평균 비교</div>
+        <div className="e5r-sido">
+          {sidoAvg.map((o) => {
+            const lo = sidoAvg[sidoAvg.length - 1]?.m ?? 0
+            const hi = sidoAvg[0]?.m ?? 1
+            const w = ((o.m - lo) / ((hi - lo) || 1)) * 82 + 14
+            return (
+              <div key={o.sd} className={`e5rs-row${selRow && selRow.sido === o.sd ? ' on' : ''}`}>
+                <span>{shortSido(o.sd)}</span>
+                <div className="e5rs-track"><i style={{ width: `${w}%` }} /></div>
+                <b className="mono">{f1(o.m)}</b>
+              </div>
+            )
+          })}
+        </div>
+        <div className="e5r-cap">산점도 — 두 값의 관계</div>
+        <MiniScatter options={scatterOpts} selectedIdx={selIdx} />
       </aside>
       ) : (
         <button className="e5-tab e5-tab-r glass" onClick={() => setRightOpen(true)} title="구성 패널 펴기">
