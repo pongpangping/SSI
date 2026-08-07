@@ -1,4 +1,5 @@
-import { SECTORS, METHODS, methodOf, metricsFor, sectorSummary, indsOf, GRP_ORDER, N } from '../lib/ssi.js'
+import { useState } from 'react'
+import { SECTORS, METHODS, methodOf, metricsFor, sectorSummary, indsOf, GRP, N } from '../lib/ssi.js'
 import { RankCard, rankRows } from './StatsExtras.jsx'
 import DlMenu from './DlMenu.jsx'
 
@@ -88,9 +89,86 @@ export function RankPanel({ sector, method, confirmed, selected, onSelect, ver }
 // 이제 '지도 값 → 표준화 방법 → 2종 비교'가 왼쪽부터 순서대로 놓이고,
 // 어떤 것과도 겹치지 않는다. 비교 모드에서는 같은 자리가 안내문과
 // '단일 지도로 되돌리기'로 바뀐다 — 바 자체는 늘 같은 높이로 서 있다.
+// 지도 값 고르기 (39차) — 22~35줄짜리 기본 드롭다운을 걷어냈다. 목록이 길었던
+// 이유는 원데이터가 지표마다 네 줄(원값·표준화·T·순위)씩 차지해서다. 이제
+// 단추를 누르면 펼쳐지는 판에서 지표는 한 줄, 네 가지 보기는 그 줄의 작은
+// 단추 넷으로 접힌다. 부문 종합·민감도·플래그는 원래 짧으니 목록 그대로.
+const VAR_LABEL = { raw: '원값', std: '표준화', t: 'T점수', rank: '순위' }
+const VAR_ORDER = ['raw', 'std', 't', 'rank']
+
+export function MetricPicker({ sector, method, value, onChange, align = 'left', small = false }) {
+  const [open, setOpen] = useState(false)
+  const items = metricsFor(sector, method)
+  const cur = items.find((x) => x.key === value) || items[0]
+  const of = (g) => items.filter((x) => x.group === g)
+  const bySub = []
+  of(GRP.raw).forEach((x) => {
+    const kind = x.key.split(':')[0]
+    const g = bySub.find((y) => y.sub === x.sub)
+    if (g) g.v[kind] = x
+    else bySub.push({ sub: x.sub, v: { [kind]: x } })
+  })
+  const pick = (k) => { onChange(k); setOpen(false) }
+  const List = ({ list }) => (
+    <div className="mtp-list">
+      {list.map((x) => (
+        <button key={x.key} className={x.key === cur?.key ? 'on' : ''} title={x.desc}
+          onClick={() => pick(x.key)}>{x.label}</button>
+      ))}
+    </div>
+  )
+  return (
+    <div className={`mtp-wrap${small ? ' small' : ''}`}>
+      <button className={`mtp-btn${open ? ' open' : ''}`} onClick={() => setOpen(!open)}
+        title={cur?.desc || '지도에 칠할 값'}>
+        <b>{cur?.sub ? `${cur.sub} · ` : ''}{cur?.label || '—'}</b>
+        <i>{open ? '▴' : '▾'}</i>
+      </button>
+      {open && (
+        <>
+          <div className="mtp-veil" onClick={() => setOpen(false)} />
+          <div className={`mtp${align === 'right' ? ' right' : ''}`}>
+            <div className="mtp-sec">
+              <u>{GRP.total}</u>
+              <List list={of(GRP.total)} />
+            </div>
+            {bySub.length > 0 && (
+              <div className="mtp-sec">
+                <u>{GRP.raw} <em>지표 한 줄 · 보기 네 가지</em></u>
+                <div className="mtp-grid">
+                  {bySub.map((r) => (
+                    <div key={r.sub} className="mtp-row">
+                      <b title={r.sub}>{r.sub}</b>
+                      <span>
+                        {VAR_ORDER.map((k) => (r.v[k] ? (
+                          <button key={k} className={r.v[k].key === cur?.key ? 'on' : ''}
+                            title={r.v[k].desc} onClick={() => pick(r.v[k].key)}>{VAR_LABEL[k]}</button>
+                        ) : null))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mtp-sec">
+              <u>{GRP.sens}</u>
+              <List list={of(GRP.sens)} />
+            </div>
+            {of(GRP.flag).length > 0 && (
+              <div className="mtp-sec">
+                <u>{GRP.flag}</u>
+                <List list={of(GRP.flag)} />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare, onReport }) {
   const items = metricsFor(sector, method)
-  const groups = GRP_ORDER.map((g) => [g, items.filter((x) => x.group === g)]).filter(([, l]) => l.length)
   const cur = items.find((x) => x.key === metricKey)
   const m = methodOf(method)
   if (compare) {
@@ -109,17 +187,8 @@ export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare,
   return (
     <div className="cmdbar">
       <div className="cb-grp">
-        <label htmlFor="cb-metric">지도 값</label>
-        <select id="cb-metric" value={metricKey} onChange={(e) => onMetric(e.target.value)}
-          title="지도에 칠할 값 — 네 묶음 안에서 고릅니다">
-          {groups.map(([g, list]) => (
-            <optgroup key={g} label={g}>
-              {list.map((x) => (
-                <option key={x.key} value={x.key}>{x.sub ? `${x.sub} · ` : ''}{x.label}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <label>지도 값</label>
+        <MetricPicker sector={sector} method={method} value={metricKey} onChange={onMetric} />
         {cur?.group && <em className="cb-tag">{cur.group}</em>}
       </div>
       <span className="cb-sep" />

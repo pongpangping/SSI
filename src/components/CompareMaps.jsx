@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NationalMap from './NationalMap.jsx'
+import { MetricPicker } from './ResultChrome.jsx'
 import {
   metricFor, metricsFor, methodOf, METHODS, SECTORS, SECTOR_KEYS, CAMP, CAMP_REPS,
   campOf, valuesOf, rowIndex, ROWS,
@@ -29,13 +30,7 @@ function diffCount(mA, mB) {
   return a.reduce((n, x, i) => n + (x !== b[i] ? 1 : 0), 0)
 }
 
-function SidePick({ side, on, onChange }) {
-  const list = metricsFor(side.sector, side.method)
-  const groups = []
-  list.forEach((m) => {
-    const g = groups.find((x) => x.g === m.group)
-    if (g) g.items.push(m); else groups.push({ g: m.group, items: [m] })
-  })
+function SidePick({ side, onChange, align = 'left' }) {
   return (
     <div className="cv-pick">
       <select value={side.sector} title="부문"
@@ -46,14 +41,9 @@ function SidePick({ side, on, onChange }) {
         onChange={(e) => onChange({ ...side, method: e.target.value, metricKey: safeKey(side.sector, e.target.value, side.metricKey) })}>
         {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
       </select>
-      <select value={side.metricKey} title="보는 항목"
-        onChange={(e) => onChange({ ...side, metricKey: e.target.value })}>
-        {groups.map((g) => (
-          <optgroup key={g.g} label={g.g}>
-            {g.items.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-          </optgroup>
-        ))}
-      </select>
+      {/* 보는 항목 — 명령바와 같은 두 층 고르기 판(39차). 긴 목록이 접힌다. */}
+      <MetricPicker sector={side.sector} method={side.method} value={side.metricKey}
+        onChange={(k) => onChange({ ...side, metricKey: k })} align={align} small />
     </div>
   )
 }
@@ -116,7 +106,7 @@ export default function CompareMaps({
       <div className="cv-free">
         <SidePick side={A} onChange={setA} />
         <span className="cv-vs">대비</span>
-        <SidePick side={B} onChange={setB} />
+        <SidePick side={B} onChange={setB} align="right" />
       </div>
 
       <div className="abm-bar">
