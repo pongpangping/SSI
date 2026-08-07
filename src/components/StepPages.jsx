@@ -106,7 +106,7 @@ export function Step1Page({ sector, onPrev, onNext }) {
                 </span>
               </div>
               {e.desc && <p className="e1-desc">{e.desc}</p>}
-              <HistBars values={v}
+              <HistBars values={v} h={58}
                 marks={[{ v: st.mean, color: '#E8850C' }, { v: st.med, color: '#334155', dash: true }]} />
               <div className="e1-legend"><span><i className="lg-a" />평균 {fmtRaw(st.mean)}</span>
                 <span><i className="lg-b" />중위 {fmtRaw(st.med)}</span></div>
@@ -213,7 +213,7 @@ export function Step2Page({ sector, onRecalc, onPrev, onNext }) {
                   <span><i className="lg-b" />변환 전</span>
                   {changed && <span><i className="lg-a2" />변환 후</span>}
                 </div>
-                <ShapeCompare before={raw} after={after} changed={changed} W={520} h={168} bins={36} />
+                <ShapeCompare before={raw} after={after} changed={changed} W={520} h={104} bins={36} />
                 <div className="s2-delta">
                   {changed ? (
                     <>

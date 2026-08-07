@@ -393,3 +393,87 @@
 .s2-winz input { width: 60px; background: var(--surface); color: var(--ink);
   border: 1px solid var(--line-strong); border-radius: 7px; padding: 4.5px 7px; font-size: var(--fs-3); }
 .s2-winz i { font-style: normal; color: var(--ink3); }
+
+/* ============================================================
+   33.1차 — 밀도 조정: 글씨·그림·여백 한 단계씩 축소
+   ============================================================ */
+/* 단계 페이지 공통 */
+.stp { padding: 18px 24px 30px; }
+.stp-head { margin-bottom: 13px; padding-bottom: 11px; }
+.stp-head h2 { font-size: 17px; margin: 3px 0 4px; }
+.stp-head p { font-size: var(--fs-3); }
+.stp-no { font-size: 9px; }
+.stp-nav { margin-top: 16px; padding-top: 12px; }
+.stp-prev { font-size: var(--fs-3); padding: 7px 13px; }
+.stp-next { font-size: var(--fs-3); padding: 8px 14px; }
+.stp-lede { font-size: var(--fs-3); margin-bottom: 10px; }
+
+/* 여정 바 */
+.jb { padding: 5px 12px; }
+.jb-step { padding: 4px 9px; }
+.jb-step u { width: 18px; height: 18px; font-size: 10px; border-radius: 6px; }
+.jb-step b { font-size: var(--fs-2); }
+.jb-step em { font-size: 9px; }
+
+/* 0단계 */
+.s0-sum b { font-size: var(--fs-5); }
+.s0-card { padding: 10px 12px; gap: 5px; }
+.s0-top b { font-size: var(--fs-4); }
+.s0-top u { width: 18px; height: 18px; font-size: 10px; }
+.s0-meta span { font-size: 9.5px; padding: 2px 7px; }
+.s0-card > p { font-size: var(--fs-2); }
+.stp-add { min-height: 84px; }
+.stp-add i { font-size: 17px; }
+.stp-add b { font-size: var(--fs-3); }
+
+/* 1단계 */
+.e1-grid { gap: 9px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.e1-card { padding: 10px 12px; gap: 6px; }
+.e1-head b { font-size: var(--fs-4); }
+.e1-tags em { font-size: 9px; padding: 2px 6px; }
+.e1-stat { padding: 4px 7px; }
+.e1-stat u { font-size: 8.5px; }
+.e1-stat b { font-size: var(--fs-2); }
+.e1-legend { font-size: 9px; margin-top: 3px; }
+
+/* 2단계 */
+.s2-card { margin-bottom: 10px; }
+.s2-head { padding: 8px 13px; gap: 9px; }
+.s2-head > u { width: 18px; height: 18px; font-size: 10px; }
+.s2-title b { font-size: var(--fs-4); }
+.s2-title span { font-size: 9.5px; }
+.s2-dirseg button { padding: 4px 9px; font-size: 10px; }
+.s2-dir > em { font-size: 9px; }
+.s2-body { grid-template-columns: 1fr 280px; }
+.s2-chart { padding: 10px 14px 9px; }
+.s2-lg { font-size: 9px; margin-bottom: 4px; }
+.s2-delta { font-size: var(--fs-2); gap: 14px; margin-top: 6px; }
+.s2-rx { padding: 10px 12px 12px; gap: 5px; }
+.s2-cap { font-size: 9px; }
+.s2-cap2 { margin-top: 5px; }
+.s2-help { font-size: 9px; padding: 2px 7px; }
+.s2-opt { padding: 5px 9px; gap: 8px; border-radius: 9px; }
+.s2-glyph { width: 36px; height: 17px; }
+.s2-opt span b { font-size: var(--fs-3); }
+.s2-opt span em { font-size: 9px; }
+.s2-radio { width: 12px; height: 12px; }
+.s2-wz { padding: 5px 9px; gap: 8px; border-radius: 9px; }
+.s2-wz span b { font-size: var(--fs-3); }
+.s2-wz span em { font-size: 9px; }
+.s2-winz { font-size: var(--fs-2); }
+.s2-winz input { width: 52px; padding: 3.5px 6px; font-size: var(--fs-2); }
+
+/* 3단계 */
+.e3-hcell { padding: 5px 22px 5px 9px; }
+.e3-hcell b { font-size: var(--fs-2); }
+.e3-row { padding: 7px; }
+.e3-name b { font-size: var(--fs-3); }
+
+/* 4단계 */
+.e4-row { padding: 6px 5px; grid-template-columns: 180px 1fr 90px; gap: 11px; }
+.e4-name b { font-size: var(--fs-3); }
+.stp-wbox { padding: 13px 15px; }
+/* 분포 그림 높이 고정 — 폭에 따라 세로로 늘어나지 않게 */
+.s2-chart .eda-hist { height: 118px; }
+.e1-card .eda-hist { height: 58px; }
+.e3-cell .eda-hist { height: 44px; }
