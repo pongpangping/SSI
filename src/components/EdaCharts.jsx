@@ -32,16 +32,18 @@ function shapePath(values, bins, W, h) {
   return `M0,${h - 3} L${pts.join(' L')} L${W},${h - 3}`
 }
 
-export function ShapeCompare({ before, after, changed }) {
-  const W = 300, h = 92
-  const pb = useMemo(() => shapePath(before, 30, W, h), [before])
-  const pa = useMemo(() => (changed ? shapePath(after, 30, W, h) : null), [after, changed])
+export function ShapeCompare({ before, after, changed, W = 300, h = 92, bins = 30 }) {
+  const pb = useMemo(() => shapePath(before, bins, W, h), [before, bins, W, h])
+  const pa = useMemo(() => (changed ? shapePath(after, bins, W, h) : null), [after, changed, bins, W, h])
   if (!pb) return <div className="eda-empty">자료 없음</div>
   return (
     <svg className="eda-hist" viewBox={`0 0 ${W} ${h}`} preserveAspectRatio="none">
+      {[0.25, 0.5, 0.75].map((t) => (
+        <line key={t} x1={W * t} x2={W * t} y1={6} y2={h - 3} stroke="rgba(15,23,42,0.05)" strokeWidth="1" />
+      ))}
       <line x1="0" x2={W} y1={h - 3} y2={h - 3} stroke="rgba(15,23,42,0.18)" strokeWidth="1" />
-      <path d={pb} fill="rgba(15,23,42,0.05)" stroke="rgba(15,23,42,0.5)" strokeWidth="1.3" strokeDasharray="4 3" />
-      {pa && <path d={pa} fill="rgba(11,147,238,0.13)" stroke="#0B93EE" strokeWidth="1.8" />}
+      <path d={pb} fill="rgba(15,23,42,0.06)" stroke="rgba(15,23,42,0.5)" strokeWidth="1.3" strokeDasharray="4 3" />
+      {pa && <path d={pa} fill="rgba(11,147,238,0.16)" stroke="#0B93EE" strokeWidth="2" />}
     </svg>
   )
 }

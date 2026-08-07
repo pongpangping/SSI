@@ -157,6 +157,18 @@ function TransformHelp({ onClose }) {
   )
 }
 
+// 변환 선택지에 붙는 작은 모양 그림 — 어떤 분포일 때 쓰는지 말 대신 모양으로
+const RX_GLYPH = {
+  none: <path d="M3,21 Q14,21 20,8 Q26,-3 32,8 Q38,21 49,21 Z" />,
+  log: <path d="M3,21 L3,4 Q8,4 12,12 Q18,21 49,21 Z" />,
+  rlog: <path d="M3,21 Q34,21 40,12 Q44,4 49,4 L49,21 Z" />,
+}
+const RX_DESC = {
+  none: '지금 분포 그대로 표준화합니다',
+  log: '오른쪽 긴 꼬리를 눌러 몰림을 풉니다',
+  rlog: '왼쪽 긴 꼬리를 눌러 몰림을 풉니다',
+}
+
 export function Step2Page({ sector, onRecalc, onPrev, onNext }) {
   const inds = indsOf(sector)
   const [help, setHelp] = useState(false)
@@ -165,68 +177,88 @@ export function Step2Page({ sector, onRecalc, onPrev, onNext }) {
 
   return (
     <PageShell no={2} title="변환 · 방향"
-      desc="지표마다 방향(P/N) · 윈저라이징 · 로그화/반로그화를 정합니다. 점선이 변환 전, 실선이 변환 후 분포이며, 바꾸는 즉시 다시 계산됩니다."
+      desc="지표마다 방향(P/N)을 정하고, 분포 모양을 보며 로그화·반로그화와 윈저라이징을 겁니다. 바꾸는 즉시 그림이 겹쳐 보이고 계산도 다시 됩니다."
       nav={<NavBtns onPrev={onPrev} onNext={onNext} nextLabel="다음 단계 · 표준화 →" />}>
-      <p className="stp-lede">
-        <button className="eda-link" onClick={() => setHelp(true)}>어떤 모양일 때 무엇을 쓰나 — 설명</button>
-      </p>
-      {inds.map((e) => {
+      {inds.map((e, idx) => {
         const c = cfgOf(e.col, e.dir)
         const raw = SERIES[e.col] || []
         const after = preprocess(raw, c)
         const changed = c.transform !== 'none' || c.winsor?.on
         const st0 = describe(raw), st1 = describe(after)
         return (
-          <div key={e.col} className="e2-row">
-            <div className="e2-left">
-              <div className="e2-name"><b>{e.label}</b>
-                <span>{e.year}년{e.unit ? ` · ${e.unit}` : ''} · 지표체계 방향 {e.dir === '+' ? 'P' : 'N'}</span></div>
-              <div>
-                <u className="e2-cap">① 방향</u>
-                <div className="seg">
+          <div key={e.col} className="s2-card">
+            {/* 머리줄 — 이름 · 메타, 오른쪽에 방향(분포 모양과 무관한 뜻의 문제라 따로) */}
+            <div className="s2-head">
+              <u>{idx + 1}</u>
+              <div className="s2-title">
+                <b>{e.label}</b>
+                <span>{e.year}년{e.unit ? ` · ${e.unit}` : ''} · 지표체계 방향 {e.dir === '+' ? 'P(▲)' : 'N(▼)'}</span>
+              </div>
+              <div className="s2-dir">
+                <em>방향</em>
+                <div className="s2-dirseg">
                   <button className={c.dir === '+' ? 'on p' : ''}
-                    onClick={() => upd(e.col, { ...c, dir: '+' })}>P 커질수록 좋음</button>
+                    onClick={() => upd(e.col, { ...c, dir: '+' })}>P · 커질수록 좋음</button>
                   <button className={c.dir === '-' ? 'on n' : ''}
-                    onClick={() => upd(e.col, { ...c, dir: '-' })}>N 작을수록 좋음</button>
+                    onClick={() => upd(e.col, { ...c, dir: '-' })}>N · 작을수록 좋음</button>
                 </div>
-                {c.dir !== e.dir && <div className="e2-note warn">지표체계 기본 방향과 다르게 골랐습니다.</div>}
-              </div>
-              <div>
-                <u className="e2-cap">② 윈저라이징 — 극단값 눌러 담기</u>
-                <div className="seg">
-                  <button className={!c.winsor.on ? 'on' : ''}
-                    onClick={() => upd(e.col, { ...c, winsor: { ...c.winsor, on: false } })}>안 함</button>
-                  <button className={c.winsor.on ? 'on' : ''}
-                    onClick={() => upd(e.col, { ...c, winsor: { ...c.winsor, on: true } })}>적용</button>
-                </div>
-                {c.winsor.on && (
-                  <div className="e2-winz">
-                    하위 <input type="number" min="0" max="25" step="0.5" value={c.winsor.lo}
-                      onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, lo: +ev.target.value } })} />%
-                    · 상위 <input type="number" min="75" max="100" step="0.5" value={c.winsor.hi}
-                      onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, hi: +ev.target.value } })} />%
-                    밖을 경계값으로
-                  </div>
-                )}
-              </div>
-              <div>
-                <u className="e2-cap">③ 변환</u>
-                <div className="seg">
-                  {TRANSFORMS.map((t) => (
-                    <button key={t.key} className={c.transform === t.key ? 'on' : ''}
-                      onClick={() => upd(e.col, { ...c, transform: t.key })}>{t.label}</button>
-                  ))}
-                </div>
+                {c.dir !== e.dir && <i className="s2-dirwarn">기본 방향과 다르게 골랐습니다</i>}
               </div>
             </div>
-            <div className="e2-right">
-              <ShapeCompare before={raw} after={after} changed={changed} />
-              <div className="e1-legend"><span><i className="lg-b" />변환 전</span>
-                {changed ? <span><i className="lg-a2" />변환 후</span> : <span className="dim">아직 그대로</span>}</div>
-              <div className="e2-nums">
-                <span>왜도 {f2(st0?.skew)}{changed && st1 && <b> → {f2(st1.skew)}</b>}</span>
-                <span>범위 {st0 ? `${fmtRaw(st0.lo)} ~ ${fmtRaw(st0.hi)}` : '—'}
-                  {changed && st1 && <b> → {fmtRaw(st1.lo)} ~ {fmtRaw(st1.hi)}</b>}</span>
+
+            <div className="s2-body">
+              {/* 왼쪽 — 큰 분포 그림이 주인공. 전(점선)/후(실선) 겹침 + 변화량 */}
+              <div className="s2-chart">
+                <div className="s2-lg">
+                  <span><i className="lg-b" />변환 전</span>
+                  {changed && <span><i className="lg-a2" />변환 후</span>}
+                </div>
+                <ShapeCompare before={raw} after={after} changed={changed} W={520} h={168} bins={36} />
+                <div className="s2-delta">
+                  {changed ? (
+                    <>
+                      <span>왜도 <b>{f2(st0?.skew)}</b> <i>→</i> <b className="acc">{f2(st1?.skew)}</b></span>
+                      <span>범위 <b>{fmtRaw(st0?.lo)}~{fmtRaw(st0?.hi)}</b> <i>→</i> <b className="acc">{fmtRaw(st1?.lo)}~{fmtRaw(st1?.hi)}</b></span>
+                    </>
+                  ) : (
+                    <>
+                      <span>왜도 <b>{f2(st0?.skew)}</b></span>
+                      <span>범위 <b>{fmtRaw(st0?.lo)} ~ {fmtRaw(st0?.hi)}</b></span>
+                      <span className="dim">오른쪽에서 변환을 고르면 바뀐 분포가 파란 실선으로 겹쳐집니다</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* 오른쪽 — 처방. 변환은 모양 그림이 달린 선택 카드, 윈저는 스위치 한 줄 */}
+              <div className="s2-rx">
+                <div className="s2-cap">변환
+                  <button className="s2-help" onClick={() => setHelp(true)} title="어떤 모양일 때 무엇을 쓰나">? 설명</button>
+                </div>
+                <div className="s2-opts">
+                  {TRANSFORMS.map((t) => (
+                    <button key={t.key} className={`s2-opt${c.transform === t.key ? ' on' : ''}`}
+                      onClick={() => upd(e.col, { ...c, transform: t.key })}>
+                      <svg viewBox="0 0 52 24" className="s2-glyph">{RX_GLYPH[t.key]}</svg>
+                      <span><b>{t.label}</b><em>{RX_DESC[t.key]}</em></span>
+                      <i className="s2-radio" />
+                    </button>
+                  ))}
+                </div>
+                <div className="s2-cap s2-cap2">극단값</div>
+                <label className={`s2-wz${c.winsor.on ? ' on' : ''}`}>
+                  <input type="checkbox" checked={c.winsor.on}
+                    onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, on: ev.target.checked } })} />
+                  <span><b>윈저라이징</b><em>경계 밖 값을 경계값으로 눌러 담습니다</em></span>
+                </label>
+                {c.winsor.on && (
+                  <div className="s2-winz">
+                    하위 <input type="number" min="0" max="25" step="0.5" value={c.winsor.lo}
+                      onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, lo: +ev.target.value } })} />%
+                    <i>·</i> 상위 <input type="number" min="75" max="100" step="0.5" value={c.winsor.hi}
+                      onChange={(ev) => upd(e.col, { ...c, winsor: { ...c.winsor, hi: +ev.target.value } })} />%
+                  </div>
+                )}
               </div>
             </div>
           </div>

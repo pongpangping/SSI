@@ -322,3 +322,74 @@
 /* ── 지표 고르기 창 — 얼굴 다듬기 ──────────────────────────── */
 .ip-box, .ipk { border-radius: 16px; }
 .ip-head b, .ipk-head b { letter-spacing: -0.02em; }
+
+/* ============================================================
+   33차 — 2단계(변환·방향) 재설계: 분포가 주인공, 처방은 그림 달린 선택 카드
+   ============================================================ */
+.s2-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow-card); margin-bottom: 14px; overflow: hidden; }
+.s2-head { display: flex; align-items: center; gap: 11px; padding: 12px 16px;
+  border-bottom: 1px solid var(--line); background: var(--bg); }
+.s2-head > u { text-decoration: none; width: 22px; height: 22px; border-radius: 7px; flex: none;
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  background: var(--accent-weak); color: var(--accent-strong); }
+.s2-title { margin-right: auto; min-width: 0; }
+.s2-title b { display: block; font-size: var(--fs-5); line-height: 1.3; }
+.s2-title span { font-size: 10.5px; color: var(--ink3); }
+.s2-dir { display: flex; align-items: center; gap: 8px; }
+.s2-dir > em { font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  color: var(--ink3); }
+.s2-dirseg { display: inline-flex; gap: 3px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 9px; padding: 3px; }
+.s2-dirseg button { border: 0; background: transparent; color: var(--ink2); font-size: var(--fs-2);
+  font-weight: 700; padding: 6px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.s2-dirseg button.on.p { background: #1D9A55; color: #fff; }
+.s2-dirseg button.on.n { background: #E8720C; color: #fff; }
+.s2-dirwarn { font-style: normal; font-size: 10px; color: #A85E06; }
+.s2-body { display: grid; grid-template-columns: 1fr 340px; gap: 0; }
+.s2-chart { padding: 14px 18px 12px; border-right: 1px solid var(--line); min-width: 0; }
+.s2-lg { display: flex; gap: 14px; font-size: 10px; color: var(--ink3); margin-bottom: 6px; }
+.s2-lg i { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--accent);
+  vertical-align: middle; margin-right: 5px; }
+.s2-lg .lg-b { border-top-style: dashed; border-top-color: rgba(15,23,42,0.55); }
+.s2-lg .lg-a2 { border-top-color: #0B93EE; }
+.s2-delta { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; margin-top: 8px;
+  font-size: var(--fs-3); color: var(--ink2); }
+.s2-delta b { font-weight: 750; }
+.s2-delta b.acc { color: var(--accent-strong); }
+.s2-delta i { font-style: normal; color: var(--ink3); padding: 0 2px; }
+.s2-delta .dim { color: var(--ink3); font-size: var(--fs-2); }
+.s2-rx { padding: 13px 16px 15px; display: flex; flex-direction: column; gap: 7px; background: var(--surface); }
+.s2-cap { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--ink3);
+  display: flex; align-items: center; justify-content: space-between; }
+.s2-cap2 { margin-top: 7px; }
+.s2-help { border: 1px solid var(--line-strong); background: var(--surface); color: var(--accent-strong);
+  font-size: 10px; font-weight: 700; border-radius: 7px; padding: 3px 8px; cursor: pointer; }
+.s2-help:hover { border-color: var(--accent); }
+.s2-opts { display: flex; flex-direction: column; gap: 5px; }
+.s2-opt { display: flex; align-items: center; gap: 11px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 8px 11px; }
+.s2-opt:hover { border-color: var(--line-strong); }
+.s2-opt.on { border-color: var(--accent); background: var(--accent-weak); }
+.s2-glyph { width: 52px; height: 24px; flex: none; fill: rgba(15,23,42,0.28); }
+.s2-opt.on .s2-glyph { fill: var(--accent); }
+.s2-opt span { display: flex; flex-direction: column; gap: 1px; min-width: 0; margin-right: auto; }
+.s2-opt span b { font-size: var(--fs-4); color: var(--ink); }
+.s2-opt span em { font-style: normal; font-size: 10px; color: var(--ink3); line-height: 1.4; }
+.s2-radio { width: 14px; height: 14px; border-radius: 50%; flex: none;
+  border: 1.6px solid var(--line-strong); }
+.s2-opt.on .s2-radio { border-color: var(--accent); background: var(--accent);
+  box-shadow: inset 0 0 0 3px #fff; }
+.s2-wz { display: flex; align-items: center; gap: 10px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 8px 11px; }
+.s2-wz:hover { border-color: var(--line-strong); }
+.s2-wz.on { border-color: var(--accent); background: var(--accent-weak); }
+.s2-wz input { accent-color: var(--accent); width: 15px; height: 15px; flex: none; }
+.s2-wz span { display: flex; flex-direction: column; gap: 1px; }
+.s2-wz span b { font-size: var(--fs-4); color: var(--ink); }
+.s2-wz span em { font-style: normal; font-size: 10px; color: var(--ink3); }
+.s2-winz { display: flex; align-items: center; gap: 6px; font-size: var(--fs-3); color: var(--ink2);
+  padding: 2px 4px 0; }
+.s2-winz input { width: 60px; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 7px; padding: 4.5px 7px; font-size: var(--fs-3); }
+.s2-winz i { font-style: normal; color: var(--ink3); }
