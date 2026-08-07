@@ -40,10 +40,11 @@ function parseHash() {
   if (h.get('c') === '1') o.compare = true
   if (h.get('p') === '0') o.panelOpen = false
   if (h.get('q') === '1') o.rankOpen = true
+  if (['blue', 'green', 'heat', 'purple'].includes(h.get('h'))) o.hue = h.get('h')
   if (h.get('i')) o.picks = picksFromHash(h.get('i'))
   if (h.get('x')) o.xKey = h.get('x')
   if (h.get('y')) o.yKey = h.get('y')
-  if (/^(step[0-4]|result)$/.test(h.get('v') || '')) o.view = h.get('v')
+  // v(화면 위치)는 40차부터 읽지 않는다 — 새로고침하면 언제나 0단계부터.
   if (h.get('d')) {
     // d 는 '접어 둔 서랍'을 적는다. 서랍은 기본이 펼침이라, 기본 상태에서는
     // d 가 아예 붙지 않는다. (16차의 d 는 '펼친 서랍'이었다 — 규칙이 뒤집혔다.)
@@ -69,6 +70,8 @@ export default function App() {
   const [sector, setSector] = useState(init.sector || SECTOR_KEYS[0])
   const [method, setMethod] = useState(init.method || METHOD_KEYS[0])
   const [metricKey, setMetricKey] = useState(init.metricKey || 'rank')
+  // 지도 색(40차) — 'auto'면 값 종류가 정하는 기본 색, 아니면 사용자가 고른 계열
+  const [hue, setHue] = useState(init.hue || 'auto')
   const [compare, setCompare] = useState(false)
   // 조작부는 항상 열려 있다. 접을 수 있는 것은 통계 패널 하나뿐.
   // 처음 들어오면 접혀 있다가, 꼭 골라야 하는 두 가지를 정하면 열린다.
@@ -148,15 +151,13 @@ export default function App() {
     setStarted(true)
     setCompare(false)
     setPanelOpen(true)
-    if (resume && init.view) {
-      setView(init.view)
-      setVisited(['step0', 'step1', 'step2', 'step3', 'step4', init.view])
-      setConfirmed(true)
-    } else {
-      setView('step0')
-      setVisited(['step0'])
-      setConfirmed(false)
-    }
+    // 여정은 언제나 0단계부터 차례대로 밟는다(40차). 새로고침하면 밟았던
+    // 체크도 사라진다 — 이번 방문에서 실제로 지나온 단계에만 체크가 붙는다.
+    // 이어보기(resume)가 되살리는 것은 고른 값들(지표 조합·방법·색·선택 지역)
+    // 뿐이고, 화면 위치는 되살리지 않는다.
+    setView('step0')
+    setVisited(['step0'])
+    setConfirmed(false)
     if (resume) {
       setMethod(init.method || METHOD_KEYS[0])
       setMetricKey(init.metricKey || 'rank')
@@ -164,6 +165,7 @@ export default function App() {
       setDrawers(init.drawers || ALL_OPEN())
       setXKey(init.xKey || null); setYKey(init.yKey || null)
       setRankOpen(!!init.rankOpen)
+      setHue(init.hue || 'auto')
     } else {
       setMethod(METHOD_KEYS[0])
       setMetricKey('rank')
@@ -171,6 +173,7 @@ export default function App() {
       setDrawers(ALL_OPEN())
       setXKey(null); setYKey(null)
       setRankOpen(false)
+      setHue('auto')
     }
   }
 
@@ -248,9 +251,9 @@ export default function App() {
     if (!same) p.set('i', picksToHash(cur))       // 기본 조합이면 굳이 적지 않는다
     if (xKey) p.set('x', xKey)
     if (yKey) p.set('y', yKey)
-    p.set('v', view)
+    if (hue !== 'auto') p.set('h', hue)
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [started, sector, method, metric.key, sel, compare, panelOpen, rankOpen, drawers, pickVer, xKey, yKey, view])
+  }, [started, sector, method, metric.key, sel, compare, panelOpen, rankOpen, drawers, pickVer, xKey, yKey, hue])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
   const onAxis = (which, key) => (which === 'x' ? setXKey(key) : setYKey(key))
@@ -307,6 +310,7 @@ export default function App() {
           <MapBar sector={sector} method={method} onMethod={setMethod}
             metricKey={metric.key} onMetric={setMetricKey}
             compare={compare} onCompare={setCompare}
+            hue={hue} onHue={setHue}
             onReport={() => setReportOpen(true)} />
         )}
         <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
@@ -333,7 +337,7 @@ export default function App() {
             ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
                 ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
             : <NationalMap sector={sector} metric={metric} method={method} onlyHigh={onlyHigh}
-                blank={!confirmed}
+                blank={!confirmed} hue={hue === 'auto' ? null : hue}
                 ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
         </div>
         </>

@@ -748,3 +748,20 @@
   padding: 4px 8px; cursor: pointer; white-space: nowrap; }
 .mtp-row > span button:hover { border-color: var(--accent); color: var(--accent-strong); }
 .mtp-row > span button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ============================================================
+   40차 — 지도 색 고르기 · 여정 새로고침 초기화
+   색 점 다섯 개(자동 + 파랑·초록·주황·보라). 명령바와 2종 비교의
+   좌·우 조작줄에 같은 것이 붙는다. 여정 초기화는 App 쪽 논리 변경.
+   ============================================================ */
+.cb-hues { display: inline-flex; align-items: center; gap: 5px; }
+.hue-auto { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink2);
+  font-size: 11px; font-weight: 700; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.hue-auto:hover { border-color: var(--accent); color: var(--accent-strong); }
+.hue-auto.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.hue-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff;
+  outline: 1px solid var(--line-strong); cursor: pointer; padding: 0; }
+.hue-dot:hover { outline-color: var(--accent); }
+.hue-dot.on { outline: 2.5px solid var(--ink); }
+.cb-hues.small .hue-auto { font-size: 10px; padding: 3px 8px; }
+.cb-hues.small .hue-dot { width: 15px; height: 15px; }

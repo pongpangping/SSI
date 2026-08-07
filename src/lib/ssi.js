@@ -210,6 +210,7 @@ export const pctOf = (rank) => pctFromRank(rank, N)
 export const HEAT = ['#FFF3E6', '#FFDDBC', '#FFC38C', '#FDA35A', '#F5760D', '#C85B06', '#8F3F03']
 export const BLUE = ['#EAF6FF', '#CBE8FC', '#9AD3FF', '#5FB6F5', '#0B93EE', '#0A6FB3', '#08507F']
 export const GREEN = ['#EDFAF0', '#CDF0D6', '#A2E3B4', '#6FD08D', '#2FB86A', '#1D8A4E', '#136135']
+export const PURPLE = ['#F5F0FC', '#E4D6F8', '#C9AFF0', '#A97FE4', '#8248D2', '#6231A6', '#452274']
 export const DIV = ['#08507F', '#0B93EE', '#9AD3FF', '#EEF1F5', '#FFC38C', '#F5760D', '#8F3F03']
 
 const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }

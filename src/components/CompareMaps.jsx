@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NationalMap from './NationalMap.jsx'
-import { MetricPicker } from './ResultChrome.jsx'
+import { MetricPicker, HueDots } from './ResultChrome.jsx'
 import {
   metricFor, metricsFor, methodOf, METHODS, SECTORS, SECTOR_KEYS, CAMP, CAMP_REPS,
   campOf, valuesOf, rowIndex, ROWS,
@@ -44,6 +44,8 @@ function SidePick({ side, onChange, align = 'left' }) {
       {/* 보는 항목 — 명령바와 같은 두 층 고르기 판(39차). 긴 목록이 접힌다. */}
       <MetricPicker sector={side.sector} method={side.method} value={side.metricKey}
         onChange={(k) => onChange({ ...side, metricKey: k })} align={align} small />
+      {/* 지도 색 — 좌우가 각자 고른다(40차) */}
+      <HueDots small hue={side.hue || 'auto'} onHue={(h) => onChange({ ...side, hue: h })} />
     </div>
   )
 }
@@ -72,8 +74,8 @@ export default function CompareMaps({
   // 처음 열 때만 조작부에서 고른 부문·지표를 그대로 물려받고, 표준화 방법만
   // 두 계열의 대표(간격보존형 · 순위전용형)로 갈라 둔다. 그 뒤로는 사람이
   // 좌우를 직접 바꾼다 — 조작부를 건드릴 때마다 되돌아가면 오히려 방해가 된다.
-  const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], metricKey: safeKey(sector, CAMP_REPS[0], metricKey) }))
-  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], metricKey) }))
+  const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], metricKey: safeKey(sector, CAMP_REPS[0], metricKey), hue: 'auto' }))
+  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], metricKey), hue: 'auto' }))
 
   const mA = metricFor(A.sector, A.method, A.metricKey)
   const mB = metricFor(B.sector, B.method, B.metricKey)
@@ -122,10 +124,12 @@ export default function CompareMaps({
         <NationalMap sector={A.sector} metric={mA} method={A.method} onlyHigh={onlyHigh}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
           compact tips={false} title={methodOf(A.method).label} subtitle={mA.label}
+          hue={A.hue === 'auto' ? null : A.hue}
           onMapReady={register} onToolsReady={tools} ver={ver} />
         <NationalMap sector={B.sector} metric={mB} method={B.method} onlyHigh={onlyHigh}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
           compact tips={false} title={methodOf(B.method).label} subtitle={mB.label}
+          hue={B.hue === 'auto' ? null : B.hue}
           onMapReady={register} autoFit={false} ver={ver} />
 
         <div className="mapz abm-mapz" title="두 지도가 함께 움직입니다">

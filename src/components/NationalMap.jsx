@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
-import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV } from '../lib/ssi.js'
+import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV, PURPLE } from '../lib/ssi.js'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
 
@@ -26,6 +26,9 @@ export function geoData() {
   return GEO
 }
 const RAMP = { heat: HEAT, blue: BLUE, green: GREEN, rank: BLUE, div: DIV }
+// 사용자가 고른 지도 색(40차) — 값 종류가 정하는 기본 색을 덮어쓴다.
+// 순위 지도의 '1위가 진하게' 뒤집기나 범례 글은 그대로 두고, 색만 갈아 끼운다.
+export const HUES = { blue: BLUE, green: GREEN, heat: HEAT, purple: PURPLE }
 
 /* ── 이름표 자리 잡기 ───────────────────────────────────────────────────
    시군구 이름을 지도 위에 직접 얹는다. 말풍선은 마우스를 올려야 보이니,
@@ -103,6 +106,7 @@ export default function NationalMap({
   sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
   autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0, blank = false,
+  hue = null,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -125,7 +129,7 @@ export default function NationalMap({
   const auto = useMemo(() => autoMode(vals, metric.scale), [vals, metric.scale])
   const eff = cmode === 'auto' ? auto : cmode
   const breaks = useMemo(() => breaksOf(vals, eff, 7), [vals, eff])
-  const ramp = RAMP[metric.scale] || BLUE
+  const ramp = (hue && HUES[hue]) || RAMP[metric.scale] || BLUE
   const color = useMemo(() => {
     const at = classOf(breaks)
     const rev = metric.scale === 'rank'          // 1위가 가장 진하게

@@ -167,7 +167,28 @@ export function MetricPicker({ sector, method, value, onChange, align = 'left', 
   )
 }
 
-export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare, onReport }) {
+// 지도 색 고르기 (40차) — 자동(값 종류가 정함) 또는 파랑·초록·주황·보라.
+// 색만 갈아 끼우고, 구간 나누기·범례·순위 뒤집기는 건드리지 않는다.
+const HUE_DEF = [
+  ['blue', '파랑', '#0B93EE'],
+  ['green', '초록', '#2FB86A'],
+  ['heat', '주황', '#F5760D'],
+  ['purple', '보라', '#8248D2'],
+]
+export function HueDots({ hue, onHue, small = false }) {
+  return (
+    <div className={`cb-hues${small ? ' small' : ''}`}>
+      <button className={`hue-auto${hue === 'auto' ? ' on' : ''}`} onClick={() => onHue('auto')}
+        title="값 종류에 맞는 기본 색 — 점수는 파랑, 민감도는 주황, 방향 있는 지표는 초록·주황">자동</button>
+      {HUE_DEF.map(([k, name, c]) => (
+        <button key={k} className={`hue-dot${hue === k ? ' on' : ''}`} style={{ background: c }}
+          onClick={() => onHue(k)} title={`${name} 계열로 칠하기`} aria-label={name} />
+      ))}
+    </div>
+  )
+}
+
+export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare, onReport, hue, onHue }) {
   const items = metricsFor(sector, method)
   const cur = items.find((x) => x.key === metricKey)
   const m = methodOf(method)
@@ -201,6 +222,11 @@ export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare,
           ))}
         </div>
         <em className="cb-hint">{m.formula} · {m.range}</em>
+      </div>
+      <span className="cb-sep" />
+      <div className="cb-grp">
+        <label>지도 색</label>
+        <HueDots hue={hue} onHue={onHue} />
       </div>
       <span className="cb-flex" />
       <button className="cb-cmp" onClick={() => onCompare(true)}
