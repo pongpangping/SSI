@@ -12,6 +12,7 @@ import CompareMaps from './components/CompareMaps.jsx'
 import CenterPanel from './components/CenterPanel.jsx'
 import PanelTab from './components/PanelTab.jsx'
 import DataTable from './components/DataTable.jsx'
+import ReportDoc from './components/ReportDoc.jsx'
 import IndicatorPicker from './components/IndicatorPicker.jsx'
 import CursorFx from './components/CursorFx.jsx'
 
@@ -38,6 +39,7 @@ function parseHash() {
   if (h.get('r')) o.selected = decodeURIComponent(h.get('r'))
   if (h.get('c') === '1') o.compare = true
   if (h.get('p') === '0') o.panelOpen = false
+  if (h.get('q') === '1') o.rankOpen = true
   if (h.get('i')) o.picks = picksFromHash(h.get('i'))
   if (h.get('x')) o.xKey = h.get('x')
   if (h.get('y')) o.yKey = h.get('y')
@@ -71,6 +73,11 @@ export default function App() {
   // 조작부는 항상 열려 있다. 접을 수 있는 것은 통계 패널 하나뿐.
   // 처음 들어오면 접혀 있다가, 꼭 골라야 하는 두 가지를 정하면 열린다.
   const [panelOpen, setPanelOpen] = useState(false)
+  // 순위 패널(37차) — 늘 펼쳐 두던 왼쪽 순위표를 손잡이로 뺐다. 기본은 접힘.
+  // 지도가 그만큼 넓어지고, 순위가 필요할 때만 '순위' 손잡이로 편다.
+  const [rankOpen, setRankOpen] = useState(!!init.rankOpen)
+  // 진단 보고서(37차) — 명령바 오른쪽 [보고서]로 연다. 인쇄 → PDF 저장.
+  const [reportOpen, setReportOpen] = useState(false)
   // 어디까지 왔는가. 1 지표 · 2 표준화 방법 · 3 다 골랐음
   //
   // 이 값이 지도의 성격도 정한다(21차). 3단계 전, 곧 표준화 점수가 아직 산출되지
@@ -156,12 +163,14 @@ export default function App() {
       setSelected(init.selected || null)
       setDrawers(init.drawers || ALL_OPEN())
       setXKey(init.xKey || null); setYKey(init.yKey || null)
+      setRankOpen(!!init.rankOpen)
     } else {
       setMethod(METHOD_KEYS[0])
       setMetricKey('rank')
       setSelected(null)
       setDrawers(ALL_OPEN())
       setXKey(null); setYKey(null)
+      setRankOpen(false)
     }
   }
 
@@ -230,6 +239,7 @@ export default function App() {
     if (sel) p.set('r', encodeURIComponent(sel))
     if (compare) p.set('c', '1')
     if (!panelOpen) p.set('p', '0')
+    if (rankOpen) p.set('q', '1')
     const shut = ['sens', 'raw'].filter((k) => !drawers[k])
     if (shut.length) p.set('d', shut.join('.'))   // 접은 것만 적는다. 기본(둘 다 펼침)이면 안 적는다
     const cur = picksOf(sector)
@@ -240,15 +250,16 @@ export default function App() {
     if (yKey) p.set('y', yKey)
     p.set('v', view)
     window.history.replaceState(null, '', `#${p.toString()}`)
-  }, [started, sector, method, metric.key, sel, compare, panelOpen, drawers, pickVer, xKey, yKey, view])
+  }, [started, sector, method, metric.key, sel, compare, panelOpen, rankOpen, drawers, pickVer, xKey, yKey, view])
 
   const link = { selected: sel, hovered, onSelect: setSelected, onHover: setHovered, onMethod: setMethod }
   const onAxis = (which, key) => (which === 'x' ? setXKey(key) : setYKey(key))
 
   // 지도 위에 떠 있는 조작·통계 덱의 실제 폭(px).
-  // 왼쪽 여백 14 + 덱 테두리 2 + 조작부 300 + (칸 사이 선 1 + 통계창 366)
+  // 왼쪽 여백 14 + 덱 테두리 2 + (순위 패널 300) + (통계창 367)
   // + 덱 밖으로 물린 손잡이 25 + 지도와의 간격 14
-  const deckW = 14 + 302 + (panelOpen ? 367 : 0) + 25 + 14
+  const anyOpen = rankOpen || panelOpen
+  const deckW = 14 + (anyOpen ? 2 : 0) + (rankOpen ? 300 : 0) + (panelOpen ? 367 : 0) + 25 + 14
 
   if (!started) {
     return (
@@ -296,21 +307,29 @@ export default function App() {
         {confirmed && (
           <MapBar sector={sector} method={method} onMethod={setMethod}
             metricKey={metric.key} onMetric={setMetricKey}
-            compare={compare} onCompare={setCompare} />
+            compare={compare} onCompare={setCompare}
+            onReport={() => setReportOpen(true)} />
         )}
         <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
-          <div className={`deck${panelOpen ? ' open' : ''}`}>
-            <RankPanel sector={sector} method={method} confirmed={confirmed}
-              selected={sel} onSelect={setSelected} ver={pickVer} />
-            {panelOpen && (
-              <CenterPanel sector={sector} method={method} metric={metric}
-                selectedRow={selectedRow} link={link} ver={pickVer}
-                xKey={xKey} yKey={yKey} onAxis={onAxis}
-                drawers={drawers} onDrawer={toggleDrawer}
-                onOpenPicker={() => setPickerOpen(true)} />
-            )}
+          {anyOpen && (
+            <div className={`deck${panelOpen ? ' open' : ''}`}>
+              {rankOpen && (
+                <RankPanel sector={sector} method={method} confirmed={confirmed}
+                  selected={sel} onSelect={setSelected} ver={pickVer} />
+              )}
+              {panelOpen && (
+                <CenterPanel sector={sector} method={method} metric={metric}
+                  selectedRow={selectedRow} link={link} ver={pickVer}
+                  xKey={xKey} yKey={yKey} onAxis={onAxis}
+                  drawers={drawers} onDrawer={toggleDrawer}
+                  onOpenPicker={() => setPickerOpen(true)} />
+              )}
+            </div>
+          )}
+          <div className={`ptabs${anyOpen ? '' : ' alone'}`}>
+            <PanelTab open={rankOpen} label="순위" onToggle={() => setRankOpen(!rankOpen)} />
+            <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
           </div>
-          <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
           {compare
             ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
                 ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
@@ -323,6 +342,8 @@ export default function App() {
       <CursorFx />
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
         selected={sel} onSelect={setSelected} ver={pickVer} />}
+      {reportOpen && <ReportDoc sector={sector} method={method}
+        selectedRow={selectedRow} onClose={() => setReportOpen(false)} />}
       {pickerOpen && <IndicatorPicker sector={sector} picksBy={picksBy}
         onApply={applyDraft} onClose={() => setPickerOpen(false)} />}
     </div>

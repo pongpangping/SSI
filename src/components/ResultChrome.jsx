@@ -86,7 +86,7 @@ export function RankPanel({ sector, method, confirmed, selected, onSelect, ver }
 // 이제 '지도 값 → 표준화 방법 → 2종 비교'가 왼쪽부터 순서대로 놓이고,
 // 어떤 것과도 겹치지 않는다. 비교 모드에서는 같은 자리가 안내문과
 // '단일 지도로 되돌리기'로 바뀐다 — 바 자체는 늘 같은 높이로 서 있다.
-export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare }) {
+export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare, onReport }) {
   const items = metricsFor(sector, method)
   const groups = GRP_ORDER.map((g) => [g, items.filter((x) => x.group === g)]).filter(([, l]) => l.length)
   const cur = items.find((x) => x.key === metricKey)
@@ -98,6 +98,8 @@ export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare,
         <span className="cb-sep" />
         <span className="cb-note">왼쪽·오른쪽 지도의 값 · 표준화 방법 · 색을 각자 바꿔 나란히 봅니다.</span>
         <span className="cb-flex" />
+        <button className="cb-rep" onClick={onReport}
+          title="지표 구성·전국 요약·순위를 한 벌 문서로 — 인쇄해 PDF로 저장">보고서</button>
         <button className="cb-back" onClick={() => onCompare(false)}>단일 지도로 되돌리기</button>
       </div>
     )
@@ -132,6 +134,8 @@ export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare,
       <span className="cb-flex" />
       <button className="cb-cmp" onClick={() => onCompare(true)}
         title="같은 지도를 두 장 띄워 값·방법·색을 달리해 비교">2종 동시 비교</button>
+      <button className="cb-rep" onClick={onReport}
+        title="지표 구성·전국 요약·순위를 한 벌 문서로 — 인쇄해 PDF로 저장">보고서 저장</button>
     </div>
   )
 }
