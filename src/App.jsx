@@ -13,6 +13,7 @@ import PanelTab from './components/PanelTab.jsx'
 import DataTable from './components/DataTable.jsx'
 import IndicatorPicker from './components/IndicatorPicker.jsx'
 import CursorFx from './components/CursorFx.jsx'
+import { ExploreModal, TransformModal, StdCompareModal, WeightModal } from './components/EdaModals.jsx'
 
 // ── URL 해시 상태 공유 ────────────────────────────────────────────────
 // #s=S8&m=minmax&k=rank&r=경기도|성남시&i=S8_1_23.S8_2_23&x=ci&y=ciT&d=sens
@@ -84,6 +85,8 @@ export default function App() {
   const [hovered, setHovered] = useState(null)
   const [tableOpen, setTableOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  // EDA 모달 — 지표 탐색 · 변환·방향 · 방법별 분포 · 가중치 (작업요령 1~4단계)
+  const [edaOpen, setEdaOpen] = useState(null)   // 'explore' | 'transform' | 'stdcmp' | 'weights'
   const [xKey, setXKey] = useState(init.xKey || null)
   const [yKey, setYKey] = useState(init.yKey || null)
 
@@ -99,6 +102,12 @@ export default function App() {
   // 계산 결과는 ROWS 위에 덮어써지므로 참조가 바뀌지 않는다.
   // 화면이 다시 그려지도록 판올림 번호를 하나 둔다.
   const [pickVer, setPickVer] = useState(0)
+
+  // EDA 설정이 바뀌면 지금 부문을 다시 계산하고 화면을 새로 그린다
+  const recalc = () => {
+    applyPicks(sector, picksBy[sector] || [])
+    setPickVer((v) => v + 1)
+  }
 
   const applyDraft = (draft, cur) => {
     SECTOR_KEYS.forEach((k) => {
@@ -235,6 +244,11 @@ export default function App() {
             compare={compare} onCompare={setCompare}
             onOpenPicker={() => setPickerOpen(true)}
             step={step} onStep={goStep}
+            onOpenExplore={() => setEdaOpen('explore')}
+            onOpenTransform={() => setEdaOpen('transform')}
+            onOpenStdCmp={() => setEdaOpen('stdcmp')}
+            onOpenWeights={() => setEdaOpen('weights')}
+            edaVer={pickVer}
           />
           {panelOpen && (
             <CenterPanel sector={sector} method={method} metric={metric}
@@ -259,6 +273,13 @@ export default function App() {
         selected={sel} onSelect={setSelected} ver={pickVer} />}
       {pickerOpen && <IndicatorPicker sector={sector} picksBy={picksBy}
         onApply={applyDraft} onClose={() => setPickerOpen(false)} />}
+      {edaOpen === 'explore' && <ExploreModal sector={sector} onClose={() => setEdaOpen(null)} />}
+      {edaOpen === 'transform' && <TransformModal sector={sector} onRecalc={recalc}
+        onClose={() => setEdaOpen(null)} />}
+      {edaOpen === 'stdcmp' && <StdCompareModal sector={sector} method={method}
+        onMethod={setMethod} onClose={() => setEdaOpen(null)} />}
+      {edaOpen === 'weights' && <WeightModal sector={sector} onRecalc={recalc}
+        onClose={() => setEdaOpen(null)} />}
     </div>
   )
 }

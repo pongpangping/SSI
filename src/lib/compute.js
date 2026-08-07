@@ -8,6 +8,7 @@
 // 빼고, 부문점수는 있는 지표만으로 평균한다. 한 지표도 없으면 그 지역은 빈칸이다.
 
 import data from '../data/ssi.json'
+import { cfgOf, weightOf, edaKey, preprocess } from './eda.js'
 
 export const ROWS = data.rows
 export const N = ROWS.length
@@ -124,20 +125,25 @@ export function pearson(a, b) {
 // 같은 조합을 다시 물으면 계산하지 않고 기억해 둔 것을 준다.
 const cache = new Map()
 
-export function computeSet(picks) {
-  const ck = picks.map((p) => p.col).join('.')
+export function computeSet(picks, sector = '') {
+  // EDA 설정(방향·변환·윈저·가중치)이 열쇠에 들어간다 — 설정이 바뀌면 새로 계산
+  const ck = picks.map((p) => p.col).join('.') + '#' + sector + '#' + edaKey(picks, sector)
   if (cache.has(ck)) return cache.get(ck)
 
-  const cols = picks.map((p) => SERIES[p.col] || ROWS.map(() => null))
+  // 원값 → 윈저라이징 → 로그화·반로그화 (2단계 설정). 방향은 사용자가 바꿨으면 그것을 쓴다.
+  const cfgs = picks.map((p) => cfgOf(p.col, p.dir))
+  const cols = picks.map((p, j) => preprocess(SERIES[p.col] || ROWS.map(() => null), cfgs[j]))
+  const wts = picks.map((p) => weightOf(sector, p.col, picks.length))
   const std = {}, ci = {}, rank = {}, indRank = {}
   for (const mk of METHOD_KEYS) {
-    const s = picks.map((p, j) => standardizeSeries(cols[j], p.dir, mk))
+    const s = picks.map((p, j) => standardizeSeries(cols[j], cfgs[j].dir, mk))
     std[mk] = s
     indRank[mk] = s.map(rankDesc)
+    // 가중 평균 — 빈칸 지표는 빼고 남은 가중치를 다시 100으로 맞춘다 (4단계 설정)
     ci[mk] = ROWS.map((_, i) => {
-      let sum = 0, k = 0
-      for (const c of s) if (num(c[i])) { sum += c[i]; k++ }
-      return k ? sum / k : null
+      let sum = 0, tw = 0
+      s.forEach((c, j) => { if (num(c[i])) { sum += c[i] * wts[j]; tw += wts[j] } })
+      return tw > 0 ? sum / tw : null
     })
     rank[mk] = rankDesc(ci[mk])
   }

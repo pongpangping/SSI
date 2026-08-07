@@ -134,7 +134,7 @@ export function applyPicks(sector, picks) {
     VER += 1
     return CUR[sector]
   }
-  const set = computeSet(entries.map((e) => ({ col: e.col, dir: e.dir })))
+  const set = computeSet(entries.map((e) => ({ col: e.col, dir: e.dir })), sector)
   const [ra, rb] = CAMP_REPS
   ROWS.forEach((r, i) => {
     const raw = {}

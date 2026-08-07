@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SECTORS, metricsFor, sectorSummary, indsOf, GRP_ORDER } from '../lib/ssi.js'
+import { edaSummary, weightsOf } from '../lib/eda.js'
 import MethodPicker from './MethodPicker.jsx'
 import PickedSummary from './PickedSummary.jsx'
 import { PlusMinus, Diamond } from './Glyph.jsx'
@@ -27,10 +28,15 @@ export default function Sidebar({
   sector, method, onMethod, metric, metricKey, onMetric,
   onlyHigh, compare, onCompare,
   onOpenPicker, step = 3, onStep,
+  onOpenExplore, onOpenTransform, onOpenStdCmp, onOpenWeights, edaVer = 0,
 }) {
   const [openGrp, setOpenGrp] = useState({})
   const s = sectorSummary(sector)
   const inds = indsOf(sector)
+  // EDA 설정 요약 배지 — 무엇을 얼마나 손댔는가 (edaVer가 바뀌면 다시 읽는다)
+  const eda = edaSummary(inds)          // eslint-disable-line no-unused-vars
+  const wOn = !!weightsOf(sector)
+  void edaVer
 
   const items = metricsFor(sector, method)
 
@@ -101,15 +107,53 @@ export default function Sidebar({
           </button>
         )}
 
-        {/* ── 2. 표준화 방법 ── */}
+        {/* ── 2·3. EDA — 지표 탐색 · 변환·방향 (작업요령 1~2단계) ── */}
+        <div className={`sb2-cap sb2-opt${step < 2 ? ' wait' : ''}`}>
+          <b>2</b>지표 탐색<em>선택 · 기술통계와 분포</em>
+        </div>
+        <div className={`sb2-block${step < 2 ? ' sb2-lock' : ''}`}>
+          <button className="sb2-eda" onClick={onOpenExplore} disabled={step < 2}>
+            <b>지표 탐색 열기</b>
+            <span>평균 · 중위 · 최소 · 최대 · 왜도 · 편차와 분포 그림</span>
+          </button>
+        </div>
+
+        <div className={`sb2-cap sb2-opt${step < 2 ? ' wait' : ''}`}>
+          <b>3</b>변환 · 방향<em>선택 · P/N · 로그화 · 윈저</em>
+        </div>
+        <div className={`sb2-block${step < 2 ? ' sb2-lock' : ''}`}>
+          <button className="sb2-eda" onClick={onOpenTransform} disabled={step < 2}>
+            <b>변환 · 방향 열기</b>
+            <span>{eda.touched
+              ? `적용 중 — 변환 ${eda.tr} · 방향 변경 ${eda.dirCh} · 윈저 ${eda.wz}`
+              : '아직 손대지 않음 (지표체계 방향 그대로)'}</span>
+          </button>
+        </div>
+
+        {/* ── 4. 표준화 방법 ── */}
         <div className={`sb2-cap${cap(2)}`} ref={mark(2)}>
-          <b>2</b>표준화 방법<em>필수</em>
+          <b>4</b>표준화 방법<em>필수</em>
         </div>
         <div className={`sb2-block${step < 2 ? ' sb2-lock' : ''}`}>
           <MethodPicker method={method} onMethod={onMethod} />
+          <button className="sb2-eda slim" onClick={onOpenStdCmp} disabled={step < 2}>
+            <b>방법별 분포 비교 열기</b>
+            <span>지표 × 4방법 표준화값 분포 (합성 전)</span>
+          </button>
           {step >= 3 && (
             <div className="sb2-hint">방법을 바꾸면 지도와 통계가 곧바로 다시 계산됩니다.</div>
           )}
+        </div>
+
+        {/* ── 5. 가중치 (작업요령 4단계) ── */}
+        <div className={`sb2-cap sb2-opt${step < 2 ? ' wait' : ''}`}>
+          <b>5</b>가중치<em>선택 · 기본 동일 가중</em>
+        </div>
+        <div className={`sb2-block${step < 2 ? ' sb2-lock' : ''}`}>
+          <button className="sb2-eda" onClick={onOpenWeights} disabled={step < 2}>
+            <b>가중치 열기</b>
+            <span>{wOn ? '사용자 가중 적용 중 (합 100)' : '동일 가중 (현상 유지)'}</span>
+          </button>
         </div>
 
         {/* ── · 지도 색 기준 — 안 골라도 화면은 나온다 ── */}
