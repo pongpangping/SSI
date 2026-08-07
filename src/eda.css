@@ -650,3 +650,54 @@
   .repo-doc section { break-inside: avoid; }
   .repo-doc section.repo-full { break-inside: auto; }
 }
+
+/* ============================================================
+   38차 — 상단 압축 · 보고서 내용 고르기
+   1) 여정 바가 머리줄 가운데(.hd-center)로 들어간다. 상단 3층
+      (머리줄 · 여정 바 · 명령바)이 2층이 된다. 칩은 한 줄(제목만),
+      설명은 지금 단계에서만 옆에 붙고 나머지는 툴팁으로.
+   2) 보고서 도구줄에 '담을 내용' 스위치 — 절 넣고 빼기.
+   ============================================================ */
+.hd-center { flex: 1; min-width: 0; display: flex; justify-content: center; padding: 0 10px; }
+.hd-center .jb { background: transparent; border: 0; box-shadow: none; padding: 0;
+  flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+.hd-center .jb-step { padding: 4px 8px; margin: 0; }
+.hd-center .jb-step u { width: 18px; height: 18px; font-size: 10px; border-radius: 6px; }
+.hd-center .jb-step span { flex-direction: row; align-items: baseline; gap: 6px; }
+.hd-center .jb-step b { font-size: var(--fs-3); white-space: nowrap; }
+.hd-center .jb-step em { font-size: var(--fs-1); white-space: nowrap; }
+.hd-center .jb-step:not(:last-child)::after { margin-left: 8px; }
+/* 좁은 화면 — 여정 바가 머리줄 아래 제 줄로 내려간다 */
+@media (max-width: 1500px) { .hd-center .jb-step.on em { display: none; } }
+@media (max-width: 1240px) {
+  .header { flex-wrap: wrap; row-gap: 4px; }
+  .hd-center { order: 3; flex-basis: 100%; justify-content: center;
+    border-top: 1px solid var(--line); padding-top: 5px; }
+}
+
+/* ── 보고서 도구줄 두 층 + 담을 내용 스위치 ── */
+.repo-tools { flex-direction: column; align-items: stretch; gap: 8px; }
+.repo-tools-r1 { display: flex; align-items: center; gap: 12px; }
+.repo-tools-r1 > b { font-size: var(--fs-5); }
+.repo-tools-r1 > span { flex: 1; font-size: var(--fs-2); color: var(--ink3); }
+.repo-pick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  border-top: 1px solid var(--line); padding-top: 8px; }
+.repo-pick > u { text-decoration: none; font-size: 10.5px; font-weight: 800;
+  color: var(--ink3); letter-spacing: 0.05em; margin-right: 2px; }
+.repo-ck { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px;
+  font-weight: 650; color: var(--ink3); background: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 4.5px 11px; cursor: pointer;
+  user-select: none; }
+.repo-ck input { margin: 0; accent-color: var(--accent); }
+.repo-ck.on { background: var(--accent-weak); border-color: #A9D6F7; color: var(--accent-strong); }
+.repo-ck:hover:not(.dead) { border-color: var(--accent); }
+.repo-ck.dead { opacity: 0.5; cursor: default; }
+
+/* 38.1차 — 머리줄 넘침 수습. 가운데 칸이 제 폭을 넘지 못하게 막고,
+   여정 바가 들어온 머리줄에서는 폭이 모자라면 긴 제목부터 양보한다.
+   (부문 칩이 남아 있으므로 무엇을 보고 있는지는 잃지 않는다.) */
+.hd-center { overflow: hidden; }
+.hd-center .jb { max-width: 100%; }
+.hd-center .jb-step { flex: none; }
+@media (max-width: 1720px) { .header.has-jb .hd-title { display: none; } }
+@media (max-width: 1600px) { .hd-center .jb-step.on em { display: none; } }

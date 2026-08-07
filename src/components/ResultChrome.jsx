@@ -19,6 +19,8 @@ export const JOURNEY = [
   { v: 'result', t: '종합점수 · 지도', d: '순위 · 통계 · 내보내기' },
 ]
 
+// 38차 — 머리줄 안으로 들어가며 홀쭉해졌다. 두 줄짜리 칩(제목+설명)이
+// 한 줄 칩이 되고, 설명은 툴팁으로 물러난다. 지금 단계 칩만 설명을 함께 쓴다.
 export function JourneyBar({ view, visited, onGo, canGo }) {
   return (
     <div className="jb">
@@ -29,10 +31,10 @@ export function JourneyBar({ view, visited, onGo, canGo }) {
         return (
           <button key={st.v}
             className={`jb-step${on ? ' on' : ''}${done ? ' done' : ''}`}
-            disabled={locked}
+            disabled={locked} title={`${st.t} — ${st.d}`}
             onClick={() => onGo(st.v)}>
             <u>{done ? '✓' : i}</u>
-            <span><b>{st.t}</b><em>{st.d}</em></span>
+            <span><b>{st.t}</b>{on && <em>{st.d}</em>}</span>
           </button>
         )
       })}

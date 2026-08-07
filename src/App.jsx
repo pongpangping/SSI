@@ -272,11 +272,10 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Header onTable={() => setTableOpen(true)} sector={sector} onHome={goHome} />
-
-      {/* 여정 바 — 0 지표 선택 → … → 5 종합점수·지도 */}
-      <JourneyBar view={view} visited={visited} onGo={goView}
-        canGo={(picksBy[sector] || []).length > 0} />
+      {/* 여정 바가 머리줄 가운데로 들어간다(38차) — 상단이 한 층 준다 */}
+      <Header onTable={() => setTableOpen(true)} sector={sector} onHome={goHome}
+        center={<JourneyBar view={view} visited={visited} onGo={goView}
+          canGo={(picksBy[sector] || []).length > 0} />} />
 
       {view !== 'result' ? (
         /* ── 준비 단계 페이지 (0~4) — 전폭 문서형 화면 ── */

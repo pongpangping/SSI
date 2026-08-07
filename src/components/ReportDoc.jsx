@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   SECTORS, METHODS, N, methodOf, indsOf, sectorSummary,
   fmtRaw, stdSeries, indT, indRank, ciT, pctOf, rowIndex, rowKey,
@@ -28,8 +28,21 @@ function describe(vals) {
   return { n, mean, med, sd, min: s[0], max: s[n - 1] }
 }
 
+// 담을 내용 고르기 (38차) — 절 하나가 스위치 하나. 끄면 미리보기에서 바로
+// 빠지고, 인쇄에도 나가지 않는다. 절 번호는 남은 절끼리 다시 매긴다.
+const SEC_DEF = [
+  ['cfg', '지표 구성 · 전처리'],
+  ['method', '표준화 방법'],
+  ['nation', '전국 요약 · 상하위 10곳'],
+  ['sens', '표준화 민감도'],
+  ['region', '선택 지역 진단'],
+  ['ranks', '전체 순위표'],
+]
+
 export default function ReportDoc({ sector, method, selectedRow, onClose }) {
   const m = methodOf(method)
+  const [sec, setSec] = useState({ cfg: true, method: true, nation: true, sens: true, region: true, ranks: true })
+  const flip = (k) => setSec((s) => ({ ...s, [k]: !s[k] }))
   const inds = indsOf(sector)
   const rows = useMemo(() => rankRows(sector, method), [sector, method])
   const stat = useMemo(() => describe(rows.map((r) => r.ci)), [rows])
@@ -46,13 +59,33 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
   const selIdx = selectedRow ? rowIndex(rowKey(selectedRow)) : -1
   const selD = selectedRow ? selectedRow[sector] : null
 
+  // 절 번호 — 켜진 절끼리 위에서부터 다시 매긴다
+  let no = 0
+  const nx = () => { no += 1; return no }
+
   return (
     <div className="repo-veil" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="repo-tools">
-        <b>진단 보고서</b>
-        <span>인쇄 대화상자에서 'PDF로 저장'을 고르면 파일로 남습니다.</span>
-        <button className="repo-print" onClick={() => window.print()}>인쇄 · PDF 저장</button>
-        <button className="repo-x" onClick={onClose}>닫기 ✕</button>
+        <div className="repo-tools-r1">
+          <b>진단 보고서</b>
+          <span>담을 내용을 고른 뒤 저장하세요. 인쇄 대화상자에서 'PDF로 저장'을 고르면 파일로 남습니다.</span>
+          <button className="repo-print" onClick={() => window.print()}>인쇄 · PDF 저장</button>
+          <button className="repo-x" onClick={onClose}>닫기 ✕</button>
+        </div>
+        <div className="repo-pick">
+          <u>담을 내용</u>
+          {SEC_DEF.map(([k, label]) => {
+            const dead = k === 'region' && !(selectedRow && selD)
+            return (
+              <label key={k} className={`repo-ck${sec[k] && !dead ? ' on' : ''}${dead ? ' dead' : ''}`}
+                title={dead ? '지도나 순위표에서 시군구를 골라 두면 담을 수 있습니다' : ''}>
+                <input type="checkbox" checked={sec[k] && !dead} disabled={dead}
+                  onChange={() => flip(k)} />
+                {label}
+              </label>
+            )
+          })}
+        </div>
       </div>
 
       <div className="repo-doc">
@@ -69,9 +102,10 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
           </div>
         </div>
 
-        {/* 1. 지표 구성과 전처리 */}
+        {/* 지표 구성과 전처리 */}
+        {sec.cfg && (
         <section>
-          <h2>1. 지표 구성과 전처리</h2>
+          <h2>{nx()}. 지표 구성과 전처리</h2>
           <table className="repo-tbl">
             <thead><tr>
               <th>지표</th><th>연도</th><th>단위</th><th>방향</th><th>변환</th><th>윈저라이징</th><th>가중치</th>
@@ -97,10 +131,12 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
           <p className="repo-note">* 표시는 기본 방향을 사용자가 바꾼 지표입니다. 변환·윈저라이징·가중치는
             2 · 4단계에서 정한 값이며, 지도·순위·통계가 모두 이 설정으로 계산되었습니다.</p>
         </section>
+        )}
 
-        {/* 2. 표준화 방법 */}
+        {/* 표준화 방법 */}
+        {sec.method && (
         <section>
-          <h2>2. 표준화 방법</h2>
+          <h2>{nx()}. 표준화 방법</h2>
           <table className="repo-tbl">
             <thead><tr><th>방법</th><th>산식</th><th>범위</th></tr></thead>
             <tbody>
@@ -114,10 +150,12 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
             </tbody>
           </table>
         </section>
+        )}
 
-        {/* 3. 전국 요약 */}
+        {/* 전국 요약 */}
+        {sec.nation && (
         <section>
-          <h2>3. 전국 요약 · {m.label} 부문점수</h2>
+          <h2>{nx()}. 전국 요약 · {m.label} 부문점수</h2>
           {stat && (
             <div className="repo-stats">
               <div><span>평균</span><b>{f1(stat.mean)}</b></div>
@@ -154,10 +192,12 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
             </div>
           </div>
         </section>
+        )}
 
-        {/* 4. 표준화 민감도 */}
+        {/* 표준화 민감도 */}
+        {sec.sens && (
         <section>
-          <h2>4. 표준화 민감도</h2>
+          <h2>{nx()}. 표준화 민감도</h2>
           <div className="repo-stats">
             <div><span>시군구</span><b>{sum.n}</b></div>
             <div><span>방법 간 평균 순위 이동</span><b>{sum.avg.toFixed(1)}계단</b></div>
@@ -167,11 +207,12 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
           <p className="repo-note">네 가지 표준화 방법(Min-Max · 거리기반 · 백분위순위 · 로지스틱)으로 각각
             순위를 매겼을 때의 이동 폭입니다. 이동이 큰 지역일수록 순위가 방법 선택에 의존합니다.</p>
         </section>
+        )}
 
-        {/* 5. 선택 지역 진단 */}
-        {selectedRow && selD && (
+        {/* 선택 지역 진단 */}
+        {sec.region && selectedRow && selD && (
           <section>
-            <h2>5. 선택 지역 진단 · {selectedRow.sido} {selectedRow.name}</h2>
+            <h2>{nx()}. 선택 지역 진단 · {selectedRow.sido} {selectedRow.name}</h2>
             <div className="repo-stats">
               <div><span>전국 순위</span><b>{selD.rank[method] == null ? '—' : `${selD.rank[method]}위`}</b></div>
               <div><span>부문점수</span><b>{f1(selD.ci[method])}</b></div>
@@ -200,9 +241,10 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
           </section>
         )}
 
-        {/* 6. 전체 순위표 */}
+        {/* 전체 순위표 */}
+        {sec.ranks && (
         <section className="repo-full">
-          <h2>{selectedRow && selD ? 6 : 5}. 전체 순위 · {N}개 시군구</h2>
+          <h2>{nx()}. 전체 순위 · {N}개 시군구</h2>
           <div className="repo-ranks">
             {rows.map((r) => (
               <div key={r.key} className="repo-rk">
@@ -211,6 +253,12 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
             ))}
           </div>
         </section>
+        )}
+
+        {no === 0 && (
+          <p className="repo-note" style={{ textAlign: 'center', padding: '30px 0' }}>
+            담을 내용이 없습니다 — 위에서 하나 이상 골라 주세요.</p>
+        )}
 
         <div className="repo-foot">
           국토종합진단지수 · {SECTORS[sector].name} · {m.label} 기준 · {dstr} ·

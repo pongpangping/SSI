@@ -10,10 +10,13 @@ import { SECTORS } from '../lib/ssi.js'
 //   데이터 설명   지금 고른 지표의 정의 · 산식 · 출처
 //   용어 · 방법론  용어 사전 · 4개 표준화 방법 · 32개 지표 전체 사전
 //   전체 데이터표  229개 시군구 × 모든 열
-export default function Header({ onTable, sector, onHome }) {
+// 38차 — 가운데 자리(center)를 받는다. 여정 바가 여기 들어와, 머리줄 아래
+// 따로 서 있던 줄 하나가 통째로 사라진다. 상단이 3층(머리줄·여정·명령바)에서
+// 2층(머리줄+여정 · 명령바)으로 줄어든다.
+export default function Header({ onTable, sector, onHome, center }) {
   const s = sector ? SECTORS[sector] : null
   return (
-    <header className="header">
+    <header className={`header${center ? ' has-jb' : ''}`}>
       <div className="hd-left">
         <div className="hd-logo">SAL</div>
         <div className="hd-title">국토종합진단지수 · 표준화 방법 민감도 진단</div>
@@ -25,6 +28,7 @@ export default function Header({ onTable, sector, onHome }) {
           </button>
         )}
       </div>
+      {center && <div className="hd-center">{center}</div>}
       <div className="hd-right">
         {s && <DataDefsModal sector={sector} />}
         <GlossaryModal />
