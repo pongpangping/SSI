@@ -6,7 +6,7 @@ import NationalMap from './NationalMap.jsx'
 import { HistBars } from './EdaHist.jsx'
 import MiniScatter from './MiniScatter.jsx'
 import { ROWS, N, METHODS, methodOf, pctFromRank, describe } from '../lib/pipeline.js'
-import { rowKey, rowIndex, shortSido } from '../lib/ssi.js'
+import { rowKey, rowIndex, shortSido, fmtRaw } from '../lib/ssi.js'
 import { PALETTES, paletteOf, rampOf } from '../lib/palettes.js'
 
 // 5단계 — 종합점수.
@@ -176,10 +176,10 @@ export default function Step5Result({
   })
 
   // 팔레트 견본 — 다섯 칸 나뉜 칩
-  const Swatches = ({ cur, onPick }) => (
+  const Swatches = ({ cur, onPick, mini = false }) => (
     <div className="e5c-pal">
       {PALETTES.map((p) => (
-        <button key={p.key} className={`palsw${cur === p.key ? ' on' : ''}`} title={p.label}
+        <button key={p.key} className={`palsw${mini ? ' mini' : ''}${cur === p.key ? ' on' : ''}`} title={p.label}
           onClick={() => onPick(p.key)}>
           {rampOf(p.key, 5).map((c) => <i key={c} style={{ background: c }} />)}
         </button>
@@ -192,30 +192,20 @@ export default function Step5Result({
       {/* ── 가운데 · 지도 ── */}
       <div className="e5-mid">
         <div className="e5-ctrl glass">
-          <div className="e5c-group">
-            <u>표준화 방법{compare ? ` · A ${m.label} / B ${methodOf(methodB).label}` : ''}</u>
-            <span className="e5c-palrows">
-              <span className="e5c-palrow">{compare && <em className="mono">A</em>}
+          {!compare && (
+            <>
+              <div className="e5c-group">
+                <u>표준화 방법</u>
                 <div className="seg">
                   {METHODS.map((mm) => (
                     <button key={mm.key} className={mk === mm.key ? 'on' : ''}
                       onClick={() => onMethod(mm.key)}>{mm.label}</button>
                   ))}
                 </div>
-              </span>
-              {compare && (
-                <span className="e5c-palrow"><em className="mono">B</em>
-                  <div className="seg">
-                    {METHODS.map((mm) => (
-                      <button key={mm.key} className={methodB === mm.key ? 'on' : ''}
-                        onClick={() => setMethodB(mm.key)}>{mm.label}</button>
-                    ))}
-                  </div>
-                </span>
-              )}
-            </span>
-          </div>
-          <span className="e5c-sep" />
+              </div>
+              <span className="e5c-sep" />
+            </>
+          )}
           <div className="e5c-group">
             <u>보기</u>
             <span>
@@ -234,19 +224,17 @@ export default function Step5Result({
               )}
             </span>
           </div>
-          <span className="e5c-sep" />
-          <div className="e5c-group">
-            <u>지도 색 · {paletteOf(palette).label}{compare ? ` / ${paletteOf(paletteB).label}` : ''}</u>
-            <span className="e5c-palrows">
-              <span className="e5c-palrow">{compare && <em className="mono">A</em>}
-                <Swatches cur={palette} onPick={onPalette} /></span>
-              {compare && (
-                <span className="e5c-palrow"><em className="mono">B</em>
-                  <Swatches cur={paletteB} onPick={setPaletteB} /></span>
-              )}
-            </span>
-          </div>
-          <span className="e5c-sep" />
+          {!compare && (
+            <>
+              <span className="e5c-sep" />
+              <div className="e5c-group">
+                <u>지도 색 · {paletteOf(palette).label}</u>
+                <Swatches cur={palette} onPick={onPalette} />
+              </div>
+              <span className="e5c-sep" />
+            </>
+          )}
+          {compare && <span className="e5c-sep" />}
           <div className="e5c-group">
             <u>비교 · 출력</u>
             <span>
@@ -260,15 +248,33 @@ export default function Step5Result({
 
         <div className="e5-stage">
         {!compare ? (
-          <div className="e5-map glass-edge"><NationalMap {...mapProps(mk)} padLeft={leftOpen ? 300 : 0} /></div>
+          <div className="e5-map glass-edge"><NationalMap {...mapProps(mk)} /></div>
         ) : (
           <div className="e5-two">
             <div className="e5-map glass-edge">
-              <div className="e5t-cap mono">A · {m.label}</div>
+              <div className="e5m-bar">
+                <em className="mono">A</em>
+                <div className="seg mini">
+                  {METHODS.map((mm) => (
+                    <button key={mm.key} className={mk === mm.key ? 'on' : ''}
+                      onClick={() => onMethod(mm.key)}>{mm.label}</button>
+                  ))}
+                </div>
+                <Swatches cur={palette} onPick={onPalette} mini />
+              </div>
               <NationalMap {...mapProps(mk, 'A')} compact tips />
             </div>
             <div className="e5-map glass-edge">
-              <div className="e5t-cap mono">B · {methodOf(methodB).label}</div>
+              <div className="e5m-bar">
+                <em className="mono">B</em>
+                <div className="seg mini">
+                  {METHODS.map((mm) => (
+                    <button key={mm.key} className={methodB === mm.key ? 'on' : ''}
+                      onClick={() => setMethodB(mm.key)}>{mm.label}</button>
+                  ))}
+                </div>
+                <Swatches cur={paletteB} onPick={setPaletteB} mini />
+              </div>
               <NationalMap {...mapProps(methodB, 'B')} compact tips />
             </div>
           </div>
@@ -340,6 +346,23 @@ export default function Step5Result({
                 <span><i className="lg-solid" />{selRow.name}</span>
                 <span><i className="lg-dash" />전국 중앙값</span>
               </div>
+            </div>
+
+            <div className="e5r-cap">부문지수 분포 · 내 위치</div>
+            <HistBars values={result.ci[mk] || []} h={64} color="var(--acc)"
+              marks={[{ v: result.ci[mk]?.[selIdx], color: '#E8420C' }]} />
+
+            <div className="e5r-cap">지표 상세</div>
+            <div className="e5r-tbl mono">
+              <div className="e5rt-h"><span>지표</span><span>원값</span><span>표준화</span><span>순위</span></div>
+              {result.stages.map((st, j) => (
+                <div key={st.pick.col} className="e5rt-r">
+                  <span title={st.pick.label}>{st.pick.label}</span>
+                  <b>{fmtRaw(st.raw[selIdx])}</b>
+                  <b>{f1(st.std[mk][selIdx])}</b>
+                  <b>{result.indRank[mk]?.[j]?.[selIdx] != null ? `${Math.round(result.indRank[mk][j][selIdx])}위` : '—'}</b>
+                </div>
+              ))}
             </div>
 
             <div className="e5r-cap">지표별 값 · 기여</div>

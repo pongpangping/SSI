@@ -112,7 +112,7 @@ export default function NationalMap({
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
   autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0, blank = false,
   ramp: rampOver = null, k = 7, dark = false, info = null,
-  exportExtra = null, methodLabel = null,
+  exportExtra = null, methodLabel = null, bare = false,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -309,6 +309,8 @@ export default function NationalMap({
     if (!geoRef.current || !firstRef.current) return
     firstRef.current = false
     try { fitAll(0) } catch (e) { /* noop */ }
+    const t = setTimeout(() => { try { fitAll(0) } catch (e) { /* noop */ } }, 380)
+    return () => clearTimeout(t)
   }, [map])
 
   // 통계창을 접거나 펴면 '가려지지 않은 영역'의 한가운데가 옆으로 움직인다.
@@ -449,9 +451,13 @@ export default function NationalMap({
       <MapContainer ref={setMap} center={[36.4, 127.8]} zoom={compact ? 6 : 7} zoomControl={false}
         zoomSnap={0} zoomDelta={0.5} wheelPxPerZoomLevel={90}
         preferCanvas={true} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-        <TileLayer url={`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`}
-          attribution='&copy; OpenStreetMap &copy; CARTO' subdomains="abcd" maxZoom={19}
-          eventHandlers={{ load: () => setTilesReady(true) }} />
+        {/* bare — 바탕타일 없이 경계만. 배경 백지도처럼 지도가 주인공이 아닐 때
+            주변 나라 지명이 시선을 끌지 않게 한다. */}
+        {!bare && (
+          <TileLayer url={`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`}
+            attribution='&copy; OpenStreetMap &copy; CARTO' subdomains="abcd" maxZoom={19}
+            eventHandlers={{ load: () => setTilesReady(true) }} />
+        )}
         <GeoJSON ref={geoRef} data={geo} style={styleFor} onEachFeature={onEach} />
       </MapContainer>
 
@@ -535,7 +541,7 @@ export default function NationalMap({
         </div>
       )}
 
-      {!tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
+      {!bare && !tilesReady && <div className="map-loading"><span className="spin" />지도 불러오는 중…</div>}
 
       {blank ? (
         <div className={`maplegend mapblank${compact ? ' lg-mini' : ''}`}>

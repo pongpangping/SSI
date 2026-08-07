@@ -34,6 +34,15 @@ const BLANK_METRIC = {
   key: 'blank', scale: 'blue', label: '', fmt: () => '—', get: () => null,
 }
 
+// 시트 머리에 적는 단계별 설명 — 이 단계에서 무엇을 결정하는가 한 줄.
+const STEP_DESC = {
+  0: '부문에서 계산에 넣을 지표와 연도를 정합니다.',
+  1: '지표마다 기술통계와 분포를 보고, 이대로 표준화해도 되는 모양인지 확인합니다.',
+  2: '지표마다 방향(P/N) · 윈저라이징 · 로그화 여부를 정합니다.',
+  3: '다섯 가지 표준화 방법의 분포를 비교하고 기본 방법을 고릅니다.',
+  4: '지표별 가중치를 정합니다. 기본은 동일 가중, 합은 항상 100입니다.',
+}
+
 const STEPS = [
   { n: 0, t: '지표 선택', d: '부문 · 연도 · 지표' },
   { n: 1, t: '지표 탐색', d: '기술통계 · 분포' },
@@ -142,7 +151,7 @@ export default function App() {
       {/* ── 상시 배경 지도 — 값이 확정되기 전(0~4단계)에는 백지도 ── */}
       {tab === 'flow' && step < 5 && (
         <div className="v3-backmap">
-          <NationalMap sector={sector} metric={BLANK_METRIC} blank
+          <NationalMap sector={sector} metric={BLANK_METRIC} blank bare
             selected={selected} hovered={null} onSelect={setSelected} onHover={() => {}} tips />
         </div>
       )}
@@ -151,47 +160,46 @@ export default function App() {
       <div className="v3-body">
       {tab === 'flow' && (
         <aside className="v3-rail glass noprint">
+          <div className="v3r-cap mono">분석 단계</div>
           {STEPS.map((st) => (
             <button key={st.n}
-              className={`v3s${step === st.n ? ' on' : ''}${st.n > 0 && !canGo ? ' off' : ''}`}
+              className={`v3s${step === st.n ? ' on' : ''}${st.n < step ? ' done' : ''}${st.n > 0 && !canGo ? ' off' : ''}`}
               disabled={st.n > 0 && !canGo}
               onClick={() => setStep(st.n)}>
-              <u className="mono">{st.n}</u>
+              <u className="mono">{st.n < step ? '✓' : st.n}</u>
               <span><b>{st.t}</b><em>{st.d}</em></span>
             </button>
           ))}
+          <p className="v3r-hint">지표와 방법이 정해지면 5단계에서 지도에 색이 칠해집니다. 그 전까지는 백지도입니다.</p>
         </aside>
       )}
       <main className={`v3-main${tab === 'flow' && step === 5 ? ' wide' : ''}${tab === 'flow' && step < 5 ? ' sheetmode' : ''}`}>
         {tab === 'flow' && step < 5 && (
-        <div className="v3-sheet glass">
+        <div className={`v3-sheet glass v3-sheet-s${step}`}>
+        <div className="v3-sh-head">
+          <span className="mono">STEP {step} / 5</span>
+          <h2>{STEPS[step].t}</h2>
+          <p>{STEP_DESC[step]}</p>
+        </div>
         {step === 0 && (
           <div className="e0-wrap">
-            <div className="v3-lede">
-              <b>{s.name}</b> 부문에서 계산에 넣을 지표와 연도를 정합니다.
-              연도가 다른 같은 지표를 함께 담아 비교할 수도 있습니다.
+            <div className="e0-head">
+              <b>{s.name} · 담긴 지표 {entries.length}개</b>
+              <span className="e0-note">연도가 다른 같은 지표를 함께 담아 비교할 수도 있습니다.</span>
             </div>
-            <div className="g-card e0-card">
-              <div className="e0-head">
-                <b>담긴 지표 {entries.length}개</b>
-                <span>
-                  <button className="ghost-btn" onClick={() => setPickerOpen(true)}>지표 선택 열기</button>
-                </span>
-              </div>
-              {entries.length ? (
-                <div className="e0-list">
-                  {entries.map((e) => (
-                    <div key={e.col} className="e0-item">
-                      <b>{e.label}</b>
-                      <span className="mono">{e.year}년{e.unit ? ` · ${e.unit}` : ''}</span>
-                      <em className={`dirb ${e.dir === '+' ? 'p' : 'n'}`}>{e.dir === '+' ? 'P' : 'N'}</em>
-                      {e.desc && <p>{e.desc}</p>}
-                    </div>
-                  ))}
+            <div className="e0-list">
+              {entries.map((e) => (
+                <div key={e.col} className="e0-item">
+                  <b>{e.label}</b>
+                  <span className="mono">{e.year}년{e.unit ? ` · ${e.unit}` : ''}</span>
+                  <em className={`dirb ${e.dir === '+' ? 'p' : 'n'}`}>{e.dir === '+' ? 'P' : 'N'}</em>
+                  {e.desc && <p>{e.desc}</p>}
                 </div>
-              ) : (
-                <p className="e5r-note">아직 담긴 지표가 없습니다. [지표 선택 열기]에서 골라 주세요.</p>
-              )}
+              ))}
+              <button className="e0-add" onClick={() => setPickerOpen(true)}>
+                <i>＋</i><b>지표 추가 · 변경</b>
+                <span>부문의 지표 목록에서 골라 담습니다</span>
+              </button>
             </div>
           </div>
         )}
