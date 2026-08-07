@@ -1,7 +1,6 @@
 import { SECTORS, METHODS, methodOf, metricsFor, sectorSummary, indsOf, GRP_ORDER, N } from '../lib/ssi.js'
 import { RankCard, rankRows } from './StatsExtras.jsx'
 import DlMenu from './DlMenu.jsx'
-import { Diamond } from './Glyph.jsx'
 
 // 결과 화면의 새 뼈대 (31차 IA) — 조작부 사이드바를 걷어내고 세 가지로 나눴다.
 //
@@ -81,45 +80,58 @@ export function RankPanel({ sector, method, confirmed, selected, onSelect, ver }
   )
 }
 
-export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare, deckW }) {
+// 지도 명령바 (36차) — 지도 위에 떠 있던 작은 상자를 걷어내고, 여정 바 바로
+// 아래 한 줄짜리 도킹 바로 바꿨다. 떠 있던 시절에는 통계창 흐름줄과 겹쳐 보였고
+// 9px 딱지 밑에 좁은 select가 붙어 있어 무엇을 고르는 칸인지 읽기 어려웠다.
+// 이제 '지도 값 → 표준화 방법 → 2종 비교'가 왼쪽부터 순서대로 놓이고,
+// 어떤 것과도 겹치지 않는다. 비교 모드에서는 같은 자리가 안내문과
+// '단일 지도로 되돌리기'로 바뀐다 — 바 자체는 늘 같은 높이로 서 있다.
+export function MapBar({ sector, method, onMethod, metricKey, onMetric, compare, onCompare }) {
   const items = metricsFor(sector, method)
   const groups = GRP_ORDER.map((g) => [g, items.filter((x) => x.group === g)]).filter(([, l]) => l.length)
-  // 비교 모드 — 좌우 지도가 각자 조작부를 갖고 있으므로 되돌아오기만 남긴다
+  const cur = items.find((x) => x.key === metricKey)
+  const m = methodOf(method)
   if (compare) {
     return (
-      <div className="mapbar mapbar-mini">
-        <button className="mb-cmp on" onClick={() => onCompare(false)}>단일 지도로 되돌리기</button>
+      <div className="cmdbar">
+        <div className="cb-grp"><label>지도</label><b className="cb-now">2종 동시 비교</b></div>
+        <span className="cb-sep" />
+        <span className="cb-note">왼쪽·오른쪽 지도의 값 · 표준화 방법 · 색을 각자 바꿔 나란히 봅니다.</span>
+        <span className="cb-flex" />
+        <button className="cb-back" onClick={() => onCompare(false)}>단일 지도로 되돌리기</button>
       </div>
     )
   }
   return (
-    <div className="mapbar" style={{ left: `${deckW + 10}px` }}>
-      <div className="mb-grp">
-        <u>지도 값</u>
-        <select value={metricKey} onChange={(e) => onMetric(e.target.value)} title="지도에 칠할 값 — 네 묶음">
+    <div className="cmdbar">
+      <div className="cb-grp">
+        <label htmlFor="cb-metric">지도 값</label>
+        <select id="cb-metric" value={metricKey} onChange={(e) => onMetric(e.target.value)}
+          title="지도에 칠할 값 — 네 묶음 안에서 고릅니다">
           {groups.map(([g, list]) => (
             <optgroup key={g} label={g}>
-              {list.map((m) => (
-                <option key={m.key} value={m.key}>{m.sub ? `${m.sub} · ` : ''}{m.label}</option>
+              {list.map((x) => (
+                <option key={x.key} value={x.key}>{x.sub ? `${x.sub} · ` : ''}{x.label}</option>
               ))}
             </optgroup>
           ))}
         </select>
+        {cur?.group && <em className="cb-tag">{cur.group}</em>}
       </div>
-      <span className="mb-sep" />
-      <div className="mb-grp">
-        <u>표준화 방법 <i className="mb-dyn"><Diamond size={8} title="방법을 바꾸면 지도·통계가 다시 계산됨" /></i></u>
-        <div className="mb-seg">
+      <span className="cb-sep" />
+      <div className="cb-grp">
+        <label>표준화 방법</label>
+        <div className="cb-seg">
           {METHODS.map((mm) => (
             <button key={mm.key} className={method === mm.key ? 'on' : ''}
               onClick={() => onMethod(mm.key)} title={`${mm.formula} · ${mm.range}`}>{mm.label}</button>
           ))}
         </div>
+        <em className="cb-hint">{m.formula} · {m.range}</em>
       </div>
-      <span className="mb-sep" />
-      <button className={`mb-cmp${compare ? ' on' : ''}`} onClick={() => onCompare(!compare)}>
-        {compare ? '단일 지도로' : '2종 동시 비교'}
-      </button>
+      <span className="cb-flex" />
+      <button className="cb-cmp" onClick={() => onCompare(true)}
+        title="같은 지도를 두 장 띄워 값·방법·색을 달리해 비교">2종 동시 비교</button>
     </div>
   )
 }

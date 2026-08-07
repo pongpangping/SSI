@@ -499,3 +499,49 @@
 .s2-winz { padding: 0; font-size: var(--fs-2); }
 .s2-winz input { width: 46px; }
 @media (max-width: 1180px) { .s2-grid { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   36차 — 지도 명령바 도킹
+   지도 위에 떠 있던 조작 상자(.mapbar)를 없애고, 여정 바 바로 아래
+   전폭 한 줄(.cmdbar)로 내려앉혔다. 통계창 흐름줄·지도 딱지와 더는
+   겹치지 않고, 딱지 글자도 9px 위첨자에서 제 크기 라벨로 돌아왔다.
+   ============================================================ */
+.cmdbar { flex: none; display: flex; align-items: center; gap: 14px;
+  padding: 8px 18px; background: var(--surface);
+  border-bottom: 1px solid var(--line); position: relative; z-index: 200; }
+.cb-grp { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.cb-grp > label { font-size: 11.5px; font-weight: 800; color: var(--ink3);
+  letter-spacing: 0.04em; white-space: nowrap; }
+.cb-grp select { background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 9px;
+  font-size: 12.5px; font-weight: 650; padding: 7px 9px;
+  min-width: 200px; max-width: 330px; cursor: pointer; }
+.cb-grp select:hover { border-color: var(--accent); }
+.cb-tag { font-style: normal; flex: none; font-size: 10.5px; font-weight: 750;
+  color: var(--accent-strong); background: var(--accent-weak);
+  border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.cb-seg { display: inline-flex; gap: 3px; background: var(--muted);
+  border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.cb-seg button { border: 0; background: transparent; color: var(--ink2);
+  font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 8px;
+  cursor: pointer; white-space: nowrap; }
+.cb-seg button:hover { color: var(--accent-strong); }
+.cb-seg button.on { background: var(--accent); color: #fff; }
+.cb-hint { font-style: normal; font-size: 10.5px; color: var(--ink3); white-space: nowrap; }
+.cb-sep { flex: none; width: 1px; height: 24px; background: var(--line); }
+.cb-flex { flex: 1; }
+.cb-cmp { flex: none; border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--accent-strong); font-size: 12px; font-weight: 750;
+  border-radius: 9px; padding: 7px 14px; cursor: pointer; white-space: nowrap; }
+.cb-cmp:hover { border-color: var(--accent); background: var(--accent-weak); }
+.cb-back { flex: none; border: 0; background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 750; border-radius: 9px; padding: 8px 14px; cursor: pointer; }
+.cb-back:hover { background: var(--accent-strong); }
+.cb-now { font-size: 12.5px; font-weight: 750; color: var(--ink); }
+.cb-note { font-size: 11.5px; color: var(--ink3); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1280px) { .cb-hint { display: none; } }
+@media (max-width: 980px) {
+  .cmdbar { flex-wrap: wrap; gap: 10px; }
+  .cb-flex { display: none; }
+}

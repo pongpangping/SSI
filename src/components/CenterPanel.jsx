@@ -116,16 +116,15 @@ export default function CenterPanel({
 
   return (
     <div className="center">
-      {/* 지금 무엇을 보고 있는지 되짚는 줄. 꼭 골라야 하는 것(지표·표준화 방법)만
-          번호를 달고, 없어도 화면이 나오는 것(지도 색 기준·선택 지역)은 번호 없이
-          옆에 둔다. 번호가 붙은 칸이 곧 '해야 하는 일'이다. */}
+      {/* 지금 무엇을 보고 있는지 되짚는 줄. 지도 값·표준화 방법은 36차부터
+          여정 바 아래 지도 명령바가 바로 보여 주므로 여기서 되풀이하지 않는다.
+          남는 것은 지표 조합(누르면 바꾸기)과 선택 지역(누르면 풀기)뿐이다. */}
       <div className="flowbar">
         <div className="fb-steps">
           <button className="fb-step fb-btn" onClick={onOpenPicker} title="선택 지표 바꾸기">
             <i>1</i><b><SectorIcon k={sector} state="on" size={13} />지표 {inds.length}개{yr && ` · ${yr}`}</b>
           </button>
           <span className="fb-step"><i>2</i><b>{m.label}</b></span>
-          <span className="fb-step fb-opt"><b>{metric.full || metric.label}</b><u>지도 색</u></span>
           {name && (
             <button className="fb-step fb-opt fb-sel fb-btn"
               title="선택을 풀고 전국 화면으로 돌아갑니다"

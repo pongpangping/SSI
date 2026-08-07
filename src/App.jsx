@@ -291,7 +291,13 @@ export default function App() {
           )}
         </div>
       ) : (
-        /* ── 결과 화면 — 순위 패널 | 지도(명령바) | 통계창 ── */
+        /* ── 결과 화면 — 명령바(도킹) / 순위 패널 | 지도 | 통계창 ── */
+        <>
+        {confirmed && (
+          <MapBar sector={sector} method={method} onMethod={setMethod}
+            metricKey={metric.key} onMetric={setMetricKey}
+            compare={compare} onCompare={setCompare} />
+        )}
         <div className="body body-3col" style={{ '--deck': `${deckW}px` }}>
           <div className={`deck${panelOpen ? ' open' : ''}`}>
             <RankPanel sector={sector} method={method} confirmed={confirmed}
@@ -305,11 +311,6 @@ export default function App() {
             )}
           </div>
           <PanelTab open={panelOpen} label="통계" onToggle={() => setPanelOpen(!panelOpen)} />
-          {confirmed && (
-            <MapBar sector={sector} method={method} onMethod={setMethod}
-              metricKey={metric.key} onMetric={setMetricKey}
-              compare={compare} onCompare={setCompare} deckW={deckW} />
-          )}
           {compare
             ? <CompareMaps sector={sector} method={method} metricKey={metric.key} onlyHigh={onlyHigh}
                 ver={pickVer} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />
@@ -317,6 +318,7 @@ export default function App() {
                 blank={!confirmed}
                 ver={pickVer} padLeft={deckW} onlyHighToggle={() => setOnlyHigh(!onlyHigh)} {...link} />}
         </div>
+        </>
       )}
       <CursorFx />
       {tableOpen && <DataTable sector={sector} onClose={() => setTableOpen(false)}
