@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ROWS, metricFor, rowKey, METHOD_KEYS, SECTOR_KEYS,
-  applyPicks, defaultPicks, picksOf, picksToHash, picksFromHash,
+  applyPicks, picksOf, picksToHash, picksFromHash,
 } from './lib/ssi.js'
 import Header from './components/Header.jsx'
 import LandingPage from './components/LandingPage.jsx'
@@ -60,8 +60,10 @@ function parseHash() {
 // 모양만으로도 무엇이 주(主)인지는 충분히 드러나므로, 접어 감출 이유가 없다.
 const ALL_OPEN = () => ({ sens: true, raw: true })
 
-// 부문별 기본 조합 = 그 부문의 모든 지표를 가장 최근 연도로.
-const basePicks = () => Object.fromEntries(SECTOR_KEYS.map((k) => [k, defaultPicks(k)]))
+// 부문별 기본 조합 — 41차부터 빈손으로 시작한다. 예전에는 모든 지표가 최근
+// 연도로 미리 담겨 있었는데, 사용자가 고르기 전에 이미 골라져 있으면 0단계가
+// '확인'이 되어 버린다. 지표는 사용자가 직접 담는다. (링크로 받은 조합만 예외)
+const basePicks = () => Object.fromEntries(SECTOR_KEYS.map((k) => [k, []]))
 
 export default function App() {
   const init = useMemo(parseHash, [])
@@ -104,12 +106,12 @@ export default function App() {
   const [yKey, setYKey] = useState(init.yKey || null)
 
   // 선택 지표. 링크로 받은 조합이 있으면 그 부문만 갈아 끼운다.
+  // 계산부(ssi.js)는 파일을 읽으며 기본 조합을 한 번 채워 두므로,
+  // 여기서 빈 조합으로 다시 맞춰 준다 — 화면과 계산이 같은 것을 보게.
   const [picksBy, setPicksBy] = useState(() => {
     const base = basePicks()
-    if (init.picks && init.sector) {
-      base[init.sector] = init.picks
-      applyPicks(init.sector, init.picks)
-    }
+    if (init.picks && init.sector) base[init.sector] = init.picks
+    SECTOR_KEYS.forEach((k) => applyPicks(k, base[k]))
     return base
   })
   // 계산 결과는 ROWS 위에 덮어써지므로 참조가 바뀌지 않는다.
@@ -246,9 +248,7 @@ export default function App() {
     const shut = ['sens', 'raw'].filter((k) => !drawers[k])
     if (shut.length) p.set('d', shut.join('.'))   // 접은 것만 적는다. 기본(둘 다 펼침)이면 안 적는다
     const cur = picksOf(sector)
-    const base = defaultPicks(sector)
-    const same = cur.length === base.length && cur.every((q, i) => q.id === base[i].id && q.year === base[i].year)
-    if (!same) p.set('i', picksToHash(cur))       // 기본 조합이면 굳이 적지 않는다
+    if (cur.length) p.set('i', picksToHash(cur))  // 담은 조합을 그대로 적는다 (빈손이면 생략)
     if (xKey) p.set('x', xKey)
     if (yKey) p.set('y', yKey)
     if (hue !== 'auto') p.set('h', hue)

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NationalMap from './NationalMap.jsx'
 import { MetricPicker, HueDots } from './ResultChrome.jsx'
 import {
-  metricFor, metricsFor, methodOf, METHODS, SECTORS, SECTOR_KEYS, CAMP, CAMP_REPS,
-  campOf, valuesOf, rowIndex, ROWS,
+  metricFor, metricsFor, methodOf, otherMethodOf, METHODS, SECTORS, SECTOR_KEYS, CAMP, CAMP_REPS,
+  campOf, valuesOf, rowIndex, ROWS, plainSet, pctOf,
 } from '../lib/ssi.js'
 
 // 나란히 보기 — 왼쪽·오른쪽 지도를 각각 '부문 · 방법 · 지표'로 정한다.
@@ -18,6 +18,32 @@ const safeKey = (sector, method, key) => {
   return list.some((m) => m.key === key) ? key : (list.find((m) => m.key === 'rank') || list[0]).key
 }
 
+// ── 전처리 없음 계산(41차) ──────────────────────────────────────────────
+// 2단계(로그화·반로그화·윈저)와 4단계(가중치)를 무시하고 다시 계산한 값.
+// 한쪽을 '현재 설정', 다른쪽을 '전처리 없음'으로 두면 로그화나 가중치가
+// 결과를 얼마나 움직였는지 지도로 비교할 수 있다. 부문 종합 값(점수·순위·
+// T·백분위·순위 변화)에만 있다 — 지표 하나짜리 값은 비교 대상이 아니다.
+const PLAIN_KEYS = ['ci', 'rank', 'ciT', 'pct', 'shift']
+function plainMetric(sector, method, key) {
+  const k = PLAIN_KEYS.includes(key) ? key : 'rank'
+  const base = metricFor(sector, method, k)
+  const pset = plainSet(sector)
+  if (!pset) return base
+  const other = otherMethodOf(method)
+  const get = {
+    ci: (r, i) => pset.ci[method][i],
+    rank: (r, i) => pset.rank[method][i],
+    ciT: (r, i) => pset.ciT[method][i],
+    pct: (r, i) => pctOf(pset.rank[method][i]),
+    shift: (r, i) => (pset.rank[other]?.[i] != null && pset.rank[method]?.[i] != null
+      ? pset.rank[other][i] - pset.rank[method][i] : null),
+  }[k]
+  return { ...base, key: k, get, label: `${base.label} · 전처리 없음` }
+}
+const sideMetric = (side) => (side.eda === 'plain'
+  ? plainMetric(side.sector, side.method, side.metricKey)
+  : metricFor(side.sector, side.method, side.metricKey))
+
 // 두 지도의 색 구간(7단계)이 다른 시군구 수 — 부문·지표가 달라도 셀 수 있게 값에서 직접 계산한다.
 function binsOf(metric) {
   const v = valuesOf(metric)
@@ -31,6 +57,7 @@ function diffCount(mA, mB) {
 }
 
 function SidePick({ side, onChange, align = 'left' }) {
+  const plain = side.eda === 'plain'
   return (
     <div className="cv-pick">
       <select value={side.sector} title="부문"
@@ -41,9 +68,19 @@ function SidePick({ side, onChange, align = 'left' }) {
         onChange={(e) => onChange({ ...side, method: e.target.value, metricKey: safeKey(side.sector, e.target.value, side.metricKey) })}>
         {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
       </select>
-      {/* 보는 항목 — 명령바와 같은 두 층 고르기 판(39차). 긴 목록이 접힌다. */}
+      {/* 전처리 — 현재 설정(2단계 변환·윈저 + 4단계 가중치) 그대로 쓸지,
+          다 걷어내고 계산할지. 좌우를 달리 두면 로그화·가중치의 효과가 지도로 보인다. */}
+      <div className="cv-eda" title="현재 = 2단계 변환·윈저와 4단계 가중치를 반영한 계산 · 전처리 없음 = 변환 없이 동일가중으로 계산">
+        <button className={plain ? '' : 'on'}
+          onClick={() => onChange({ ...side, eda: 'cur' })}>현재 전처리</button>
+        <button className={plain ? 'on' : ''}
+          onClick={() => onChange({ ...side, eda: 'plain', metricKey: safeKey(side.sector, side.method, PLAIN_KEYS.includes(side.metricKey) ? side.metricKey : 'rank') })}>전처리 없음</button>
+      </div>
+      {/* 보는 항목 — 명령바와 같은 두 층 고르기 판(39차). 긴 목록이 접힌다.
+          전처리 없음일 때는 부문 종합 값만 고를 수 있다. */}
       <MetricPicker sector={side.sector} method={side.method} value={side.metricKey}
-        onChange={(k) => onChange({ ...side, metricKey: k })} align={align} small />
+        onChange={(k) => onChange({ ...side, metricKey: k })} align={align} small
+        totalOnly={plain} />
       {/* 지도 색 — 좌우가 각자 고른다(40차) */}
       <HueDots small hue={side.hue || 'auto'} onHue={(h) => onChange({ ...side, hue: h })} />
     </div>
@@ -74,11 +111,11 @@ export default function CompareMaps({
   // 처음 열 때만 조작부에서 고른 부문·지표를 그대로 물려받고, 표준화 방법만
   // 두 계열의 대표(간격보존형 · 순위전용형)로 갈라 둔다. 그 뒤로는 사람이
   // 좌우를 직접 바꾼다 — 조작부를 건드릴 때마다 되돌아가면 오히려 방해가 된다.
-  const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], metricKey: safeKey(sector, CAMP_REPS[0], metricKey), hue: 'auto' }))
-  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], metricKey), hue: 'auto' }))
+  const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], metricKey: safeKey(sector, CAMP_REPS[0], metricKey), hue: 'auto', eda: 'cur' }))
+  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], metricKey), hue: 'auto', eda: 'cur' }))
 
-  const mA = metricFor(A.sector, A.method, A.metricKey)
-  const mB = metricFor(B.sector, B.method, B.metricKey)
+  const mA = sideMetric(A)
+  const mB = sideMetric(B)
   const cA = CAMP[campOf(A.method)]?.color || '#0B93EE'
   const cB = CAMP[campOf(B.method)]?.color || '#F5760D'
 
@@ -87,8 +124,8 @@ export default function CompareMaps({
   const changed = useMemo(() => diffCount(mA, mB), [mA, mB])
   const big = useMemo(() => ROWS.filter((r) => r[A.sector]?.ssiCamp >= 10).length, [A.sector, ver])
 
-  const tagA = `${SECTORS[A.sector].name} · ${methodOf(A.method).label}`
-  const tagB = `${SECTORS[B.sector].name} · ${methodOf(B.method).label}`
+  const tagA = `${SECTORS[A.sector].name} · ${methodOf(A.method).label}${A.eda === 'plain' ? ' · 전처리 없음' : ''}`
+  const tagB = `${SECTORS[B.sector].name} · ${methodOf(B.method).label}${B.eda === 'plain' ? ' · 전처리 없음' : ''}`
 
   // ── 커서를 따라다니는 팝업 ───────────────────────────────────────────
   const [pos, setPos] = useState(null)

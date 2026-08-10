@@ -96,7 +96,7 @@ export function RankPanel({ sector, method, confirmed, selected, onSelect, ver }
 const VAR_LABEL = { raw: '원값', std: '표준화', t: 'T점수', rank: '순위' }
 const VAR_ORDER = ['raw', 'std', 't', 'rank']
 
-export function MetricPicker({ sector, method, value, onChange, align = 'left', small = false }) {
+export function MetricPicker({ sector, method, value, onChange, align = 'left', small = false, totalOnly = false }) {
   const [open, setOpen] = useState(false)
   const items = metricsFor(sector, method)
   const cur = items.find((x) => x.key === value) || items[0]
@@ -129,10 +129,10 @@ export function MetricPicker({ sector, method, value, onChange, align = 'left', 
           <div className="mtp-veil" onClick={() => setOpen(false)} />
           <div className={`mtp${align === 'right' ? ' right' : ''}`}>
             <div className="mtp-sec">
-              <u>{GRP.total}</u>
+              <u>{GRP.total}{totalOnly && <em>전처리 없음 비교는 부문 종합 값으로만 봅니다</em>}</u>
               <List list={of(GRP.total)} />
             </div>
-            {bySub.length > 0 && (
+            {!totalOnly && bySub.length > 0 && (
               <div className="mtp-sec">
                 <u>{GRP.raw} <em>지표 한 줄 · 보기 네 가지</em></u>
                 <div className="mtp-grid">
@@ -150,11 +150,13 @@ export function MetricPicker({ sector, method, value, onChange, align = 'left', 
                 </div>
               </div>
             )}
-            <div className="mtp-sec">
-              <u>{GRP.sens}</u>
-              <List list={of(GRP.sens)} />
-            </div>
-            {of(GRP.flag).length > 0 && (
+            {!totalOnly && (
+              <div className="mtp-sec">
+                <u>{GRP.sens}</u>
+                <List list={of(GRP.sens)} />
+              </div>
+            )}
+            {!totalOnly && of(GRP.flag).length > 0 && (
               <div className="mtp-sec">
                 <u>{GRP.flag}</u>
                 <List list={of(GRP.flag)} />

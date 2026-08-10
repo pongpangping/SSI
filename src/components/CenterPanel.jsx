@@ -192,8 +192,11 @@ export default function CenterPanel({
       )}
 
       {/* ── 3 표준화 민감도 — 서랍 ─────────────────────────────────────── */}
+      {/* 지역을 골랐을 때는 전국 훑기용 카드(민감도 산점도 · 순위 이동 목록)를
+          숨긴다(41차). 남는 것은 고른 지역이 표시되는 카드들뿐 — 분포와 범프
+          차트는 전국 속의 '이 지역'을 보여 주므로 남긴다. */}
       <Drawer id="sens" title="표준화 민감도" plain="방법별 부문점수와 순위 이동"
-        count={5} open={!!drawers.sens} onToggle={(v) => onDrawer('sens', v)}>
+        count={selectedRow ? 3 : 5} open={!!drawers.sens} onToggle={(v) => onDrawer('sens', v)}>
         <Card title="선택한 표준화 방법" sub="정의 · 수식 · 범위 · 방법을 바꿨을 때의 변화">
           <MethodDetail sector={sector} method={method} onMethod={link.onMethod} />
         </Card>
@@ -205,21 +208,25 @@ export default function CenterPanel({
           dl={() => dlRankFlow(sector)} dlTip={`${N}개 시군구 × 4개 방법 순위`}>
           <RankFlow sector={sector} selectedRow={selectedRow} onSelect={link.onSelect} ver={ver} />
         </Card>
-        <Card title="표준화 민감도 산점도" sub="Min-Max 순위 × 백분위순위 순위"
-          dl={() => dlSensScatter(sector)} dlTip="두 진영 대표 순위와 순위 이동">
-          <SensitivityScatter sector={sector} selected={link.selected} onSelect={link.onSelect} ver={ver} />
-        </Card>
-        <Card title="순위 이동이 큰 시군구" sub="상위 15곳 표시 · 파일은 전체"
-          dl={() => dlSensList(sector)} dlTip={`${N}개 시군구 순위 이동 전체`}>
-          <SensitiveList sector={sector} selected={link.selected} onSelect={link.onSelect} ver={ver} />
-        </Card>
+        {!selectedRow && (
+          <Card title="표준화 민감도 산점도" sub="Min-Max 순위 × 백분위순위 순위"
+            dl={() => dlSensScatter(sector)} dlTip="두 진영 대표 순위와 순위 이동">
+            <SensitivityScatter sector={sector} selected={link.selected} onSelect={link.onSelect} ver={ver} />
+          </Card>
+        )}
+        {!selectedRow && (
+          <Card title="순위 이동이 큰 시군구" sub="상위 15곳 표시 · 파일은 전체"
+            dl={() => dlSensList(sector)} dlTip={`${N}개 시군구 순위 이동 전체`}>
+            <SensitiveList sector={sector} selected={link.selected} onSelect={link.onSelect} ver={ver} />
+          </Card>
+        )}
       </Drawer>
 
       {/* ── 4 원데이터 — 서랍 ──────────────────────────────────────────── */}
       {/* 지표 정의 · 산식 · 출처는 여기 있지 않다. 값의 뜻을 읽는 일은 이 서랍의
           어느 표에서나 똑같이 필요하므로 머리줄 오른쪽 '데이터 설명'으로 옮겼다. */}
       <Drawer id="raw" title="원데이터" plain="표준화하기 전의 값"
-        count={3} open={!!drawers.raw} onToggle={(v) => onDrawer('raw', v)}>
+        count={selectedRow ? 2 : 3} open={!!drawers.raw} onToggle={(v) => onDrawer('raw', v)}>
         <Card title="선택 지역 지표 원값" sub={yr}
           dl={one(dlRaw)} dlTip="선택 지역의 지표별 원값·표준화값">
           {selectedRow
@@ -229,13 +236,15 @@ export default function CenterPanel({
               <span>고른 곳의 지표 원값과 전국 대비 위치</span>
             </div>}
         </Card>
-        <Card title="전국 지표 원값" sub={`${N}개 시군구 × 지표 ${inds.length}개`}
-          dl={() => dlRawAll(sector, method)} dlTip="전국 원값·표준화값 표">
-          <div className="ns-say">
-            표가 커서 화면에는 싣지 않습니다. 오른쪽 위 내려받기로 CSV·Excel 파일을 받으세요.
-            머리줄의 <b>전체 데이터표</b>에서도 같은 값을 볼 수 있습니다.
-          </div>
-        </Card>
+        {!selectedRow && (
+          <Card title="전국 지표 원값" sub={`${N}개 시군구 × 지표 ${inds.length}개`}
+            dl={() => dlRawAll(sector, method)} dlTip="전국 원값·표준화값 표">
+            <div className="ns-say">
+              표가 커서 화면에는 싣지 않습니다. 오른쪽 위 내려받기로 CSV·Excel 파일을 받으세요.
+              머리줄의 <b>전체 데이터표</b>에서도 같은 값을 볼 수 있습니다.
+            </div>
+          </Card>
+        )}
         <Card title="지표 간 산점도" sub="가로·세로축 직접 지정"
           dl={() => dlScatter(sector, method, xKey, yKey)} dlTip="지금 축 두 개의 값">
           <ScatterPlot sector={sector} method={method} selected={link.selected}

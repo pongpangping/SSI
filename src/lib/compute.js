@@ -125,15 +125,22 @@ export function pearson(a, b) {
 // 같은 조합을 다시 물으면 계산하지 않고 기억해 둔 것을 준다.
 const cache = new Map()
 
-export function computeSet(picks, sector = '') {
-  // EDA 설정(방향·변환·윈저·가중치)이 열쇠에 들어간다 — 설정이 바뀌면 새로 계산
-  const ck = picks.map((p) => p.col).join('.') + '#' + sector + '#' + edaKey(picks, sector)
+export function computeSet(picks, sector = '', plain = false) {
+  // EDA 설정(방향·변환·윈저·가중치)이 열쇠에 들어간다 — 설정이 바뀌면 새로 계산.
+  // plain = 전처리 무시 계산(41차). 방향은 사용자 선택을 따르되, 변환·윈저는
+  // 걷어내고 가중치는 동일가중으로 되돌린다. 2종 비교에서 '전처리 없음'과
+  // '현재 설정'을 나란히 볼 때 쓴다.
+  const ck = picks.map((p) => p.col).join('.') + '#' + sector + '#'
+    + (plain ? 'PLAIN' + picks.map((p) => cfgOf(p.col, p.dir).dir).join('') : edaKey(picks, sector))
   if (cache.has(ck)) return cache.get(ck)
 
   // 원값 → 윈저라이징 → 로그화·반로그화 (2단계 설정). 방향은 사용자가 바꿨으면 그것을 쓴다.
-  const cfgs = picks.map((p) => cfgOf(p.col, p.dir))
+  const cfgs = picks.map((p) => {
+    const g = cfgOf(p.col, p.dir)
+    return plain ? { dir: g.dir, transform: 'none', winsor: { on: false, lo: 5, hi: 95 } } : g
+  })
   const cols = picks.map((p, j) => preprocess(SERIES[p.col] || ROWS.map(() => null), cfgs[j]))
-  const wts = picks.map((p) => weightOf(sector, p.col, picks.length))
+  const wts = plain ? picks.map(() => 1) : picks.map((p) => weightOf(sector, p.col, picks.length))
   const std = {}, ci = {}, rank = {}, indRank = {}
   for (const mk of METHOD_KEYS) {
     const s = picks.map((p, j) => standardizeSeries(cols[j], cfgs[j].dir, mk))

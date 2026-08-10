@@ -765,3 +765,46 @@
 .hue-dot.on { outline: 2.5px solid var(--ink); }
 .cb-hues.small .hue-auto { font-size: 10px; padding: 3px 8px; }
 .cb-hues.small .hue-dot { width: 15px; height: 15px; }
+
+/* ============================================================
+   41차 — 다섯 가지 손질
+   1) 기본 지표 선택 없음 (App 논리)
+   2) 지역 선택 시 전국용 카드 숨김 (CenterPanel 논리)
+   3) 선택 지역 카드 글씨 손질 (아래 41.1 블록)
+   4) 2종 비교 전처리(현재/없음) 스위치
+   5) 층 순서 — 머리줄 모달이 명령바에 가려지던 문제
+   ============================================================ */
+/* 5) 머리줄(z 30)이 명령바(z 200)보다 아래라, 머리줄 안에서 뜨는
+   '데이터 설명'·'용어' 모달이 명령바에 가려졌다. 머리줄을 명령바 위로
+   올리고, 단계 화면의 모달 장막은 그보다 더 위로 올린다. */
+.header { z-index: 600; }
+.eda-veil { z-index: 700; }
+.eda-veil.deep { z-index: 710; }
+
+/* 4) 2종 비교 — 전처리 스위치 */
+.cv-eda { display: inline-flex; gap: 2px; background: var(--muted);
+  border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
+.cv-eda button { border: 0; background: transparent; color: var(--ink3);
+  font-size: 10.5px; font-weight: 700; border-radius: 7px; padding: 4px 8px;
+  cursor: pointer; white-space: nowrap; }
+.cv-eda button:hover { color: var(--accent-strong); }
+.cv-eda button.on { background: var(--accent); color: #fff; }
+
+/* 41.1차 — 선택 지역 카드 글씨 손질
+   · 진단표 머리: 방법 이름이 'Min-\Max'처럼 반 토막 나던 것 — 제 줄을 준다
+   · 지표 줄 설명: '…' 말줄임으로 연도가 잘리던 것 — 접어 내려 다 보인다
+   · 계산 과정 표: '백분위순위로지스틱'처럼 머리끼리 붙던 것 — 크기·간격 손질
+   · 한국어 낱말 중간 꺾임(2025/년, 4/방법) — 낱말 단위로만 줄을 바꾼다 */
+.rp-mth { white-space: nowrap; }
+.rp-who em { word-break: keep-all; }
+.rp-r1 { flex-wrap: wrap; row-gap: 1px; }
+.rp-r1 em { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip;
+  word-break: keep-all; line-height: 1.35; }
+.stt-tbl th { font-size: 10px; padding: 6px 3px; white-space: normal;
+  word-break: keep-all; line-height: 1.25; letter-spacing: -0.01em; }
+.stt-tbl th:first-child { width: 31%; }
+.stt-l b, .stt-l span { word-break: keep-all; }
+.rp-r2 b { word-break: keep-all; }
+/* 방사 차트 아래 범례 — 얇은 회색이라 안 보이던 글씨를 또렷하게 */
+.rdc-legend { color: #33415C; }
+.rdc-legend em { color: #5A6880; }

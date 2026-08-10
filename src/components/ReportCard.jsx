@@ -65,7 +65,9 @@ export default function ReportCard({ row, sector, method, onMethod }) {
       <div className="rp-top">
         <div className="rp-who">
           <b>{row.sido} {row.name}</b>
-          <em>{SECTORS[sector].name} · 지표 {inds.length}개 · {yr} · {m.label} 기준</em>
+          {/* 방법 이름(Min-Max 같은 것)이 줄 끝에서 반 토막 나지 않게 줄을 나눈다(41차) */}
+          <em>{SECTORS[sector].name} · 지표 {inds.length}개 · {yr}</em>
+          <em className="rp-mth">{m.label} 기준</em>
         </div>
         <div className="rp-big" style={{ borderColor: tColor(sT) }}>
           <span>전국</span><b>{sRank == null ? '—' : `${sRank}위`}</b>

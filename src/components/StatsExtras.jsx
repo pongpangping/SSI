@@ -58,7 +58,25 @@ function median(arr) {
   if (!ok.length) return null
   return ok.length % 2 ? ok[(ok.length - 1) / 2] : (ok[ok.length / 2 - 1] + ok[ok.length / 2]) / 2
 }
-const shortLab = (s) => (s.length > 7 ? s.slice(0, 6) + '…' : s)
+
+// 축 이름 — 자르지 않고 두 줄로 접는다(41차). '거점부 인구…' 같은 말줄임 대신
+// 띄어쓰기 자리(없으면 여섯 자)에서 나눠 다 보여 준다.
+const wrapLab = (s) => {
+  if (s.length <= 6) return [s]
+  const sp = s.lastIndexOf(' ', 7)
+  if (sp > 0) return [s.slice(0, sp), s.slice(sp + 1)]
+  return [s.slice(0, 6), s.slice(6, 14)]
+}
+function AngleTick({ payload, x, y, textAnchor }) {
+  const lines = wrapLab(String(payload?.value ?? ''))
+  return (
+    <text x={x} y={y} textAnchor={textAnchor} fill="#33415C" fontSize={10.5} fontWeight={650}>
+      {lines.map((l, i) => (
+        <tspan key={i} x={x} dy={i === 0 ? (lines.length > 1 ? -2 : 4) : 12}>{l}</tspan>
+      ))}
+    </text>
+  )
+}
 
 export function RadarCard({ row, sector, method, ver }) {
   const inds = indsOf(sector)
@@ -67,7 +85,7 @@ export function RadarCard({ row, sector, method, ver }) {
     const s = stdSeries(sector, e.label, method)
     const md = median(s)
     return {
-      axis: shortLab(e.label), full: e.label,
+      axis: e.label, full: e.label,
       region: num(s[i]) ? Math.round(s[i] * 10) / 10 : 0,
       nation: md == null ? 0 : Math.round(md * 10) / 10,
     }
@@ -79,12 +97,14 @@ export function RadarCard({ row, sector, method, ver }) {
   }
   return (
     <div className="rdc">
-      <ResponsiveContainer width="100%" height={240}>
-        <RadarChart data={data} outerRadius="72%">
+      <ResponsiveContainer width="100%" height={250}>
+        <RadarChart data={data} outerRadius="62%">
           <PolarGrid stroke="rgba(15,23,42,0.14)" />
-          <PolarAngleAxis dataKey="axis" tick={{ fill: '#46536B', fontSize: 10.5 }} />
-          <PolarRadiusAxis angle={90} domain={[0, 100]}
-            tick={{ fill: 'rgba(70,83,107,0.55)', fontSize: 9 }} tickCount={3} stroke="rgba(15,23,42,0.1)" />
+          <PolarAngleAxis dataKey="axis" tick={<AngleTick />} />
+          {/* 눈금(0·50·100)을 첫 축과 다음 축 사이로 비켜 놓는다 — 축 이름과 겹치지 않게 */}
+          <PolarRadiusAxis angle={90 - 180 / Math.max(3, inds.length)} domain={[0, 100]}
+            tick={{ fill: '#5A6880', fontSize: 9.5, fontWeight: 650 }} tickCount={3}
+            stroke="rgba(15,23,42,0.1)" />
           <Radar name="전국 중앙값" dataKey="nation" stroke="rgba(15,23,42,0.45)"
             fill="rgba(15,23,42,0.06)" strokeDasharray="4 3" />
           <Radar name={row.name} dataKey="region" stroke="#0B93EE" fill="#0B93EE" fillOpacity={0.28} />
