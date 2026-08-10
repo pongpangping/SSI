@@ -225,17 +225,17 @@ export default function CenterPanel({
       {/* ── 4 원데이터 — 서랍 ──────────────────────────────────────────── */}
       {/* 지표 정의 · 산식 · 출처는 여기 있지 않다. 값의 뜻을 읽는 일은 이 서랍의
           어느 표에서나 똑같이 필요하므로 머리줄 오른쪽 '데이터 설명'으로 옮겼다. */}
+      {/* 지역 카드와 전국 카드는 서로의 화면에 나오지 않는다(43차).
+          전국 화면에는 '선택 지역 …' 자리 표시 상자도 두지 않는다 —
+          빈 상자는 통계가 아니라 자리만 차지하는 안내문이었다. */}
       <Drawer id="raw" title="원데이터" plain="표준화하기 전의 값"
-        count={selectedRow ? 2 : 3} open={!!drawers.raw} onToggle={(v) => onDrawer('raw', v)}>
-        <Card title="선택 지역 지표 원값" sub={yr}
-          dl={one(dlRaw)} dlTip="선택 지역의 지표별 원값·표준화값">
-          {selectedRow
-            ? <RawIndicators row={selectedRow} sector={sector} />
-            : <div className="csect-wait sm">
-              <b>지도에서 시군구를 클릭하면 이 자리에 나옵니다</b>
-              <span>고른 곳의 지표 원값과 전국 대비 위치</span>
-            </div>}
-        </Card>
+        count={2} open={!!drawers.raw} onToggle={(v) => onDrawer('raw', v)}>
+        {selectedRow && (
+          <Card title="선택 지역 지표 원값" sub={yr}
+            dl={one(dlRaw)} dlTip="선택 지역의 지표별 원값·표준화값">
+            <RawIndicators row={selectedRow} sector={sector} />
+          </Card>
+        )}
         {!selectedRow && (
           <Card title="전국 지표 원값" sub={`${N}개 시군구 × 지표 ${inds.length}개`}
             dl={() => dlRawAll(sector, method)} dlTip="전국 원값·표준화값 표">
