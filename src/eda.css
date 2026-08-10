@@ -813,3 +813,11 @@
    판(z 900) 위로 떠오르던 문제. 판과 그 장막을 지도 조작부보다 위로 올린다. */
 .mtp-veil { z-index: 1290; }
 .mtp { z-index: 1300; }
+
+/* 44차 — 2종 비교 전처리 세분화: [변환 현재/없음/로그화/반로그화] + [가중치 현재/동일] */
+.cv-eda > u { text-decoration: none; align-self: center; font-size: 9.5px; font-weight: 800;
+  color: var(--ink3); letter-spacing: 0.04em; padding: 0 3px 0 6px; }
+.cv-eda button { padding: 4px 7px; font-size: 10px; }
+.cv-pick { flex-wrap: wrap; row-gap: 5px; }
+/* 44.1 — 세그가 늘어나며 부문·방법 select가 짜부라지던 것: 최소 폭 보장 */
+.cv-pick > select { min-width: 108px; flex: none; }

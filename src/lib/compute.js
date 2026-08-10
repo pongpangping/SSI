@@ -125,22 +125,35 @@ export function pearson(a, b) {
 // 같은 조합을 다시 물으면 계산하지 않고 기억해 둔 것을 준다.
 const cache = new Map()
 
-export function computeSet(picks, sector = '', plain = false) {
+export function computeSet(picks, sector = '', ov = null) {
   // EDA 설정(방향·변환·윈저·가중치)이 열쇠에 들어간다 — 설정이 바뀌면 새로 계산.
-  // plain = 전처리 무시 계산(41차). 방향은 사용자 선택을 따르되, 변환·윈저는
-  // 걷어내고 가중치는 동일가중으로 되돌린다. 2종 비교에서 '전처리 없음'과
-  // '현재 설정'을 나란히 볼 때 쓴다.
+  //
+  // ov = 전처리 덮어쓰기(41차→44차 확장). 2종 비교에서 좌우를 다른 전처리로
+  // 계산할 때 쓴다. 방향은 언제나 사용자 선택을 따른다.
+  //   ov.tr : 'cur' = 2단계 설정(변환·윈저) 그대로
+  //           'none' | 'log' | 'rlog' = 모든 지표에 그 변환을 일괄 적용, 윈저 없음
+  //   ov.wt : 'cur' = 4단계 가중치 그대로 · 'equal' = 동일가중
+  // (예전 plain=true 호출은 { tr:'none', wt:'equal' } 과 같다)
+  if (ov === true) ov = { tr: 'none', wt: 'equal' }
   const ck = picks.map((p) => p.col).join('.') + '#' + sector + '#'
-    + (plain ? 'PLAIN' + picks.map((p) => cfgOf(p.col, p.dir).dir).join('') : edaKey(picks, sector))
+    + (ov
+      ? `OV:${ov.tr}:${ov.wt}:` + picks.map((p) => {
+        const g = cfgOf(p.col, p.dir)
+        return ov.tr === 'cur' ? `${g.dir}${g.transform}${g.winsor?.on ? `w${g.winsor.lo}-${g.winsor.hi}` : ''}` : g.dir
+      }).join('|') + (ov.wt === 'cur' ? '#' + edaKey(picks, sector) : '')
+      : edaKey(picks, sector))
   if (cache.has(ck)) return cache.get(ck)
 
   // 원값 → 윈저라이징 → 로그화·반로그화 (2단계 설정). 방향은 사용자가 바꿨으면 그것을 쓴다.
   const cfgs = picks.map((p) => {
     const g = cfgOf(p.col, p.dir)
-    return plain ? { dir: g.dir, transform: 'none', winsor: { on: false, lo: 5, hi: 95 } } : g
+    if (!ov || ov.tr === 'cur') return g
+    return { dir: g.dir, transform: ov.tr, winsor: { on: false, lo: 5, hi: 95 } }
   })
   const cols = picks.map((p, j) => preprocess(SERIES[p.col] || ROWS.map(() => null), cfgs[j]))
-  const wts = plain ? picks.map(() => 1) : picks.map((p) => weightOf(sector, p.col, picks.length))
+  const wts = (ov && ov.wt === 'equal')
+    ? picks.map(() => 1)
+    : picks.map((p) => weightOf(sector, p.col, picks.length))
   const std = {}, ci = {}, rank = {}, indRank = {}
   for (const mk of METHOD_KEYS) {
     const s = picks.map((p, j) => standardizeSeries(cols[j], cfgs[j].dir, mk))

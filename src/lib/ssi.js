@@ -159,14 +159,17 @@ SECTOR_KEYS.forEach((k) => applyPicks(k, defaultPicks(k)))
 export const indsOf = (sector) => CUR[sector]?.entries || []
 export const setOf = (sector) => CUR[sector]?.set || null
 
-// 전처리 무시 계산(41차) — 같은 지표 조합을 변환·윈저 없이 동일가중으로 다시
-// 계산한 세트. 2종 비교에서 '현재 설정 대 전처리 없음'을 나란히 볼 때 쓴다.
+// 전처리 덮어쓰기 계산(44차) — 같은 지표 조합을 다른 전처리로 다시 계산한 세트.
+// tr: 'cur'(2단계 설정 그대로) | 'none' | 'log' | 'rlog' (일괄 변환 · 윈저 없음)
+// wt: 'cur'(4단계 가중치 그대로) | 'equal' (동일가중)
+// 2종 비교에서 '로그화 대 반로그화', '가중치 대 동일가중'을 나란히 볼 때 쓴다.
 // computeSet이 조합별로 기억해 두므로 몇 번을 물어도 계산은 한 번이다.
-export function plainSet(sector) {
+export function ovSet(sector, tr = 'none', wt = 'equal') {
   const entries = CUR[sector]?.entries || []
   if (!entries.length) return null
-  return computeSet(entries.map((e) => ({ col: e.col, dir: e.dir })), sector, true)
+  return computeSet(entries.map((e) => ({ col: e.col, dir: e.dir })), sector, { tr, wt })
 }
+export const plainSet = (sector) => ovSet(sector, 'none', 'equal')
 export const picksOf = (sector) => (CUR[sector]?.entries || []).map((e) => ({ id: e.id, year: e.year }))
 // 선택 조합을 한 줄로: "S8_1_23.S8_2_23"
 export const picksToHash = (picks) => picks.map(colOfPick).filter(Boolean).join('.')
