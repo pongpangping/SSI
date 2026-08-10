@@ -87,20 +87,26 @@ function SidePick({ side, onChange, align = 'left' }) {
       {/* 변환 — 2단계 설정 그대로 쓰거나, 없음·로그화·반로그화를 전 지표에 일괄
           적용해 계산한다(일괄일 때 윈저 없음). 좌우를 달리 두면 변환의 효과가
           지도로 보인다. */}
-      <div className="cv-eda" title="변환 · 현재 = 2단계에서 지표마다 정한 변환·윈저 그대로 · 없음/로그화/반로그화 = 모든 지표에 일괄 적용해 다시 계산">
+      {/* 이름표(변환·가중치)는 단추 알약 밖에 세운다 — 알약 안에 있으면
+          단추처럼 눌릴 것으로 읽힌다(45차) */}
+      <div className="cv-ov" title="변환 · 현재 = 2단계에서 지표마다 정한 변환·윈저 그대로 · 없음/로그화/반로그화 = 모든 지표에 일괄 적용해 다시 계산">
         <u>변환</u>
-        {[['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
-          <button key={k} className={(side.tr || 'cur') === k ? 'on' : ''}
-            onClick={() => setOv({ tr: k })}>{name}</button>
-        ))}
+        <div className="cv-eda">
+          {[['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
+            <button key={k} className={(side.tr || 'cur') === k ? 'on' : ''}
+              onClick={() => setOv({ tr: k })}>{name}</button>
+          ))}
+        </div>
       </div>
       {/* 가중치 — 4단계 가중치 그대로 쓰거나 동일가중으로 되돌려 계산한다 */}
-      <div className="cv-eda" title="가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산">
+      <div className="cv-ov" title="가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산">
         <u>가중치</u>
-        {[['cur', '현재'], ['equal', '동일']].map(([k, name]) => (
-          <button key={k} className={(side.wt || 'cur') === k ? 'on' : ''}
-            onClick={() => setOv({ wt: k })}>{name}</button>
-        ))}
+        <div className="cv-eda">
+          {[['cur', '현재'], ['equal', '동일']].map(([k, name]) => (
+            <button key={k} className={(side.wt || 'cur') === k ? 'on' : ''}
+              onClick={() => setOv({ wt: k })}>{name}</button>
+          ))}
+        </div>
       </div>
       {/* 보는 항목 — 명령바와 같은 두 층 고르기 판(39차). 긴 목록이 접힌다.
           전처리를 덮어쓴 쪽은 부문 종합 값만 고를 수 있다. */}

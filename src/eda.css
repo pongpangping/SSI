@@ -821,3 +821,10 @@
 .cv-pick { flex-wrap: wrap; row-gap: 5px; }
 /* 44.1 — 세그가 늘어나며 부문·방법 select가 짜부라지던 것: 최소 폭 보장 */
 .cv-pick > select { min-width: 108px; flex: none; }
+
+/* 45차 — 변환·가중치 이름표를 단추 알약 밖으로. 알약 안에 있으면 눌리는
+   단추처럼 읽힌다. 밖에 선 이름표는 회색 소문자 딱지로, 단추와 확실히 다르다. */
+.cv-ov { display: inline-flex; align-items: center; gap: 5px; }
+.cv-ov > u { text-decoration: none; font-size: 9.5px; font-weight: 800;
+  color: var(--ink3); letter-spacing: 0.04em; white-space: nowrap; }
+.cv-ov .cv-eda > u { display: none; }
