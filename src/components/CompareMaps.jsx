@@ -1,60 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NationalMap from './NationalMap.jsx'
-import { MetricPicker, HueDots } from './ResultChrome.jsx'
 import {
-  metricFor, metricsFor, methodOf, otherMethodOf, METHODS, SECTORS, SECTOR_KEYS, CAMP, CAMP_REPS,
-  campOf, valuesOf, rowIndex, ROWS, ovSet, pctOf,
+  metricFor, methodOf, METHODS, SECTORS, CAMP, CAMP_REPS,
+  campOf, valuesOf, rowIndex, ROWS, ovSet, indsOf,
 } from '../lib/ssi.js'
+import { cfgOf, weightOf, TRANSFORMS } from '../lib/eda.js'
 
-// 나란히 보기 — 왼쪽·오른쪽 지도를 각각 '부문 · 방법 · 지표'로 정한다.
-// 추천 조합(방법 비교·부문 비교·지표 비교) 세 가지를 두었었지만, 결국 무엇을
-// 비교하는지는 사람이 알고 들어오는 일이라 고르는 단계가 한 겹 더 늘 뿐이었다.
-// 지금은 좌우를 각각 직접 고르는 자유 조합 하나만 둔다.
-// 마우스를 올리면 커서를 따라다니는 팝업이 두 지도의 값을 한 번에 보여 준다.
+// 나란히 보기.
+//
+// 왼쪽은 기준 — 지금 화면의 부문·표준화 방법·전처리(2단계 변환·윈저,
+// 4단계 가중치)를 그대로 쓴 계산이다. 고정 비교대상이므로 바꿀 것이 없고,
+// [지금 설정 보기]로 지표마다 어떤 변환이 걸려 있는지 확인만 한다.
+//
+// 오른쪽은 실험 — 표준화 방법을 고르고, [전처리 바꿔 계산]에서 지표마다
+// 변환(지금 그대로 · 없음 · 로그화 · 반로그화)을 따로 정해 다시 계산한다.
+// 가중치도 지금 것 그대로 쓸지 동일가중으로 되돌릴지 고른다.
+//
+// 두 지도가 그리는 값은 전국 순위 하나로 고정한다 — 비교의 관심은
+// "설정을 바꾸면 순위가 어떻게 움직이는가"이고, 값의 종류까지 좌우가
+// 다르면 색 차이가 무엇 때문인지 읽을 수 없다.
+// 지도 색은 각 지도의 범례 상자에서 바꾼다.
 
-// 지표 키가 그 부문·방법에 실제로 있는지 확인하고, 없으면 순위로 되돌린다.
-const safeKey = (sector, method, key) => {
-  const list = metricsFor(sector, method)
-  return list.some((m) => m.key === key) ? key : (list.find((m) => m.key === 'rank') || list[0]).key
-}
+const trName = (k) => TRANSFORMS.find((t) => t.key === k)?.label || '변환 없음'
 
-// ── 전처리 덮어쓰기 계산(41차→44차) ─────────────────────────────────────
-// 좌우 지도를 서로 다른 전처리로 계산한다.
-//   변환(tr)  현재 = 2단계에서 지표마다 정한 변환·윈저 그대로
-//             없음 · 로그화 · 반로그화 = 모든 지표에 일괄 적용(윈저 없음)
-//   가중치(wt) 현재 = 4단계 가중치 그대로 · 동일 = 동일가중
-// 한쪽을 '로그화', 다른쪽을 '없음'으로 두면 로그화가 순위를 얼마나
-// 움직였는지, '현재 대 동일'로 두면 가중치의 효과가 지도로 보인다.
-// 덮어쓴 쪽은 부문 종합 값(점수·순위·T·백분위·순위 변화)만 볼 수 있다.
-const PLAIN_KEYS = ['ci', 'rank', 'ciT', 'pct', 'shift']
-const TR_NAME = { none: '변환 없음', log: '로그화', rlog: '반로그화' }
-const ovOn = (side) => (side.tr || 'cur') !== 'cur' || (side.wt || 'cur') !== 'cur'
-const ovName = (side) => [
-  side.tr !== 'cur' ? TR_NAME[side.tr] : null,
-  side.wt === 'equal' ? '동일가중' : null,
-].filter(Boolean).join(' · ')
-function ovMetric(sector, method, key, tr, wt) {
-  const k = PLAIN_KEYS.includes(key) ? key : 'rank'
-  const base = metricFor(sector, method, k)
-  const pset = ovSet(sector, tr, wt)
-  if (!pset) return base
-  const other = otherMethodOf(method)
-  const get = {
-    ci: (r, i) => pset.ci[method][i],
-    rank: (r, i) => pset.rank[method][i],
-    ciT: (r, i) => pset.ciT[method][i],
-    pct: (r, i) => pctOf(pset.rank[method][i]),
-    shift: (r, i) => (pset.rank[other]?.[i] != null && pset.rank[method]?.[i] != null
-      ? pset.rank[other][i] - pset.rank[method][i] : null),
-  }[k]
-  const name = ovName({ tr, wt })
-  return { ...base, key: k, get, label: `${base.label}${name ? ` · ${name}` : ''}` }
-}
-const sideMetric = (side) => (ovOn(side)
-  ? ovMetric(side.sector, side.method, side.metricKey, side.tr || 'cur', side.wt || 'cur')
-  : metricFor(side.sector, side.method, side.metricKey))
-
-// 두 지도의 색 구간(7단계)이 다른 시군구 수 — 부문·지표가 달라도 셀 수 있게 값에서 직접 계산한다.
+// 두 지도의 색 구간(7단계)이 다른 시군구 수 — 값에서 직접 계산한다.
 function binsOf(metric) {
   const v = valuesOf(metric)
   const f = v.filter((x) => x != null && !Number.isNaN(x))
@@ -66,55 +35,99 @@ function diffCount(mA, mB) {
   return a.reduce((n, x, i) => n + (x !== b[i] ? 1 : 0), 0)
 }
 
-function SidePick({ side, onChange, align = 'left' }) {
-  const on = ovOn(side)
-  // 덮어쓰기를 켜거나 끌 때 — 켜지면 부문 종합 값만 남으므로 키를 맞춰 둔다
-  const setOv = (patch) => {
-    const next = { ...side, ...patch }
-    const key = ovOn(next) && !PLAIN_KEYS.includes(next.metricKey) ? 'rank' : next.metricKey
-    onChange({ ...next, metricKey: safeKey(next.sector, next.method, key) })
-  }
+// 실험 쪽 순위 지표 — 지표별 변환 덮어쓰기·가중치를 반영해 다시 계산한 순위
+function expMetric(sector, method, trMap, wt) {
+  const base = metricFor(sector, method, 'rank')
+  const touched = wt === 'equal' || Object.values(trMap || {}).some((v) => v && v !== 'cur')
+  if (!touched) return base
+  const pset = ovSet(sector, cleanMap(trMap), wt)
+  if (!pset) return base
+  return { ...base, get: (r, i) => pset.rank[method][i], label: `${base.label} · 전처리 변경` }
+}
+const cleanMap = (m) => Object.fromEntries(Object.entries(m || {}).filter(([, v]) => v && v !== 'cur'))
+
+// 왼쪽 — 지금 설정 요약 팝업
+function CurInfo({ sector, method }) {
+  const [open, setOpen] = useState(false)
+  const inds = indsOf(sector)
   return (
-    <div className="cv-pick">
-      <select value={side.sector} title="부문"
-        onChange={(e) => onChange({ ...side, sector: e.target.value, metricKey: safeKey(e.target.value, side.method, side.metricKey) })}>
-        {SECTOR_KEYS.map((k) => <option key={k} value={k}>{SECTORS[k].name}</option>)}
-      </select>
-      <select value={side.method} title="표준화 방법"
-        onChange={(e) => onChange({ ...side, method: e.target.value, metricKey: safeKey(side.sector, e.target.value, side.metricKey) })}>
-        {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-      </select>
-      {/* 변환 — 2단계 설정 그대로 쓰거나, 없음·로그화·반로그화를 전 지표에 일괄
-          적용해 계산한다(일괄일 때 윈저 없음). 좌우를 달리 두면 변환의 효과가
-          지도로 보인다. */}
-      {/* 이름표(변환·가중치)는 단추 알약 밖에 세운다 — 알약 안에 있으면
-          단추처럼 눌릴 것으로 읽힌다(45차) */}
-      <div className="cv-ov" title="변환 · 현재 = 2단계에서 지표마다 정한 변환·윈저 그대로 · 없음/로그화/반로그화 = 모든 지표에 일괄 적용해 다시 계산">
-        <u>변환</u>
-        <div className="cv-eda">
-          {[['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
-            <button key={k} className={(side.tr || 'cur') === k ? 'on' : ''}
-              onClick={() => setOv({ tr: k })}>{name}</button>
-          ))}
-        </div>
-      </div>
-      {/* 가중치 — 4단계 가중치 그대로 쓰거나 동일가중으로 되돌려 계산한다 */}
-      <div className="cv-ov" title="가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산">
-        <u>가중치</u>
-        <div className="cv-eda">
-          {[['cur', '현재'], ['equal', '동일']].map(([k, name]) => (
-            <button key={k} className={(side.wt || 'cur') === k ? 'on' : ''}
-              onClick={() => setOv({ wt: k })}>{name}</button>
-          ))}
-        </div>
-      </div>
-      {/* 보는 항목 — 명령바와 같은 두 층 고르기 판(39차). 긴 목록이 접힌다.
-          전처리를 덮어쓴 쪽은 부문 종합 값만 고를 수 있다. */}
-      <MetricPicker sector={side.sector} method={side.method} value={side.metricKey}
-        onChange={(k) => onChange({ ...side, metricKey: k })} align={align} small
-        totalOnly={on} />
-      {/* 지도 색 — 좌우가 각자 고른다(40차) */}
-      <HueDots small hue={side.hue || 'auto'} onHue={(h) => onChange({ ...side, hue: h })} />
+    <div className="cvi-wrap">
+      <button className={`cvi-btn${open ? ' on' : ''}`} onClick={() => setOpen(!open)}>지금 설정 보기</button>
+      {open && (
+        <>
+          <div className="mtp-veil" onClick={() => setOpen(false)} />
+          <div className="cvi-pop">
+            <div className="cvi-h">기준 지도가 쓰는 설정 <em>{methodOf(method).label}</em></div>
+            <div className="cvi-grid">
+              <div className="cvi-row head"><b>지표</b><span>방향</span><span>변환</span><span>윈저</span><span>가중치</span></div>
+              {inds.map((e) => {
+                const c = cfgOf(e.col, e.dir)
+                const w = weightOf(sector, e.col, inds.length)
+                return (
+                  <div key={e.col} className="cvi-row">
+                    <b title={e.label}>{e.label}</b>
+                    <span>{c.dir === '+' ? 'P ▲' : 'N ▼'}{c.dir !== e.dir ? ' *' : ''}</span>
+                    <span className={c.transform !== 'none' ? 'hot' : ''}>{trName(c.transform)}</span>
+                    <span>{c.winsor?.on ? `${c.winsor.lo}~${c.winsor.hi}%` : '—'}</span>
+                    <span>{Math.round(w * 10) / 10}%</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="cvi-f">* 는 기본 방향을 바꾼 지표 · 이 설정은 2 · 4단계에서 바꿉니다</div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// 오른쪽 — 지표별 전처리 바꿔 계산 팝업
+function PrepEditor({ sector, trMap, wt, onChange }) {
+  const [open, setOpen] = useState(false)
+  const inds = indsOf(sector)
+  const nCh = Object.values(cleanMap(trMap)).length + (wt === 'equal' ? 1 : 0)
+  return (
+    <div className="cvi-wrap">
+      <button className={`cvi-btn${nCh ? ' hot' : ''}${open ? ' on' : ''}`} onClick={() => setOpen(!open)}>
+        전처리 바꿔 계산{nCh ? ` · ${nCh}` : ''}
+      </button>
+      {open && (
+        <>
+          <div className="mtp-veil" onClick={() => setOpen(false)} />
+          <div className="cvi-pop">
+            <div className="cvi-h">실험 지도의 전처리 <em>지표마다 따로 정합니다</em></div>
+            <div className="cvi-grid">
+              {inds.map((e) => {
+                const cur = trMap?.[e.col] || 'cur'
+                const c = cfgOf(e.col, e.dir)
+                return (
+                  <div key={e.col} className="cvi-row seg">
+                    <b title={`지금 설정: ${trName(c.transform)}${c.winsor?.on ? ` · 윈저 ${c.winsor.lo}~${c.winsor.hi}%` : ''}`}>{e.label}</b>
+                    <div className="cv-eda">
+                      {[['cur', '지금 그대로'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
+                        <button key={k} className={cur === k ? 'on' : ''}
+                          onClick={() => onChange({ trMap: { ...trMap, [e.col]: k }, wt })}>{name}</button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="cvi-row seg">
+                <b>가중치</b>
+                <div className="cv-eda">
+                  {[['cur', '지금 그대로'], ['equal', '동일가중']].map(([k, name]) => (
+                    <button key={k} className={(wt || 'cur') === k ? 'on' : ''}
+                      onClick={() => onChange({ trMap, wt: k })}>{name}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="cvi-f">'없음·로그화·반로그화'를 고른 지표는 윈저 없이 그 변환으로만 다시 계산합니다.
+              모두 '지금 그대로'면 왼쪽과 같은 계산입니다.</div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -140,24 +153,28 @@ export default function CompareMaps({
   const tools = useCallback((ref) => { if (!api.current) api.current = ref }, [])
   const run = (fn, ...a) => { const t = api.current?.current; if (t && t[fn]) t[fn](...a) }
 
-  // 처음 열 때만 조작부에서 고른 부문·지표를 그대로 물려받고, 표준화 방법만
-  // 두 계열의 대표(간격보존형 · 순위전용형)로 갈라 둔다. 그 뒤로는 사람이
-  // 좌우를 직접 바꾼다 — 조작부를 건드릴 때마다 되돌아가면 오히려 방해가 된다.
-  const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], metricKey: safeKey(sector, CAMP_REPS[0], metricKey), hue: 'auto', tr: 'cur', wt: 'cur' }))
-  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], metricKey: safeKey(sector, CAMP_REPS[1], metricKey), hue: 'auto', tr: 'cur', wt: 'cur' }))
+  // 왼쪽은 지금 방법 그대로(기준). 오른쪽은 처음에 다른 진영 대표로 갈라 두고,
+  // 그 뒤로는 사람이 방법·전처리를 바꾼다.
+  const [expMethod, setExpMethod] = useState(() =>
+    (method === CAMP_REPS[0] ? CAMP_REPS[1] : CAMP_REPS[0]))
+  const [trMap, setTrMap] = useState({})
+  const [wt, setWt] = useState('cur')
+  const [hueA, setHueA] = useState('auto')
+  const [hueB, setHueB] = useState('auto')
 
-  const mA = sideMetric(A)
-  const mB = sideMetric(B)
-  const cA = CAMP[campOf(A.method)]?.color || '#0B93EE'
-  const cB = CAMP[campOf(B.method)]?.color || '#F5760D'
+  const mA = metricFor(sector, method, 'rank')
+  const mB = expMetric(sector, expMethod, trMap, wt)
+  const cA = CAMP[campOf(method)]?.color || '#0B93EE'
+  const cB = CAMP[campOf(expMethod)]?.color || '#F5760D'
 
   const vA = useMemo(() => valuesOf(mA), [mA])
   const vB = useMemo(() => valuesOf(mB), [mB])
   const changed = useMemo(() => diffCount(mA, mB), [mA, mB])
-  const big = useMemo(() => ROWS.filter((r) => r[A.sector]?.ssiCamp >= 10).length, [A.sector, ver])
+  const big = useMemo(() => ROWS.filter((r) => r[sector]?.ssiCamp >= 10).length, [sector, ver])
 
-  const tagA = `${SECTORS[A.sector].name} · ${methodOf(A.method).label}${ovOn(A) ? ` · ${ovName(A)}` : ''}`
-  const tagB = `${SECTORS[B.sector].name} · ${methodOf(B.method).label}${ovOn(B) ? ` · ${ovName(B)}` : ''}`
+  const nCh = Object.values(cleanMap(trMap)).length
+  const tagA = `기준 · ${methodOf(method).label} · 지금 설정`
+  const tagB = `실험 · ${methodOf(expMethod).label}${nCh ? ` · 변환 바꾼 지표 ${nCh}` : ''}${wt === 'equal' ? ' · 동일가중' : ''}`
 
   // ── 커서를 따라다니는 팝업 ───────────────────────────────────────────
   const [pos, setPos] = useState(null)
@@ -173,11 +190,22 @@ export default function CompareMaps({
 
   return (
     <div className="abm-wrap" onMouseMove={onMove}>
-      {/* 좌우 두 조합을 각각 직접 고른다 */}
+      {/* 왼쪽 = 기준(고정) · 오른쪽 = 실험(방법·전처리) */}
       <div className="cv-free">
-        <SidePick side={A} onChange={setA} />
+        <div className="cv-pick">
+          <span className="cv-fix"><b>기준</b>{SECTORS[sector].name} · {methodOf(method).label}</span>
+          <CurInfo sector={sector} method={method} />
+        </div>
         <span className="cv-vs">대비</span>
-        <SidePick side={B} onChange={setB} align="right" />
+        <div className="cv-pick">
+          <span className="cv-fix exp"><b>실험</b>표준화 방법</span>
+          <select value={expMethod} title="실험 지도의 표준화 방법"
+            onChange={(e) => setExpMethod(e.target.value)}>
+            {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+          </select>
+          <PrepEditor sector={sector} trMap={trMap} wt={wt}
+            onChange={({ trMap: t, wt: w }) => { setTrMap(t); setWt(w) }} />
+        </div>
       </div>
 
       <div className="abm-bar">
@@ -190,15 +218,15 @@ export default function CompareMaps({
       </div>
 
       <div className="abm-maps">
-        <NationalMap sector={A.sector} metric={mA} method={A.method} onlyHigh={onlyHigh}
+        <NationalMap sector={sector} metric={mA} method={method} onlyHigh={onlyHigh}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
-          compact tips={false} title={methodOf(A.method).label} subtitle={mA.label}
-          hue={A.hue === 'auto' ? null : A.hue}
+          compact tips={false} title={`기준 · ${methodOf(method).label}`} subtitle={mA.label}
+          hue={hueA === 'auto' ? null : hueA} onHue={setHueA}
           onMapReady={register} onToolsReady={tools} ver={ver} />
-        <NationalMap sector={B.sector} metric={mB} method={B.method} onlyHigh={onlyHigh}
+        <NationalMap sector={sector} metric={mB} method={expMethod} onlyHigh={onlyHigh}
           selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover}
-          compact tips={false} title={methodOf(B.method).label} subtitle={mB.label}
-          hue={B.hue === 'auto' ? null : B.hue}
+          compact tips={false} title={`실험 · ${methodOf(expMethod).label}`} subtitle={mB.label}
+          hue={hueB === 'auto' ? null : hueB} onHue={setHueB}
           onMapReady={register} autoFit={false} ver={ver} />
 
         <div className="mapz abm-mapz" title="두 지도가 함께 움직입니다">
@@ -226,14 +254,14 @@ export default function CompareMaps({
         <div className="cv-pop" style={popStyle}>
           <div className="cp-h">{hRow.sido} {hRow.name}</div>
           <div className="cp-r" style={{ '--c': cA }}>
-            <i /><span>{mA.label}</span><b>{mA.fmt(vA[hi])}</b>
+            <i /><span>기준 순위</span><b>{mA.fmt(vA[hi])}</b>
           </div>
           <div className="cp-r" style={{ '--c': cB }}>
-            <i /><span>{mB.label}</span><b>{mB.fmt(vB[hi])}</b>
+            <i /><span>실험 순위</span><b>{mB.fmt(vB[hi])}</b>
           </div>
           <div className="cp-f">
-            순위 이동 {hRow[A.sector]?.ssiCamp ?? '—'}계단
-            {hRow[A.sector]?.flag === 'high' && <em>민감</em>}
+            순위 이동 {hRow[sector]?.ssiCamp ?? '—'}계단
+            {hRow[sector]?.flag === 'high' && <em>민감</em>}
           </div>
         </div>
       )}

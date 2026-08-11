@@ -3,7 +3,9 @@ import { ROWS, rowKey, sheetOrder, colMeta, flatValue, toCSV, META, SECTORS, SEC
 import { Cross } from './Glyph.jsx'
 
 // 부문 묶음은 데이터에서 만든다 — 부문이 8개로 늘어나면 단추도 8개가 된다.
-const GROUPS = ['전체', ...SECTOR_KEYS.map((k) => `${k} ${SECTORS[k].name.replace(/\s/g, '')}`)]
+// '전체'는 뺐다: 모든 부문 열을 한 표에 펼치면 열이 수백 개라 느리고,
+// 읽을 수 있는 표도 아니다. 한 번에 한 부문씩 본다.
+const GROUPS = SECTOR_KEYS.map((k) => `${k} ${SECTORS[k].name.replace(/\s/g, '')}`)
 const SECT_RE = new RegExp(`^(${SECTOR_KEYS.join('|')})_`)
 
 export default function DataTable({ sector, onClose, selected, onSelect, ver = 0 }) {
@@ -15,7 +17,6 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
 
   const cols = useMemo(() => {
     const all = sheetOrder()
-    if (grp === '전체') return all
     const p = grp.split(' ')[0]
     return all.filter((c) => c === '시도' || c === '시군구' || new RegExp(`^${p}_`).test(c))
   }, [grp, ver])

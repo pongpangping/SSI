@@ -1,7 +1,10 @@
-import SectorIcon from './SectorIcon.jsx'
 import { useEffect, useState } from 'react'
-import { METHODS, CAMP, META, INDICATORS, SECTORS, ALL_SECTOR_KEYS, N } from '../lib/ssi.js'
+import { METHODS, CAMP, META, N } from '../lib/ssi.js'
 import { Cross } from './Glyph.jsx'
+
+// 지표 사전 탭은 뺐다 — 지표의 정의·산식·출처는 머리줄의 '데이터 설명'이
+// 지금 고른 지표 기준으로 이미 보여 준다. 같은 정보가 두 곳에 있으면
+// 어느 쪽이 맞는지부터 의심하게 된다. 여기는 용어와 방법론만 남는다.
 
 const TERMS = [
   { t: 'CI (부문지수, Composite Index)', d: '선택 지표들을 표준화한 뒤 같은 비중으로 평균해 만든 값. 선택 지표를 바꾸면 CI도 바뀐다.' },
@@ -17,14 +20,10 @@ const TERMS = [
 export default function GlossaryModal() {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('term')
-  const [q, setQ] = useState('')
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') setOpen(false) }
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
   }, [])
-
-  const t = q.trim()
-  const hit = (i) => !t || [i.label, i.desc, i.formula, i.source, i.note].some((x) => (x || '').includes(t))
 
   return (
     <>
@@ -33,11 +32,11 @@ export default function GlossaryModal() {
         <div className="modal-back" onClick={() => setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-h">
-              <h3>용어 · 표준화 방법론 · 지표 사전</h3>
+              <h3>용어 · 표준화 방법론</h3>
               <button onClick={() => setOpen(false)} title="닫기"><Cross size={12} /></button>
             </div>
             <div className="gl-tabs">
-              {[['term', '핵심 용어'], ['method', `${METHODS.length}개 표준화 방법`], ['col', `지표 사전 (${INDICATORS.length})`]].map(([k, l]) => (
+              {[['term', '핵심 용어'], ['method', `${METHODS.length}개 표준화 방법`]].map(([k, l]) => (
                 <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
               ))}
             </div>
@@ -83,43 +82,10 @@ export default function GlossaryModal() {
                 </p></div>
               </>}
 
-              {tab === 'col' && <>
-                <input className="gl-q" placeholder="지표명 · 정의 · 산식 · 출처 검색"
-                  value={q} onChange={(e) => setQ(e.target.value)} />
-                {ALL_SECTOR_KEYS.map((k) => {
-                  const s = SECTORS[k]
-                  const list = INDICATORS.filter((i) => i.sector === k && hit(i))
-                  const planned = (s.planned || []).filter((p) => !t || [p.label, p.desc].some((x) => (x || '').includes(t)))
-                  if (!list.length && !planned.length) return null
-                  return (
-                    <div key={k}>
-                      <div className="modal-sec"><SectorIcon k={k} size={13} /> {k} {s.name} {s.ready ? `(${list.length})` : '· 자료 준비중'}</div>
-                      {list.map((c) => (
-                        <div className="gl-col" key={c.id}>
-                          <b>{c.no}. {c.label} <i className={c.dir === '+' ? 'up' : 'dn'}>{c.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}</i></b>
-                          <p>{c.desc}</p>
-                          <span>
-                            단위 {c.unit || '—'} · 연도 {c.years.join(', ')}
-                            {c.formula ? ` · 산식 ${c.formula}` : ''}
-                            {c.source ? ` · 출처 ${c.source}` : ''}
-                            {c.note ? ` · 비고 ${c.note}` : ''}
-                          </span>
-                        </div>
-                      ))}
-                      {planned.map((p) => (
-                        <div className="gl-col dim" key={`${k}-p${p.no}`}>
-                          <b>{p.no}. {p.label} <i className={p.dir === '+' ? 'up' : 'dn'}>{p.dir === '+' ? '▲' : '▼'}</i></b>
-                          <p>{p.desc}</p>
-                          <span>자료 준비중{p.years ? ` · 예정 연도 ${p.years}` : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })}
-              </>}
             </div>
             <div className="gl-note">
               {META.source} · 시군구 {N}개 · 표준화·부문점수·순위는 선택 조합에 맞춰 화면에서 계산합니다.
+              지표의 정의·산식·출처는 머리줄의 <b>데이터 설명</b>에서 봅니다.
             </div>
           </div>
         </div>

@@ -128,27 +128,25 @@ const cache = new Map()
 export function computeSet(picks, sector = '', ov = null) {
   // EDA 설정(방향·변환·윈저·가중치)이 열쇠에 들어간다 — 설정이 바뀌면 새로 계산.
   //
-  // ov = 전처리 덮어쓰기(41차→44차 확장). 2종 비교에서 좌우를 다른 전처리로
-  // 계산할 때 쓴다. 방향은 언제나 사용자 선택을 따른다.
-  //   ov.tr : 'cur' = 2단계 설정(변환·윈저) 그대로
-  //           'none' | 'log' | 'rlog' = 모든 지표에 그 변환을 일괄 적용, 윈저 없음
-  //   ov.wt : 'cur' = 4단계 가중치 그대로 · 'equal' = 동일가중
-  // (예전 plain=true 호출은 { tr:'none', wt:'equal' } 과 같다)
-  if (ov === true) ov = { tr: 'none', wt: 'equal' }
-  const ck = picks.map((p) => p.col).join('.') + '#' + sector + '#'
-    + (ov
-      ? `OV:${ov.tr}:${ov.wt}:` + picks.map((p) => {
-        const g = cfgOf(p.col, p.dir)
-        return ov.tr === 'cur' ? `${g.dir}${g.transform}${g.winsor?.on ? `w${g.winsor.lo}-${g.winsor.hi}` : ''}` : g.dir
-      }).join('|') + (ov.wt === 'cur' ? '#' + edaKey(picks, sector) : '')
-      : edaKey(picks, sector))
+  // ov = 전처리 덮어쓰기. 2종 비교의 오른쪽(실험) 지도가 쓴다.
+  // 방향은 언제나 사용자 선택을 따른다.
+  //   ov.trMap : { 열이름 → 'none' | 'log' | 'rlog' } — 적힌 지표만 그 변환으로
+  //              바꿔 계산(이때 윈저 없음). 안 적힌 지표는 2단계 설정 그대로.
+  //   ov.wt    : 'cur' = 4단계 가중치 그대로 · 'equal' = 동일가중
+  if (ov === true) ov = { trMap: Object.fromEntries(picks.map((p) => [p.col, 'none'])), wt: 'equal' }
+  if (ov && ov.tr) { // 옛 일괄형 호출 호환
+    ov = { trMap: ov.tr === 'cur' ? {} : Object.fromEntries(picks.map((p) => [p.col, ov.tr])), wt: ov.wt }
+  }
+  const ck = picks.map((p) => p.col).join('.') + '#' + sector + '#' + edaKey(picks, sector)
+    + (ov ? '#OV:' + (ov.wt || 'cur') + ':' + picks.map((p) => ov.trMap?.[p.col] || 'c').join('') : '')
   if (cache.has(ck)) return cache.get(ck)
 
   // 원값 → 윈저라이징 → 로그화·반로그화 (2단계 설정). 방향은 사용자가 바꿨으면 그것을 쓴다.
   const cfgs = picks.map((p) => {
     const g = cfgOf(p.col, p.dir)
-    if (!ov || ov.tr === 'cur') return g
-    return { dir: g.dir, transform: ov.tr, winsor: { on: false, lo: 5, hi: 95 } }
+    const kind = ov?.trMap?.[p.col]
+    if (!kind || kind === 'cur') return g
+    return { dir: g.dir, transform: kind, winsor: { on: false, lo: 5, hi: 95 } }
   })
   const cols = picks.map((p, j) => preprocess(SERIES[p.col] || ROWS.map(() => null), cfgs[j]))
   const wts = (ov && ov.wt === 'equal')

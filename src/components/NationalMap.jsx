@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
 import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV, PURPLE } from '../lib/ssi.js'
+import { HueDots } from './ResultChrome.jsx'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
 
@@ -106,7 +107,7 @@ export default function NationalMap({
   sector, metric, method = 'minmax', onlyHigh, selected, hovered, onSelect, onHover,
   compact = false, title = null, subtitle = null, onMapReady = null, onToolsReady = null,
   autoFit = true, onlyHighToggle = null, padLeft = 0, tips = true, ver = 0, blank = false,
-  hue = null,
+  hue = null, onHue = null,
 }) {
   const geoRef = useRef(null)
   const wrapRef = useRef(null)
@@ -525,6 +526,15 @@ export default function NationalMap({
           </div>
         )}
         <div className="ml-ends"><span>{lowLab}</span><span>{hiLab}</span></div>
+
+        {/* 지도 색 고르기 — onHue를 받은 지도(2종 비교의 좌·우)만.
+            조작이 범례 옆에 있어야 색을 바꾼 결과가 바로 그 자리에서 읽힌다. */}
+        {onHue && (
+          <div className="ml-hues">
+            <u>지도 색</u>
+            <HueDots small hue={hue || 'auto'} onHue={onHue} />
+          </div>
+        )}
 
         {/* 구간을 어떻게 끊었는지 — 지도가 달라 보이는 진짜 이유의 절반이 여기 있다 */}
         {!compact && few && (

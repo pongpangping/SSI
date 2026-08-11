@@ -60,8 +60,8 @@ export default function DataDefsModal({ sector }) {
               <IndicatorDefs sector={sector} />
             </div>
             <div className="gl-note">
-              지표를 바꾸면 이 목록도 바뀝니다. 32개 지표 전체 사전은
-              머리줄의 <b>용어 · 방법론</b>에서 볼 수 있습니다.
+              지표를 바꾸면 이 목록도 바뀝니다. 다른 부문의 지표는
+              [지표 추가 · 변경] 픽커에서 부문을 옮겨 보면 됩니다.
             </div>
           </div>
         </div>
