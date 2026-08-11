@@ -428,6 +428,17 @@ export function flatValue(row, col) {
   if (rest.startsWith('원값_')) return d.raw[rest.slice(3)]
   if (rest === '지표간_순위격차') return d.prSpread
   if (rest === '트레이드오프_참고') return d.tradeoff ? 'Y' : 'N'
+  if (rest.startsWith('자료_')) {
+    // 부문에 들어 있는 원자료 전체 — 담아 둔 지표가 아니어도, 어느 연도든 보인다
+    const body = rest.slice(3)
+    const p = body.lastIndexOf('(')
+    if (p < 0) return null
+    const label = body.slice(0, p), year = body.slice(p + 1, -1)
+    const ind = indicatorsOf(s).find((x) => x.label === label)
+    const col = ind?.cols?.[year]
+    const i = ROWS.indexOf(row)
+    return col && SERIES[col] ? SERIES[col][i] : null
+  }
   return null
 }
 
@@ -441,6 +452,9 @@ export function sheetOrder() {
       `${s}_MinMax대표순위`, `${s}_PctRank대표순위`)
     indsOf(s).forEach((i) => out.push(`${s}_원값_${i.label}`))
     if (indsOf(s).length >= 2) out.push(`${s}_지표간_순위격차`, `${s}_트레이드오프_참고`)
+    // 부문 원자료 전체 — 지표 × 연도. 담아 둔 조합과 무관하게 항상 볼 수 있다.
+    indicatorsOf(s).forEach((ind) =>
+      (ind.years || []).forEach((y) => out.push(`${s}_자료_${ind.label}(${y})`)))
   }
   return out
 }
@@ -479,6 +493,16 @@ export function colMeta(col) {
     if (!e) return { desc: lab, unit: '', how: '' }
     return { desc: e.desc || e.name, unit: e.unit || '', how: e.formula || `${e.year}년 원자료`,
       note: `${e.source}${e.note ? ` · ${e.note}` : ''} · 방향 ${e.dir === '+' ? '▲ 높을수록 좋음' : '▼ 낮을수록 좋음'}` }
+  }
+  if (rest.startsWith('자료_')) {
+    const body = rest.slice(3)
+    const p = body.lastIndexOf('(')
+    const label = p > 0 ? body.slice(0, p) : body
+    const year = p > 0 ? body.slice(p + 1, -1) : ''
+    const ind = indicatorsOf(s).find((x) => x.label === label)
+    if (!ind) return { desc: label, unit: '', how: '' }
+    return { desc: `${ind.desc || label} · ${year}년 원자료 (계산 조합과 무관한 부문 자료 전체)`,
+      unit: ind.unit || '—', how: ind.formula || '', note: ind.source || '' }
   }
   return null
 }

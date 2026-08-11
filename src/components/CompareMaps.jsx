@@ -32,7 +32,7 @@ function effMap(side) {
   return m
 }
 const perCount = (side) => indsOf(side.sector)
-  .filter((e) => (side.trMap?.[e.col] ?? 'cur') !== 'cur').length
+  .filter((e) => side.trMap?.[e.col] != null && side.trMap[e.col] !== (side.tr || 'cur')).length
 
 // 이 쪽 지도가 그릴 순위 지표
 function sideMetric(side) {
@@ -84,9 +84,13 @@ function CurTable({ sector, align, onClose }) {
   )
 }
 
-// 지표별 변환 세부 — 일괄 토글 대신 지표마다 따로 정한다
-function PerIndTable({ side, align, onChange, onClose }) {
+// 지표별 변환 세부 — 일괄 토글 대신 지표마다 따로 정한다.
+// exp(대비 쪽)에는 '현재' 선택지가 없다 — 대비 쪽은 명시적으로 정한 설정으로만 계산한다.
+function PerIndTable({ side, align, exp, onChange, onClose }) {
   const inds = indsOf(side.sector)
+  const opts = exp
+    ? [['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']]
+    : [['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']]
   return (
     <>
       <div className="mtp-veil" onClick={onClose} />
@@ -95,12 +99,12 @@ function PerIndTable({ side, align, onChange, onClose }) {
         <div className="cvi-grid">
           {inds.map((e) => {
             const c = cfgOf(e.col, e.dir)
-            const cur = side.trMap?.[e.col] ?? 'cur'
+            const cur = side.trMap?.[e.col] ?? (side.tr || (exp ? 'none' : 'cur'))
             return (
               <div key={e.col} className="cvi-row seg">
-                <b title={`'현재' = ${trName(c.transform)}${c.winsor?.on ? ` · 윈저 ${c.winsor.lo}~${c.winsor.hi}%` : ''}`}>{e.label}</b>
+                <b title={`2단계 설정 = ${trName(c.transform)}${c.winsor?.on ? ` · 윈저 ${c.winsor.lo}~${c.winsor.hi}%` : ''}`}>{e.label}</b>
                 <div className="cv-eda">
-                  {[['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
+                  {opts.map(([k, name]) => (
                     <button key={k} className={cur === k ? 'on' : ''}
                       onClick={() => onChange({ ...side, trMap: { ...side.trMap, [e.col]: k } })}>{name}</button>
                   ))}
@@ -109,16 +113,20 @@ function PerIndTable({ side, align, onChange, onClose }) {
             )
           })}
         </div>
-        <div className="cvi-f">'없음·로그화·반로그화'를 고른 지표는 윈저 없이 그 변환으로만 다시 계산합니다.
-          모두 '현재'로 되돌리면 일괄 토글을 따릅니다.</div>
+        <div className="cvi-f">'없음·로그화·반로그화'를 고른 지표는 윈저 없이 그 변환으로만 다시 계산합니다.</div>
       </div>
     </>
   )
 }
 
-function SidePick({ side, onChange, align = 'left' }) {
+// exp = 대비(오른쪽) 조작줄 — '현재' 선택지가 없다. 왼쪽이 지금 설정을 대표하므로
+// 오른쪽은 견줄 설정을 명시적으로 고른다(변환 기본 '없음', 가중치는 동일가중).
+function SidePick({ side, onChange, align = 'left', exp = false }) {
   const [pop, setPop] = useState(null)          // null | 'cur' | 'per'
   const nPer = perCount(side)
+  const trOpts = exp
+    ? [['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']]
+    : [['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']]
   return (
     <div className="cv-pick">
       <select value={side.sector} title="부문"
@@ -130,11 +138,13 @@ function SidePick({ side, onChange, align = 'left' }) {
         {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
       </select>
       {/* 변환 — '현재'는 2단계 설정 그대로라는 뜻. 누르면 그 실체가 표로 열린다. */}
-      <div className="cv-ov" title="변환 · 현재 = 2단계에서 지표마다 정한 설정 그대로(누르면 내용 확인) · 없음/로그화/반로그화 = 전 지표 일괄 적용 · [지표별] = 지표마다 따로">
+      <div className="cv-ov" title={exp
+        ? '변환 · 없음/로그화/반로그화 = 전 지표 일괄 적용 · [지표별] = 지표마다 따로'
+        : "변환 · 현재 = 2단계에서 지표마다 정한 설정 그대로(누르면 내용 확인) · 없음/로그화/반로그화 = 전 지표 일괄 적용 · [지표별] = 지표마다 따로"}>
         <u>변환</u>
         <div className="cv-eda">
-          {[['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
-            <button key={k} className={nPer === 0 && (side.tr || 'cur') === k ? 'on' : ''}
+          {trOpts.map(([k, name]) => (
+            <button key={k} className={nPer === 0 && (side.tr || (exp ? 'none' : 'cur')) === k ? 'on' : ''}
               onClick={() => {
                 if (k === 'cur') { onChange({ ...side, tr: 'cur', trMap: {} }); setPop(pop === 'cur' ? null : 'cur') }
                 else { onChange({ ...side, tr: k, trMap: {} }); setPop(null) }
@@ -144,14 +154,16 @@ function SidePick({ side, onChange, align = 'left' }) {
             title="지표마다 변환을 따로 정합니다"
             onClick={() => setPop(pop === 'per' ? null : 'per')}>지표별{nPer ? ` ${nPer}` : ''}</button>
         </div>
-        {pop === 'cur' && <CurTable sector={side.sector} align={align} onClose={() => setPop(null)} />}
-        {pop === 'per' && <PerIndTable side={side} align={align} onChange={onChange} onClose={() => setPop(null)} />}
+        {pop === 'cur' && !exp && <CurTable sector={side.sector} align={align} onClose={() => setPop(null)} />}
+        {pop === 'per' && <PerIndTable side={side} align={align} exp={exp} onChange={onChange} onClose={() => setPop(null)} />}
       </div>
-      {/* 가중치 — 4단계 가중치 그대로 쓰거나 동일가중으로 되돌려 계산한다 */}
-      <div className="cv-ov" title="가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산">
+      {/* 가중치 — 왼쪽은 4단계 가중치/동일 중 택일, 대비 쪽은 동일가중 고정 */}
+      <div className="cv-ov" title={exp
+        ? '대비 쪽 가중치는 동일가중으로 계산합니다'
+        : '가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산'}>
         <u>가중치</u>
         <div className="cv-eda">
-          {[['cur', '현재'], ['equal', '동일']].map(([k, name]) => (
+          {(exp ? [['equal', '동일']] : [['cur', '현재'], ['equal', '동일']]).map(([k, name]) => (
             <button key={k} className={(side.wt || 'cur') === k ? 'on' : ''}
               onClick={() => onChange({ ...side, wt: k })}>{name}</button>
           ))}
@@ -185,7 +197,8 @@ export default function CompareMaps({
   // 처음 열 때는 지금 부문을 물려받고 표준화 방법만 두 진영 대표로 갈라 둔다.
   // 그 뒤로는 사람이 좌우를 직접 바꾼다.
   const [A, setA] = useState(() => ({ sector, method: CAMP_REPS[0], tr: 'cur', trMap: {}, wt: 'cur', hue: 'auto' }))
-  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], tr: 'cur', trMap: {}, wt: 'cur', hue: 'auto' }))
+  // 대비 쪽 — '현재'가 없으므로 명시적 기본값: 변환 없음 · 동일가중
+  const [B, setB] = useState(() => ({ sector, method: CAMP_REPS[1], tr: 'none', trMap: {}, wt: 'equal', hue: 'auto' }))
 
   const mA = sideMetric(A)
   const mB = sideMetric(B)
@@ -219,7 +232,7 @@ export default function CompareMaps({
       <div className="cv-free">
         <SidePick side={A} onChange={setA} />
         <span className="cv-vs">대비</span>
-        <SidePick side={B} onChange={setB} align="right" />
+        <SidePick side={B} onChange={setB} align="right" exp />
       </div>
 
       <div className="abm-bar">
