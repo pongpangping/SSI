@@ -2,24 +2,22 @@ import { useMemo, useState } from 'react'
 import { ROWS, rowKey, sheetOrder, colMeta, flatValue, toCSV, META, SECTORS, SECTOR_KEYS } from '../lib/ssi.js'
 import { Cross } from './Glyph.jsx'
 
-// 부문 묶음은 데이터에서 만든다 — 부문이 8개로 늘어나면 단추도 8개가 된다.
-// '전체'는 뺐다: 모든 부문 열을 한 표에 펼치면 열이 수백 개라 느리고,
-// 읽을 수 있는 표도 아니다. 한 번에 한 부문씩 본다.
-const GROUPS = SECTOR_KEYS.map((k) => `${k} ${SECTORS[k].name.replace(/\s/g, '')}`)
+// 데이터표는 지금 보고 있는 부문 하나만 다룬다. 예전에는 부문 탭이 죽
+// 늘어서 있었는데, 다른 부문은 지표를 담아 두지 않으면 빈 표라 탭이
+// 있어도 누르면 아무것도 안 나왔다 — 이름만 보이고 내용은 없는 탭은
+// 없느니만 못하다. 다른 부문의 표는 그 부문으로 들어가서 연다.
 const SECT_RE = new RegExp(`^(${SECTOR_KEYS.join('|')})_`)
 
 export default function DataTable({ sector, onClose, selected, onSelect, ver = 0 }) {
   const [q, setQ] = useState('')
-  const [grp, setGrp] = useState(GROUPS.find((g) => g.startsWith(sector)) || GROUPS[0])
   const [sortCol, setSortCol] = useState(`${sector}_SSI_camp`)
   const [desc, setDesc] = useState(true)
   const [onlyHigh, setOnlyHigh] = useState(false)
 
   const cols = useMemo(() => {
     const all = sheetOrder()
-    const p = grp.split(' ')[0]
-    return all.filter((c) => c === '시도' || c === '시군구' || new RegExp(`^${p}_`).test(c))
-  }, [grp, ver])
+    return all.filter((c) => c === '시도' || c === '시군구' || new RegExp(`^${sector}_`).test(c))
+  }, [sector, ver])
 
   const rows = useMemo(() => {
     let list = ROWS
@@ -42,7 +40,7 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
     const blob = new Blob([toCSV(cols, rows)], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `표준화민감도_${grp.replace(/\s/g, '')}_${rows.length}행.csv`
+    a.download = `표준화민감도_${sector}_${SECTORS[sector].name.replace(/\s/g, '')}_${rows.length}행.csv`
     a.click()
     setTimeout(() => URL.revokeObjectURL(a.href), 1000)
   }
@@ -56,17 +54,12 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
     <div className="modal-back" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
-          <h3>전체 데이터표 · 선택 조합으로 계산한 결과</h3>
+          <h3>데이터표 · {SECTORS[sector].name} — 선택 조합으로 계산한 결과</h3>
           <button onClick={onClose} title="닫기"><Cross size={12} /></button>
         </div>
 
         <div className="dt-bar">
           <input className="dt-q" placeholder="시군구 · 시도 검색" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="dt-seg">
-            {GROUPS.map((g) => (
-              <button key={g} className={grp === g ? 'on' : ''} onClick={() => setGrp(g)}>{g}</button>
-            ))}
-          </div>
           <button className={`dt-chk${onlyHigh ? ' on' : ''}`} onClick={() => setOnlyHigh(!onlyHigh)}>
             민감(high)만
           </button>
@@ -108,7 +101,7 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
           </table>
         </div>
         <div className="gl-note">
-          열 머리글에 마우스를 올리면 설명·단위·산출방법·비고가 표시됩니다. 클릭하면 정렬, 행을 클릭하면 지도에서 선택됩니다. 원값 열은 지금 선택해 둔 지표만 나옵니다.
+          열 머리글에 마우스를 올리면 설명·단위·산출방법·비고가 표시됩니다. 클릭하면 정렬, 행을 클릭하면 지도에서 선택됩니다. 지금 담아 둔 지표 기준의 표이며, 다른 부문의 표는 그 부문으로 들어가서 엽니다.
         </div>
       </div>
     </div>

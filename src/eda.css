@@ -881,3 +881,35 @@
 .modal .dt-scroll::-webkit-scrollbar-thumb:hover { background: #9AA3AD; }
 .modal .dt-scroll::-webkit-scrollbar-track { background: transparent; }
 .dt-scroll { scrollbar-width: thin; scrollbar-color: #C3CBD6 transparent; }
+
+/* 47차 — 비교 설정 표 (기준 열 = 읽기 · 실험 열 = 고르기 한 표에) */
+.cvset { flex: none; background: var(--surface); border-bottom: 1px solid var(--line); }
+.cvset-head { width: 100%; display: flex; align-items: center; gap: 10px; border: 0;
+  background: transparent; padding: 8px 14px; cursor: pointer; text-align: left; }
+.cvset-head > b { font-size: var(--fs-4); font-weight: 800; color: var(--ink); white-space: nowrap; }
+.cvset-head > span { flex: 1; min-width: 0; font-size: var(--fs-3); color: var(--ink3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvset-head > span u { text-decoration: none; font-weight: 750; color: var(--ink2); }
+.cvset-n { font-style: normal; flex: none; font-size: var(--fs-2); font-weight: 750; color: #fff;
+  background: var(--accent); border-radius: 999px; padding: 2px 9px; }
+.cvset-head > i { font-style: normal; flex: none; font-size: var(--fs-2); font-weight: 700;
+  color: var(--accent-strong); }
+.cvset-head:hover > i { text-decoration: underline; }
+.cvset-tbl { padding: 0 14px 10px; max-height: 300px; overflow-y: auto; }
+.cvs-row { display: grid; grid-template-columns: 210px minmax(160px, 0.8fr) 1.6fr;
+  gap: 12px; align-items: center; padding: 5px 0; border-top: 1px solid var(--line); }
+.cvs-row.hd { border-top: 0; padding: 2px 0 4px; }
+.cvs-row.hd span { font-size: var(--fs-1); font-weight: 800; letter-spacing: 0.05em; color: var(--ink3); }
+.cvs-row.hd .cvs-base { color: var(--ink2); }
+.cvs-row.hd .cvs-exp { color: var(--accent-strong); }
+.cvs-what { font-size: var(--fs-3); font-weight: 700; color: var(--ink); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvs-what em { font-style: normal; font-weight: 600; font-size: var(--fs-1); color: var(--ink3); }
+.cvs-base { font-size: var(--fs-3); color: var(--ink2); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvs-exp { min-width: 0; }
+.cvs-foot { padding: 8px 0 2px; border-top: 1px solid var(--line); font-size: var(--fs-2);
+  color: var(--ink3); line-height: 1.55; }
+@media (max-width: 1420px) {
+  .cvs-row { grid-template-columns: 170px minmax(120px, 0.7fr) 1.7fr; }
+}

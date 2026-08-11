@@ -46,90 +46,89 @@ function expMetric(sector, method, trMap, wt) {
 }
 const cleanMap = (m) => Object.fromEntries(Object.entries(m || {}).filter(([, v]) => v && v !== 'cur'))
 
-// 왼쪽 — 지금 설정 요약 팝업
-function CurInfo({ sector, method }) {
-  const [open, setOpen] = useState(false)
+// 비교 설정 표 — 왼쪽 열이 기준(지금 설정, 읽기 전용), 오른쪽 열이 실험(고르기).
+// 줄 하나가 결정 하나다: 표준화 방법 → 지표별 변환 → 가중치.
+// 기준 열이 늘 옆에 있으므로 "지금이 어떤 상태인지"와 "무엇을 바꾸는지"가
+// 같은 줄에서 읽힌다.
+function CompareSetup({ sector, method, expMethod, onExpMethod, trMap, wt, onChange }) {
+  const [open, setOpen] = useState(true)
   const inds = indsOf(sector)
+  const nCh = Object.values(cleanMap(trMap)).length + (wt === 'equal' ? 1 : 0)
   return (
-    <div className="cvi-wrap">
-      <button className={`cvi-btn${open ? ' on' : ''}`} onClick={() => setOpen(!open)}>지금 설정 보기</button>
+    <div className="cvset">
+      <button className="cvset-head" onClick={() => setOpen(!open)}>
+        <b>비교 설정</b>
+        <span>왼쪽 지도 = <u>기준</u> (지금 설정 그대로 · 고정) &nbsp;·&nbsp; 오른쪽 지도 = <u>실험</u> (여기서 바꾼 것만 다르게 계산)</span>
+        {nCh > 0 && <em className="cvset-n">바꾼 것 {nCh}</em>}
+        <i>{open ? '접기 ▴' : '펴기 ▾'}</i>
+      </button>
       {open && (
-        <>
-          <div className="mtp-veil" onClick={() => setOpen(false)} />
-          <div className="cvi-pop">
-            <div className="cvi-h">기준 지도가 쓰는 설정 <em>{methodOf(method).label}</em></div>
-            <div className="cvi-grid">
-              <div className="cvi-row head"><b>지표</b><span>방향</span><span>변환</span><span>윈저</span><span>가중치</span></div>
-              {inds.map((e) => {
-                const c = cfgOf(e.col, e.dir)
-                const w = weightOf(sector, e.col, inds.length)
-                return (
-                  <div key={e.col} className="cvi-row">
-                    <b title={e.label}>{e.label}</b>
-                    <span>{c.dir === '+' ? 'P ▲' : 'N ▼'}{c.dir !== e.dir ? ' *' : ''}</span>
-                    <span className={c.transform !== 'none' ? 'hot' : ''}>{trName(c.transform)}</span>
-                    <span>{c.winsor?.on ? `${c.winsor.lo}~${c.winsor.hi}%` : '—'}</span>
-                    <span>{Math.round(w * 10) / 10}%</span>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="cvi-f">* 는 기본 방향을 바꾼 지표 · 이 설정은 2 · 4단계에서 바꿉니다</div>
+        <div className="cvset-tbl">
+          <div className="cvs-row hd">
+            <span className="cvs-what" />
+            <span className="cvs-base">기준 — 왼쪽 지도</span>
+            <span className="cvs-exp">실험 — 오른쪽 지도</span>
           </div>
-        </>
+          <div className="cvs-row">
+            <span className="cvs-what">표준화 방법</span>
+            <span className="cvs-base">{methodOf(method).label}</span>
+            <span className="cvs-exp">
+              <div className="cv-eda">
+                {METHODS.map((m) => (
+                  <button key={m.key} className={expMethod === m.key ? 'on' : ''}
+                    title={`${m.formula} · ${m.range}`}
+                    onClick={() => onExpMethod(m.key)}>{m.label}</button>
+                ))}
+              </div>
+            </span>
+          </div>
+          {inds.map((e) => {
+            const c = cfgOf(e.col, e.dir)
+            const cur = trMap?.[e.col] || 'cur'
+            return (
+              <div key={e.col} className="cvs-row">
+                <span className="cvs-what" title={e.label}>{e.label} <em>변환</em></span>
+                <span className="cvs-base">
+                  {trName(c.transform)}{c.winsor?.on ? ` · 윈저 ${c.winsor.lo}~${c.winsor.hi}%` : ''}
+                </span>
+                <span className="cvs-exp">
+                  <div className="cv-eda">
+                    {[['cur', '왼쪽과 같게'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
+                      <button key={k} className={cur === k ? 'on' : ''}
+                        onClick={() => onChange({ trMap: { ...trMap, [e.col]: k }, wt })}>{name}</button>
+                    ))}
+                  </div>
+                </span>
+              </div>
+            )
+          })}
+          <div className="cvs-row">
+            <span className="cvs-what">가중치</span>
+            <span className="cvs-base">{wtSummary(sector, inds)}</span>
+            <span className="cvs-exp">
+              <div className="cv-eda">
+                {[['cur', '왼쪽과 같게'], ['equal', '동일가중']].map(([k, name]) => (
+                  <button key={k} className={(wt || 'cur') === k ? 'on' : ''}
+                    onClick={() => onChange({ trMap, wt: k })}>{name}</button>
+                ))}
+              </div>
+            </span>
+          </div>
+          <div className="cvs-foot">
+            '없음 · 로그화 · 반로그화'를 고른 지표는 윈저 없이 그 변환으로만 다시 계산합니다.
+            모두 '왼쪽과 같게'면 두 지도는 표준화 방법만 다릅니다. 두 지도가 그리는 값은 전국 순위입니다.
+          </div>
+        </div>
       )}
     </div>
   )
 }
-
-// 오른쪽 — 지표별 전처리 바꿔 계산 팝업
-function PrepEditor({ sector, trMap, wt, onChange }) {
-  const [open, setOpen] = useState(false)
-  const inds = indsOf(sector)
-  const nCh = Object.values(cleanMap(trMap)).length + (wt === 'equal' ? 1 : 0)
-  return (
-    <div className="cvi-wrap">
-      <button className={`cvi-btn${nCh ? ' hot' : ''}${open ? ' on' : ''}`} onClick={() => setOpen(!open)}>
-        전처리 바꿔 계산{nCh ? ` · ${nCh}` : ''}
-      </button>
-      {open && (
-        <>
-          <div className="mtp-veil" onClick={() => setOpen(false)} />
-          <div className="cvi-pop">
-            <div className="cvi-h">실험 지도의 전처리 <em>지표마다 따로 정합니다</em></div>
-            <div className="cvi-grid">
-              {inds.map((e) => {
-                const cur = trMap?.[e.col] || 'cur'
-                const c = cfgOf(e.col, e.dir)
-                return (
-                  <div key={e.col} className="cvi-row seg">
-                    <b title={`지금 설정: ${trName(c.transform)}${c.winsor?.on ? ` · 윈저 ${c.winsor.lo}~${c.winsor.hi}%` : ''}`}>{e.label}</b>
-                    <div className="cv-eda">
-                      {[['cur', '지금 그대로'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']].map(([k, name]) => (
-                        <button key={k} className={cur === k ? 'on' : ''}
-                          onClick={() => onChange({ trMap: { ...trMap, [e.col]: k }, wt })}>{name}</button>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-              <div className="cvi-row seg">
-                <b>가중치</b>
-                <div className="cv-eda">
-                  {[['cur', '지금 그대로'], ['equal', '동일가중']].map(([k, name]) => (
-                    <button key={k} className={(wt || 'cur') === k ? 'on' : ''}
-                      onClick={() => onChange({ trMap, wt: k })}>{name}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="cvi-f">'없음·로그화·반로그화'를 고른 지표는 윈저 없이 그 변환으로만 다시 계산합니다.
-              모두 '지금 그대로'면 왼쪽과 같은 계산입니다.</div>
-          </div>
-        </>
-      )}
-    </div>
-  )
+// 기준 가중치 요약 — 동일가중이면 그렇게, 나눴으면 큰 것부터 두엇만
+function wtSummary(sector, inds) {
+  const ws = inds.map((e) => weightOf(sector, e.col, inds.length))
+  const eq = ws.every((w) => Math.abs(w - ws[0]) < 0.01)
+  if (eq) return `동일가중 (각 ${Math.round(1000 / inds.length) / 10}%)`
+  return inds.map((e, i) => `${e.label} ${Math.round(ws[i] * 10) / 10}%`).join(' · ')
 }
 
 export default function CompareMaps({
@@ -190,23 +189,11 @@ export default function CompareMaps({
 
   return (
     <div className="abm-wrap" onMouseMove={onMove}>
-      {/* 왼쪽 = 기준(고정) · 오른쪽 = 실험(방법·전처리) */}
-      <div className="cv-free">
-        <div className="cv-pick">
-          <span className="cv-fix"><b>기준</b>{SECTORS[sector].name} · {methodOf(method).label}</span>
-          <CurInfo sector={sector} method={method} />
-        </div>
-        <span className="cv-vs">대비</span>
-        <div className="cv-pick">
-          <span className="cv-fix exp"><b>실험</b>표준화 방법</span>
-          <select value={expMethod} title="실험 지도의 표준화 방법"
-            onChange={(e) => setExpMethod(e.target.value)}>
-            {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-          </select>
-          <PrepEditor sector={sector} trMap={trMap} wt={wt}
-            onChange={({ trMap: t, wt: w }) => { setTrMap(t); setWt(w) }} />
-        </div>
-      </div>
+      {/* 비교 설정 — 한 표에서 기준(읽기)과 실험(고르기)을 나란히 */}
+      <CompareSetup sector={sector} method={method}
+        expMethod={expMethod} onExpMethod={setExpMethod}
+        trMap={trMap} wt={wt}
+        onChange={({ trMap: t, wt: w }) => { setTrMap(t); setWt(w) }} />
 
       <div className="abm-bar">
         <span className="abm-tag" style={{ background: cA }}>{tagA}</span>
