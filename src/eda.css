@@ -913,3 +913,10 @@
 @media (max-width: 1420px) {
   .cvs-row { grid-template-columns: 170px minmax(120px, 0.7fr) 1.7fr; }
 }
+
+/* 48차 — 2종 비교 45차 배치 복원 + '현재' 표 · 지표별 세부 · 색은 범례로 */
+.cv-ov { position: relative; }
+.cvi-pop.right { left: auto; right: 0; }
+.cv-eda button.per { border-left: 1px solid var(--line); border-radius: 0 7px 7px 0;
+  margin-left: 2px; color: var(--accent-strong); font-weight: 750; }
+.cv-eda button.per.on { background: var(--accent); color: #fff; }
