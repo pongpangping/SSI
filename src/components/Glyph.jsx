@@ -64,3 +64,80 @@ export function Cross({ size = 12, className = '' }) {
 }
 
 export default Chevron
+
+// ── 화면 공통 표식 세트 확장 — 글꼴 문자(⬇ ▤ ⓘ ↺ ⤢ ＋ －)를 도형으로 통일 ──
+
+// 내려받기 — 아래 화살표 + 받침.
+export function Download({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl gl-dl ${className}`.trim()}>
+      <path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13h10" />
+    </svg>
+  )
+}
+
+// 데이터표 — 줄이 그어진 표.
+export function Grid({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl gl-grid ${className}`.trim()}>
+      <rect x="2.2" y="3" width="11.6" height="10" rx="1.2" />
+      <path d="M2.2 6.4h11.6M6.4 6.4v6.6" />
+    </svg>
+  )
+}
+
+// 정의·설명 문서 — 글줄이 있는 낱장.
+export function Doc({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl gl-doc ${className}`.trim()}>
+      <rect x="3" y="2.2" width="10" height="11.6" rx="1.2" />
+      <path d="M5.4 5.4h5.2M5.4 8h5.2M5.4 10.6h3.4" />
+    </svg>
+  )
+}
+
+// 안내 — 동그라미 i.
+export function Info({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl gl-info ${className}`.trim()}>
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M8 7.2v3.6" />
+      <path d="M8 4.9v.2" strokeWidth="2.2" />
+    </svg>
+  )
+}
+
+// 확대·축소 — 십자와 가로줄.
+export function Plus({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl ${className}`.trim()}>
+      <path d="M8 3v10M3 8h10" />
+    </svg>
+  )
+}
+export function Minus({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl ${className}`.trim()}>
+      <path d="M3 8h10" />
+    </svg>
+  )
+}
+
+// 처음으로 — 반시계 화살 고리.
+export function Reset({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl ${className}`.trim()}>
+      <path d="M3.2 6.2A5.3 5.3 0 1 1 2.7 9.5" />
+      <path d="M3 2.6v3.8h3.8" />
+    </svg>
+  )
+}
+
+// 선택 지역 확대 — 바깥으로 뻗는 두 화살.
+export function Expand({ size = 12, className = '' }) {
+  return (
+    <svg {...box(size)} className={`gl ${className}`.trim()}>
+      <path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" />
+    </svg>
+  )
+}

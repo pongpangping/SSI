@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ROWS, rowKey, sheetOrder, colMeta, flatValue, toCSV, META, SECTORS, SECTOR_KEYS } from '../lib/ssi.js'
-import { Cross } from './Glyph.jsx'
+import { Cross, Download } from './Glyph.jsx'
 
 // 데이터표는 지금 보고 있는 부문 하나만 다룬다. 예전에는 부문 탭이 죽
 // 늘어서 있었는데, 다른 부문은 지표를 담아 두지 않으면 빈 표라 탭이
@@ -64,7 +64,7 @@ export default function DataTable({ sector, onClose, selected, onSelect, ver = 0
             민감(high)만
           </button>
           <span className="dt-cnt">{rows.length} / {META.n}행 · {cols.length}열</span>
-          <button className="dt-dl" onClick={download}>⬇ CSV 내보내기</button>
+          <button className="dt-dl" onClick={download}><Download size={13} /> CSV 내보내기</button>
         </div>
 
         <div className="dt-scroll">

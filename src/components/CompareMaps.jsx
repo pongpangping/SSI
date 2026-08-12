@@ -5,6 +5,7 @@ import {
   campOf, valuesOf, rowIndex, ROWS, ovSet, indsOf,
 } from '../lib/ssi.js'
 import { cfgOf, weightOf, TRANSFORMS } from '../lib/eda.js'
+import { Plus, Minus, Reset, Expand } from './Glyph.jsx'
 
 // 나란히 보기 — 좌우 지도를 각각 [부문 · 표준화 방법 · 변환 · 가중치]로 정한다.
 //
@@ -129,10 +130,8 @@ function SidePick({ side, onChange, align = 'left', exp = false }) {
     : [['cur', '현재'], ['none', '없음'], ['log', '로그화'], ['rlog', '반로그화']]
   return (
     <div className="cv-pick">
-      <select value={side.sector} title="부문"
-        onChange={(e) => onChange({ ...side, sector: safeSector(e.target.value), trMap: {} })}>
-        {SECTOR_KEYS.map((k) => <option key={k} value={k}>{SECTORS[k].name}</option>)}
-      </select>
+      {/* 부문 선택은 두지 않는다 — 다른 부문은 지표를 담아 두지 않으면 빈 지도라,
+          이름만 있고 내용이 없는 선택지가 된다. 비교는 지금 부문 안에서 한다. */}
       <select value={side.method} title="표준화 방법"
         onChange={(e) => onChange({ ...side, method: e.target.value })}>
         {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
@@ -157,18 +156,24 @@ function SidePick({ side, onChange, align = 'left', exp = false }) {
         {pop === 'cur' && !exp && <CurTable sector={side.sector} align={align} onClose={() => setPop(null)} />}
         {pop === 'per' && <PerIndTable side={side} align={align} exp={exp} onChange={onChange} onClose={() => setPop(null)} />}
       </div>
-      {/* 가중치 — 왼쪽은 4단계 가중치/동일 중 택일, 대비 쪽은 동일가중 고정 */}
-      <div className="cv-ov" title={exp
-        ? '대비 쪽 가중치는 동일가중으로 계산합니다'
-        : '가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산'}>
-        <u>가중치</u>
-        <div className="cv-eda">
-          {(exp ? [['equal', '동일']] : [['cur', '현재'], ['equal', '동일']]).map(([k, name]) => (
-            <button key={k} className={(side.wt || 'cur') === k ? 'on' : ''}
-              onClick={() => onChange({ ...side, wt: k })}>{name}</button>
-          ))}
+      {/* 가중치 — 왼쪽은 4단계 가중치/동일 중 택일. 대비 쪽은 동일가중 고정이라
+          고를 것이 없으므로 단추가 아니라 글자 딱지로만 알린다
+          (선택지가 2개 이상일 때만 선택 UI를 둔다). */}
+      {exp ? (
+        <div className="cv-ov" title="대비 쪽 가중치는 동일가중으로 계산합니다">
+          <u>가중치</u><span className="cv-fixed">동일가중</span>
         </div>
-      </div>
+      ) : (
+        <div className="cv-ov" title="가중치 · 현재 = 4단계에서 나눈 가중치 · 동일 = 모든 지표 같은 비중으로 다시 계산">
+          <u>가중치</u>
+          <div className="cv-eda">
+            {[['cur', '현재'], ['equal', '동일']].map(([k, name]) => (
+              <button key={k} className={(side.wt || 'cur') === k ? 'on' : ''}
+                onClick={() => onChange({ ...side, wt: k })}>{name}</button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -257,12 +262,12 @@ export default function CompareMaps({
           onMapReady={register} autoFit={false} ver={ver} />
 
         <div className="mapz abm-mapz" title="두 지도가 함께 움직입니다">
-          <button onClick={() => run('zoomIn')} title="확대" aria-label="확대">＋</button>
-          <button onClick={() => run('zoomOut')} title="축소" aria-label="축소">－</button>
+          <button onClick={() => run('zoomIn')} title="확대" aria-label="확대"><Plus size={13} /></button>
+          <button onClick={() => run('zoomOut')} title="축소" aria-label="축소"><Minus size={13} /></button>
           <span className="mapz-sep" />
-          <button onClick={() => run('fitAll')} title="전국이 한 화면에 들어오도록" aria-label="전국 보기">↺</button>
+          <button onClick={() => run('fitAll')} title="전국이 한 화면에 들어오도록" aria-label="전국 보기"><Reset size={13} /></button>
           <button onClick={() => run('fitSel')} disabled={!selected} title="선택한 시군구를 확대"
-            aria-label="선택 지역 확대">⤢</button>
+            aria-label="선택 지역 확대"><Expand size={13} /></button>
         </div>
 
         {onlyHighToggle && (
@@ -290,6 +295,7 @@ export default function CompareMaps({
             순위 이동 {hRow[A.sector]?.ssiCamp ?? '—'}계단
             {hRow[A.sector]?.flag === 'high' && <em>민감</em>}
           </div>
+          <div className="cp-hint">시군구를 클릭하면 선택이 고정됩니다</div>
         </div>
       )}
     </div>

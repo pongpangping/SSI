@@ -920,3 +920,20 @@
 .cv-eda button.per { border-left: 1px solid var(--line); border-radius: 0 7px 7px 0;
   margin-left: 2px; color: var(--accent-strong); font-weight: 750; }
 .cv-eda button.per.on { background: var(--accent); color: #fff; }
+
+/* 50차 — UX 가이드 반영 손질
+   범례: 구간 경계 여섯 개를 전부 적는다(두 줄 엇갈림) · 색 칸에 범위·시군구 수 툴팁
+   비교 팝업: 클릭 고정 힌트 · 대비 가중치는 글자 딱지 */
+.ml-tk.tk2 { height: 21px; }
+.ml-tk.tk2 span { font-size: 8.5px; }
+.ml-tk.tk2 span.lo { top: 10px; }
+.ml-tk.tk2 span.lo::before { content: ''; position: absolute; left: 50%; top: -4px;
+  width: 1px; height: 4px; background: var(--line-strong); }
+.cv-fixed { font-size: var(--fs-2); font-weight: 700; color: var(--ink2);
+  background: var(--muted); border: 1px solid var(--line); border-radius: 7px;
+  padding: 4px 9px; white-space: nowrap; }
+.cp-hint { margin-top: 5px; padding-top: 5px; border-top: 1px dashed var(--line);
+  font-size: var(--fs-1); color: var(--ink3); }
+/* 도형 표식이 글자와 나란히 설 때의 정렬 */
+.src-btn .gl, .dt-dl .gl { vertical-align: -2px; margin-right: 2px; }
+.mapz .gl, .abm-mapz .gl { vertical-align: middle; }

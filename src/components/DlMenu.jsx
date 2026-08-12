@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FORMATS, saveAs } from '../lib/statscsv.js'
+import { Download } from './Glyph.jsx'
 
 // 카드마다 붙는 내려받기 단추.
 //
@@ -58,7 +59,7 @@ export default function DlMenu({
         title={tip || '표를 파일로 내려받기'}
         onClick={() => { setOpen(!open); setErr('') }}
       >
-        <span>↓</span>{label}
+        <Download size={12} />{label}
       </button>
 
       {open && (

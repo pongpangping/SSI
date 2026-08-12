@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { METHODS, CAMP, META, N } from '../lib/ssi.js'
-import { Cross } from './Glyph.jsx'
+import { Cross, Info } from './Glyph.jsx'
 
 // 지표 사전 탭은 뺐다 — 지표의 정의·산식·출처는 머리줄의 '데이터 설명'이
 // 지금 고른 지표 기준으로 이미 보여 준다. 같은 정보가 두 곳에 있으면
@@ -27,7 +27,7 @@ export default function GlossaryModal() {
 
   return (
     <>
-      <button className="src-btn" onClick={() => setOpen(true)}>ⓘ 용어 · 방법론</button>
+      <button className="src-btn" onClick={() => setOpen(true)}><Info size={13} /> 용어 · 방법론</button>
       {open && (
         <div className="modal-back" onClick={() => setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

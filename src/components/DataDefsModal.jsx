@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import IndicatorDefs from './IndicatorDefs.jsx'
 import DlMenu from './DlMenu.jsx'
 import SectorIcon from './SectorIcon.jsx'
-import { Cross } from './Glyph.jsx'
+import { Cross, Doc } from './Glyph.jsx'
 import { SECTORS, indsOf } from '../lib/ssi.js'
 import { dlIndicatorDefs } from '../lib/statscsv.js'
 
@@ -38,7 +38,7 @@ export default function DataDefsModal({ sector }) {
     <>
       <button className="src-btn" onClick={() => setOpen(true)}
         title="지금 고른 지표의 정의 · 산식 · 출처">
-        ▦ 데이터 설명
+        <Doc size={13} /> 데이터 설명
       </button>
       {open && (
         <div className="modal-back" onClick={() => setOpen(false)}>

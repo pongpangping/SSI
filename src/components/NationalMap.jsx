@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
 import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV, PURPLE } from '../lib/ssi.js'
 import { HueDots } from './ResultChrome.jsx'
+import { Plus, Minus, Reset, Expand } from './Glyph.jsx'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
 
@@ -388,6 +389,25 @@ export default function NationalMap({
     ? `값 ${few.length}가지 · ${few.map((x) => metric.fmt(x)).join(' / ')}`
     : `${modeOf(eff).label} · 구간 경계 ${showBreaks.map(fmtB).join(' / ')}`
 
+  // 색 칸마다 그 구간의 범위와 시군구 수 — 색 단계와 수치 기준이 정확히 짝이 되게.
+  // cellInfo[i] 는 화면에 그려지는 i번째 색 칸(왼쪽부터)의 설명이다.
+  const cellInfo = useMemo(() => {
+    const ok = vals.filter((x) => x != null && Number.isFinite(x))
+    if (few || !ok.length || !breaks.length) return null
+    const vmin = Math.min(...ok), vmax = Math.max(...ok)
+    const at = classOf(breaks)
+    const counts = new Array(ramp.length).fill(0)
+    ok.forEach((v) => { const i = at(v); if (i >= 0) counts[Math.min(ramp.length - 1, i)] += 1 })
+    const bounds = [vmin, ...breaks, vmax]
+    const rev = metric.scale === 'rank'
+    return ramp.map((_, i) => {
+      const ci = rev ? ramp.length - 1 - i : i     // 화면 칸 → 값 구간 번호
+      const lo = bounds[ci], hi = bounds[ci + 1]
+      const [a, b] = rev ? [hi, lo] : [lo, hi]
+      return `${fmtB(a)} ~ ${fmtB(b)} · ${counts[ci]}곳`
+    })
+  }, [vals, breaks, few, ramp, metric.scale])
+
   // ── 내보내기 ────────────────────────────────────────────────────────────
   // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 전국 229개 시군구가 통째로 나간다.
   const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표' }
@@ -427,12 +447,12 @@ export default function NationalMap({
       {/* 지도 조작 도구 — 오른쪽 위 세로 스택(＋ − ↺ ⤢) */}
       {!compact && (
         <div className="mapz">
-          <button onClick={() => map && map.zoomIn()} title="확대" aria-label="확대">＋</button>
-          <button onClick={() => map && map.zoomOut()} title="축소" aria-label="축소">－</button>
+          <button onClick={() => map && map.zoomIn()} title="확대" aria-label="확대"><Plus size={13} /></button>
+          <button onClick={() => map && map.zoomOut()} title="축소" aria-label="축소"><Minus size={13} /></button>
           <span className="mapz-sep" />
-          <button onClick={fitAll} title="전국이 한 화면에 들어오도록" aria-label="화면 맞추기">↺</button>
+          <button onClick={fitAll} title="전국이 한 화면에 들어오도록" aria-label="화면 맞추기"><Reset size={13} /></button>
           <button onClick={fitSel} disabled={!selected} title="선택한 시군구를 확대"
-            aria-label="선택 지역 확대">⤢</button>
+            aria-label="선택 지역 확대"><Expand size={13} /></button>
           <span className="mapz-sep" />
           <button className={labelsOn ? 'on' : ''} onClick={() => setLabelsOn(!labelsOn)}
             aria-pressed={labelsOn} title={labelsOn ? '시군구 이름표 끄기' : '시군구 이름표 켜기'}
@@ -516,13 +536,16 @@ export default function NationalMap({
       <div className={`maplegend${compact ? ' lg-mini' : ''}`}>
         <h4>{metric.full || metric.label}</h4>
         <div className="ml-scale" title={tickTitle}>
-          {ramp.map((c, i) => <i key={i} style={{ background: c }} />)}
+          {ramp.map((c, i) => <i key={i} style={{ background: c }} title={cellInfo ? cellInfo[i] : undefined} />)}
         </div>
+        {/* 구간 경계는 전부 적는다 — 색이 일곱 단계면 경계 숫자도 여섯 개.
+            자리가 좁으므로 위·아래 두 줄로 엇갈려 놓는다. 칸에 올리면 범위·시군구 수. */}
         {!few && (
-          <div className="ml-tk">
-            {showBreaks.map((b, i) => (i % 2 === 1
-              ? <span key={i} style={{ left: `${((i + 1) / 7) * 100}%` }}>{fmtB(b)}</span>
-              : null))}
+          <div className="ml-tk tk2">
+            {showBreaks.map((b, i) => (
+              <span key={i} className={i % 2 ? 'lo' : ''}
+                style={{ left: `${((i + 1) / 7) * 100}%` }}>{fmtB(b)}</span>
+            ))}
           </div>
         )}
         <div className="ml-ends"><span>{lowLab}</span><span>{hiLab}</span></div>

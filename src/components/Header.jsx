@@ -1,6 +1,7 @@
 import GlossaryModal from './GlossaryModal.jsx'
 import DataDefsModal from './DataDefsModal.jsx'
 import SectorIcon from './SectorIcon.jsx'
+import { Grid } from './Glyph.jsx'
 import { SECTORS } from '../lib/ssi.js'
 
 // 머리줄. 지금 보고 있는 부문을 왼쪽에 띄우고, 그 칸이 곧 시작 화면으로
@@ -32,7 +33,7 @@ export default function Header({ onTable, sector, onHome, center }) {
       <div className="hd-right">
         {s && <DataDefsModal sector={sector} />}
         <GlossaryModal />
-        <button className="src-btn" onClick={onTable}>▤ 전체 데이터표</button>
+        <button className="src-btn" onClick={onTable}><Grid size={13} /> 전체 데이터표</button>
       </div>
     </header>
   )
