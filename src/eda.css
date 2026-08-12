@@ -937,3 +937,12 @@
 /* 도형 표식이 글자와 나란히 설 때의 정렬 */
 .src-btn .gl, .dt-dl .gl { vertical-align: -2px; margin-right: 2px; }
 .mapz .gl, .abm-mapz .gl { vertical-align: middle; }
+
+/* 51차 — 최종 지도의 부문지수 CSV 큰 단추 */
+.map-bigdl { display: inline-flex; align-items: center; gap: 7px;
+  border: 0; background: var(--accent); color: #fff;
+  font-size: var(--fs-5); font-weight: 750; border-radius: 11px;
+  padding: 10px 16px; cursor: pointer;
+  box-shadow: 0 10px 22px -10px rgba(0, 110, 190, 0.55); }
+.map-bigdl:hover { background: var(--accent-strong); }
+.map-bigdl .gl { flex: none; }

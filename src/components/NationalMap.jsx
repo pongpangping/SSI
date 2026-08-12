@@ -3,9 +3,9 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import rawGeo from '../data/sigungu_geo.json'
-import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV, PURPLE } from '../lib/ssi.js'
+import { ROWS, rowKey, keyOf, rowIndex, valuesOf, shortSido, SECTORS, HEAT, BLUE, GREEN, DIV, PURPLE, methodOf, indsOf } from '../lib/ssi.js'
 import { HueDots } from './ResultChrome.jsx'
-import { Plus, Minus, Reset, Expand } from './Glyph.jsx'
+import { Plus, Minus, Reset, Expand, Download } from './Glyph.jsx'
 import { CLASS_MODES, modeOf, breaksOf, classOf, autoMode, autoReason } from '../lib/classify.js'
 import { exportShapefile, exportGeoJSON, exportCSV } from '../lib/shpout.js'
 
@@ -408,6 +408,35 @@ export default function NationalMap({
     })
   }, [vals, breaks, few, ramp, metric.scale])
 
+  // 부문지수 CSV — 시도 · 시군구 · 부문지수(지금 방법) · 지표별 원값.
+  // 지도에 칠한 값이 무엇이든, 이 표는 항상 부문지수와 원값을 내준다.
+  const dlSectorCsv = () => {
+    const inds = indsOf(sector)
+    const ml = methodOf(method).label
+    const cols = ['시도', '시군구', `부문지수(${ml})`,
+      ...inds.map((e) => `${e.label}(${e.year}${e.unit ? `·${e.unit}` : ''})`)]
+    const esc = (c) => (/[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c)
+    const lines = [cols.map(esc).join(',')]
+    ROWS.forEach((r) => {
+      const d = r[sector]
+      const ci = d?.ci?.[method]
+      lines.push([r.sido, r.name,
+        ci == null ? '' : Math.round(ci * 1000) / 1000,
+        ...inds.map((e) => (d?.raw?.[e.label] ?? '')),
+      ].map(esc).join(','))
+    })
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `부문지수_${SECTORS[sector].name.replace(/\s/g, '')}_${ml}_${ROWS.length}행.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+    setDlMsg(`부문지수 CSV 내려받음 — ${ROWS.length}행 · ${cols.length}열`)
+    setTimeout(() => setDlMsg(''), 2200)
+  }
+
   // ── 내보내기 ────────────────────────────────────────────────────────────
   // 지금 화면에 칠해진 그대로를 파일로 뽑는다. 전국 229개 시군구가 통째로 나간다.
   const DL = { shp: 'Shapefile(.zip)', geojson: 'GeoJSON', csv: 'CSV 표' }
@@ -501,9 +530,16 @@ export default function NationalMap({
 
       {dlMsg && <div className="map-toast">{dlMsg}</div>}
 
-      {/* 보기 옵션 — 오른쪽 아래. 지도를 보는 중에도 손이 닿는 자리 */}
+      {/* 보기 옵션 — 오른쪽 아래. 지도를 보는 중에도 손이 닿는 자리.
+          맨 앞의 큰 단추는 부문지수 내려받기 — 최종 지도에서 가장 자주
+          찾는 산출물이라, 시도 · 시군구 · 부문지수(지금 방법) · 지표별
+          원값을 한 표로 바로 내준다. */}
       {!compact && !blank && onlyHighToggle && (
         <div className="mapsw">
+          <button className="map-bigdl" onClick={dlSectorCsv}
+            title={`시도 · 시군구 · 부문지수(${methodOf(method).label}) · 지표별 원값 — ${ROWS.length}행 CSV`}>
+            <Download size={15} /> 부문지수 CSV 내려받기
+          </button>
           <button className={`msw-t${onlyHigh ? ' on' : ''}`} onClick={onlyHighToggle}
             aria-pressed={onlyHigh} title="표준화 방법을 바꿨을 때 순위가 10계단 이상 움직인 곳만 남기고 나머지는 흐리게">
             <i /><span>{onlyHigh ? 'ON' : 'OFF'} · 민감 지역만</span>
