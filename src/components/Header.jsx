@@ -1,6 +1,7 @@
 import GlossaryModal from './GlossaryModal.jsx'
 import DataDefsModal from './DataDefsModal.jsx'
 import SectorIcon from './SectorIcon.jsx'
+import SsiMark from './SsiMark.jsx'
 import { Grid } from './Glyph.jsx'
 import { SECTORS } from '../lib/ssi.js'
 
@@ -19,7 +20,7 @@ export default function Header({ onTable, sector, onHome, center }) {
   return (
     <header className={`header${center ? ' has-jb' : ''}`}>
       <div className="hd-left">
-        <div className="hd-logo">SAL</div>
+        <SsiMark size={32} />
         <div className="hd-title">국토종합진단지수 · 표준화 방법 민감도 진단</div>
         {s && (
           <button className="hd-sector" onClick={onHome} title="다른 부문 고르기">

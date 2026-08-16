@@ -91,7 +91,7 @@ export default function ReportDoc({ sector, method, selectedRow, onClose }) {
       <div className="repo-doc">
         {/* 표지 머리 */}
         <div className="repo-head">
-          <div className="repo-brand">SAL · Spatial Analysis Lab</div>
+          <div className="repo-brand">SSI · 국토종합진단지수</div>
           <h1>국토종합진단지수 진단 보고서</h1>
           <div className="repo-sub">{SECTORS[sector].name}</div>
           <div className="repo-meta">

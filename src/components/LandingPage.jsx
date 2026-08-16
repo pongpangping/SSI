@@ -1,6 +1,7 @@
 import { ALL_SECTOR_KEYS, SECTORS, indicatorsOf, META } from '../lib/ssi.js'
 import SectorIcon from './SectorIcon.jsx'
 import labLogo from '../assets/sal_lab_logo.png'
+import SsiMark from './SsiMark.jsx'
 
 // 시작 화면 — "어느 부문을 볼 것인가" 하나만 묻는다.
 //
@@ -34,7 +35,7 @@ export default function LandingPage({ onPick, resume = null }) {
     <div className="lp">
       <div className="lp-inner">
         <div className="lp-head">
-          <div className="lp-logo">SAL</div>
+          <SsiMark size={46} />
           <h1>국토종합진단지수</h1>
           <p>
             전국 {META?.n || 229}개 시군구를 부문별로 표준화해 비교하고,<br />
