@@ -2232,7 +2232,8 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
   background: var(--accent-strong); border-radius: 9px; padding: 5px 13px; }
 .lp-head h1 { margin: 2px 0 0; font-size: var(--fs-8); font-weight: 820; letter-spacing: -.03em;
   color: var(--ink); }
-.lp-head p { margin: 0; max-width: 620px; font-size: var(--fs-5); line-height: 1.75; color: var(--ink2); }
+.lp-head p { margin: 0; max-width: 680px; font-size: var(--fs-5); line-height: 1.75; color: var(--ink2);
+  word-break: keep-all; }
 .lp-ask { margin-top: 12px; font-size: var(--fs-5); font-weight: 780; color: var(--accent-strong);
   border-top: 1px solid var(--line); padding-top: 16px; }
 
@@ -2276,6 +2277,14 @@ button:hover > .sic, .lp-card:hover .sic, .ip-sec:hover .sic { opacity: 1; }
   padding: 6px 10px; }
 .lps-item b { font-size: var(--fs-3); font-weight: 700; color: var(--ink3); }
 .lps-item u { text-decoration: none; font-size: var(--fs-2); color: var(--ink3); opacity: .8; }
+
+/* ── 만든 곳 — 시작 화면 맨 아래의 연구실 표시 ─────────────────────── */
+.lp-foot { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; gap: 13px; }
+.lpf-logo { height: 34px; width: auto; display: block; }
+.lpf-txt { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.lpf-txt b { font-size: var(--fs-3); font-weight: 750; color: var(--ink2); letter-spacing: -.01em; }
+.lpf-txt span { font-size: var(--fs-2); color: var(--ink3); }
 
 /* ── 머리줄에서 시작 화면으로 되돌아가는 단추 ───────────────────────── */
 .hd-sector { display: inline-flex; align-items: center; gap: 7px; font-family: inherit;

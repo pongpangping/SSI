@@ -1,5 +1,6 @@
 import { ALL_SECTOR_KEYS, SECTORS, indicatorsOf, META } from '../lib/ssi.js'
 import SectorIcon from './SectorIcon.jsx'
+import labLogo from '../assets/sal_lab_logo.png'
 
 // 시작 화면 — "어느 부문을 볼 것인가" 하나만 묻는다.
 //
@@ -36,8 +37,8 @@ export default function LandingPage({ onPick, resume = null }) {
           <div className="lp-logo">SAL</div>
           <h1>국토종합진단지수</h1>
           <p>
-            전국 {META?.n || 229}개 시군구를 부문별로 표준화해 비교하고, 표준화 방법을 바꿨을 때
-            순위가 얼마나 흔들리는지까지 함께 봅니다.
+            전국 {META?.n || 229}개 시군구를 부문별로 표준화해 비교하고,<br />
+            표준화 방법을 바꿨을 때 순위가 얼마나 흔들리는지까지 함께 봅니다.
           </p>
           <div className="lp-ask">어느 부문을 보시겠습니까?</div>
         </div>
@@ -78,6 +79,15 @@ export default function LandingPage({ onPick, resume = null }) {
                 </span>
               )
             })}
+          </div>
+        </div>
+
+        {/* 만든 곳 — 여느 웹처럼 맨 아래에 연구실 표시를 남긴다 */}
+        <div className="lp-foot">
+          <img className="lpf-logo" src={labLogo} alt="Spatial Analysis Lab" />
+          <div className="lpf-txt">
+            <b>공간분석연구실 · Spatial Analysis Lab</b>
+            <span>국립한국교통대학교 · © {new Date().getFullYear()}</span>
           </div>
         </div>
       </div>
