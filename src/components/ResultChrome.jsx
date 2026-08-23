@@ -28,11 +28,16 @@ export function JourneyBar({ view, visited, onGo, canGo }) {
       {JOURNEY.map((st, i) => {
         const on = view === st.v
         const done = visited.includes(st.v) && !on
-        const locked = i > 0 && !canGo
+        // 순서 지키기 — 지나온 단계와 '바로 다음' 단계만 열린다. 앞 단계를
+        // 거치지 않고 건너뛰면 그 단계의 결정(변환·방법·가중치)이 빈 채로
+        // 지도까지 가 버리기 때문이다. 이전 화면으로 되돌아가는 것은 자유.
+        const reached = visited.includes(st.v) || (i > 0 && visited.includes(JOURNEY[i - 1].v))
+        const locked = i > 0 && (!canGo || !reached)
         return (
           <button key={st.v}
             className={`jb-step${on ? ' on' : ''}${done ? ' done' : ''}`}
-            disabled={locked} title={`${st.t} — ${st.d}`}
+            disabled={locked}
+            title={locked ? `${st.t} — 앞 단계를 마친 뒤에 열립니다` : `${st.t} — ${st.d}`}
             onClick={() => onGo(st.v)}>
             <u>{done ? '✓' : i}</u>
             <span><b>{st.t}</b>{on && <em>{st.d}</em>}</span>

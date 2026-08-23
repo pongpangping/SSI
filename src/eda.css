@@ -641,11 +641,19 @@
 
 /* 인쇄 — 보고서만 종이에 나간다 */
 @media print {
-  body * { visibility: hidden; }
-  .repo-veil { position: static; overflow: visible; background: #fff; padding: 0; }
-  .repo-tools { display: none; }
-  .repo-doc, .repo-doc * { visibility: visible; }
-  .repo-doc { position: absolute; left: 0; top: 0; width: 100%; max-width: none;
+  /* 55차 — 보고서가 끝까지 인쇄되게. .shell이 position:fixed(한 화면 고정)인
+     채로 인쇄하면 브라우저가 문서 높이를 한 페이지로 잡아 첫 장만 나가고
+     잘렸다. 보고서가 떠 있을 때는 화면 나머지를 아예 빼고(.shell의 다른
+     자식 display:none), 보고서를 보통 문서 흐름(static)으로 되돌려
+     페이지가 내용만큼 늘어나게 한다. */
+  html, body, #root { height: auto !important; overflow: visible !important; }
+  .shell:has(.repo-veil) { position: static !important; display: block !important;
+    height: auto !important; overflow: visible !important; }
+  .shell:has(.repo-veil) > :not(.repo-veil) { display: none !important; }
+  .repo-veil { position: static !important; overflow: visible !important;
+    background: #fff !important; padding: 0 !important; }
+  .repo-tools { display: none !important; }
+  .repo-doc { position: static !important; width: auto; max-width: none;
     border-radius: 0; box-shadow: none; padding: 0; }
   .repo-doc section { break-inside: avoid; }
   .repo-doc section.repo-full { break-inside: auto; }
@@ -946,3 +954,7 @@
   box-shadow: 0 10px 22px -10px rgba(0, 110, 190, 0.55); }
 .map-bigdl:hover { background: var(--accent-strong); }
 .map-bigdl .gl { flex: none; }
+
+/* ── 55차 — 가중치 합계 안내 · lede의 링크 두 개 간격 ── */
+.e4-head .e4-ratio { font-style: normal; font-weight: 650; color: var(--warn, #B45309); }
+.stp-lede .eda-link + .eda-link { margin-left: 14px; }

@@ -309,14 +309,23 @@ export function Step4Page({ sector, onRecalc, onPrev, onNext }) {
   const total = cur.reduce((a, b) => a + b, 0)
   const r1 = (x) => Math.round(x * 10) / 10
 
+  // 값 하나를 바꿔도 다른 지표는 절대 건드리지 않는다. 예전에는 합을 100으로
+  // 자동으로 맞추느라 나머지 지표를 비율대로 다시 나눴는데, 첫 지표에 값을
+  // 적고 둘째 지표를 적으면 첫 값이 도로 바뀌어 버렸다. 합성은 가중 평균이라
+  // 합이 100이 아니어도 비율대로 정확히 반영된다 — 합 맞추기는 단추로만 한다.
   const setOne = (idx, v) => {
+    if (!Number.isFinite(v)) return
     const val = Math.max(0, Math.min(100, v))
-    const restSum = cur.reduce((a, b, i) => (i === idx ? a : a + b), 0)
     const next = {}
-    cols.forEach((c, i) => {
-      next[c] = i === idx ? r1(val)
-        : r1(restSum > 0 ? cur[i] * (100 - val) / restSum : (100 - val) / (cols.length - 1))
-    })
+    cols.forEach((c, i) => { next[c] = i === idx ? r1(val) : r1(cur[i]) })
+    setWeights(sector, next)
+    setTick((t) => t + 1)
+    onRecalc()
+  }
+  const fit100 = () => {
+    if (total <= 0) return
+    const next = {}
+    cols.forEach((c, i) => { next[c] = r1(cur[i] * 100 / total) })
     setWeights(sector, next)
     setTick((t) => t + 1)
     onRecalc()
@@ -325,13 +334,14 @@ export function Step4Page({ sector, onRecalc, onPrev, onNext }) {
 
   return (
     <PageShell no={4} title="가중치"
-      desc="기본은 동일 가중입니다. 슬라이더로 나누면 나머지 지표가 남은 몫을 비율대로 가져가 합이 항상 100으로 유지됩니다."
+      desc="기본은 동일 가중입니다. 값을 바꿔도 다른 지표는 그대로 있고, 합이 100이 아니어도 적은 값의 비율대로 합성됩니다."
       nav={<NavBtns onPrev={onPrev} onNext={onNext} nextLabel="종합점수 보기 · 지도 →" />}>
       <p className="stp-lede">
         <button className="eda-link" onClick={reset}>동일 가중으로 되돌리기</button>
+        <button className="eda-link" onClick={fit100} title="지금 비율은 그대로 두고 합만 100으로 다시 잽니다">합계를 100으로 맞추기</button>
       </p>
       <div className="stp-wbox">
-        <div className="e4-head"><span>합계 <b className={Math.abs(total - 100) < 0.5 ? 'ok' : 'warn'}>{r1(total)}</b> / 100</span>
+        <div className="e4-head"><span>합계 <b className={Math.abs(total - 100) < 0.5 ? 'ok' : 'warn'}>{r1(total)}</b>{Math.abs(total - 100) >= 0.5 && <i className="e4-ratio"> · 비율대로 반영됩니다</i>}</span>
           <span>{w0 ? '사용자 가중 적용 중' : '동일 가중 (현상 유지)'}</span></div>
         {inds.map((e, i) => (
           <div key={e.col} className="e4-row">
