@@ -959,7 +959,10 @@
 .e4-head .e4-ratio { font-style: normal; font-weight: 650; color: var(--warn, #B45309); }
 .stp-lede .eda-link + .eda-link { margin-left: 14px; }
 
-/* ── 58차 — 픽커의 연도별 설명 줄 ── */
-.ip-peryr { margin-top: 3px; padding: 4px 8px; background: var(--muted, #F1F5F9); border-radius: 7px; }
-.ip-peryr u { text-decoration: none; font-weight: 800; color: var(--accent-strong); margin-right: 2px; flex: none; }
+/* ── 58차 — 픽커의 연도별 설명 줄 (59차: 조용한 한 줄로 정리) ──
+   연도 글자가 카드 본문 크기를 물려받아 제목처럼 커 보였다. 메타 줄과
+   같은 크기의 작은 회색 딱지 + 회색 본문으로 눌러, 참고 정보로만 보이게. */
+.ip-peryr { margin-top: 2px; align-items: baseline; }
+.ip-peryr u { text-decoration: none; flex: none; font-size: var(--fs-1); font-weight: 750;
+  color: var(--ink3); background: var(--muted); border-radius: 4px; padding: 1px 6px; }
 .ip-peryr span { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
