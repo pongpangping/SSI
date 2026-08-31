@@ -958,3 +958,8 @@
 /* ── 55차 — 가중치 합계 안내 · lede의 링크 두 개 간격 ── */
 .e4-head .e4-ratio { font-style: normal; font-weight: 650; color: var(--warn, #B45309); }
 .stp-lede .eda-link + .eda-link { margin-left: 14px; }
+
+/* ── 58차 — 픽커의 연도별 설명 줄 ── */
+.ip-peryr { margin-top: 3px; padding: 4px 8px; background: var(--muted, #F1F5F9); border-radius: 7px; }
+.ip-peryr u { text-decoration: none; font-weight: 800; color: var(--accent-strong); margin-right: 2px; flex: none; }
+.ip-peryr span { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

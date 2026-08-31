@@ -126,6 +126,18 @@ export default function IndicatorPicker({ sector, picksBy, onApply, onClose }) {
                     {ind.source && <span title={ind.source}>출처 {ind.source}</span>}
                     {ind.note && <span title={ind.note}>비고 {ind.note}</span>}
                   </div>
+                  {/* 연도별로 정의·산식·출처가 다른 지표 — 그 연도의 것을 밝힌다.
+                      기준(첫 연도)과 다른 항목만 담겨 있다. */}
+                  {ind.per && Object.entries(ind.per).map(([y, ov]) => (
+                    <div className="ip-meta ip-peryr" key={y} title={[ov.desc, ov.formula, ov.source, ov.note].filter(Boolean).join('\n')}>
+                      <u>{y}년</u>
+                      {ov.desc && <span title={ov.desc}>정의 {ov.desc}</span>}
+                      {ov.unit && <span>단위 {ov.unit}</span>}
+                      {ov.formula && <span title={ov.formula}>산식 {ov.formula}</span>}
+                      {ov.source && <span title={ov.source}>출처 {ov.source}</span>}
+                      {ov.note && <span title={ov.note}>비고 {ov.note}</span>}
+                    </div>
+                  ))}
                   <div className="ip-yrs">
                     <em>연도</em>
                     {ind.years.map((y) => (

@@ -109,11 +109,15 @@ function entriesOf(sector, picks) {
   return picks.map((p) => {
     const ind = IND[p.id]
     if (!ind) return null
+    // 연도별 설명 — 같은 지표라도 연도에 따라 정의·산식·출처가 다르면
+    // (per[연도]에 차이가 담겨 있다) 그 연도의 것을 보여 준다.
+    const ov = ind.per?.[String(p.year)] || {}
     return {
       id: ind.id, sector, year: p.year, col: ind.cols[p.year], no: ind.no,
       label: mixed ? `${ind.label} (${p.year})` : ind.label,
-      name: ind.label, dir: ind.dir, unit: ind.unit || '',
-      desc: ind.desc || '', formula: ind.formula || '', source: ind.source || '', note: ind.note || '',
+      name: ind.label, dir: ind.dir, unit: ov.unit || ind.unit || '',
+      desc: ov.desc || ind.desc || '', formula: ov.formula || ind.formula || '',
+      source: ov.source || ind.source || '', note: ov.note || ind.note || '',
     }
   }).filter((e) => e && e.col)
 }
@@ -501,8 +505,9 @@ export function colMeta(col) {
     const year = p > 0 ? body.slice(p + 1, -1) : ''
     const ind = indicatorsOf(s).find((x) => x.label === label)
     if (!ind) return { desc: label, unit: '', how: '' }
-    return { desc: `${ind.desc || label} · ${year}년 원자료 (계산 조합과 무관한 부문 자료 전체)`,
-      unit: ind.unit || '—', how: ind.formula || '', note: ind.source || '' }
+    const ov = ind.per?.[year] || {}
+    return { desc: `${ov.desc || ind.desc || label} · ${year}년 원자료 (계산 조합과 무관한 부문 자료 전체)`,
+      unit: ov.unit || ind.unit || '—', how: ov.formula || ind.formula || '', note: ov.source || ind.source || '' }
   }
   return null
 }

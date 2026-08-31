@@ -167,11 +167,14 @@ export default function NationalMap({
 
     const high = row && row[sector]?.flag === 'high'
     const dim = onlyHigh && !high
+    // 경계선은 흰색 하나로 통일한다. 예전에는 민감(high) 지역 경계를 붉게
+    // 둘렀는데, 민감 지역이 많으면 지도 전체에 붉은 그물이 덮여 주제도
+    // 읽기를 방해했다. 민감 지역은 '민감 지역만' 토글(다른 곳 흐림)로 본다.
     return {
       fillColor: color(valOf(k)),
       fillOpacity: dim ? 0.06 : isSel ? 0.95 : isHov ? 0.88 : 0.82,
-      color: isSel ? '#0F172A' : isHov ? '#334155' : (high && !dim) ? '#B91C1C' : '#ffffff',
-      weight: isSel ? 2.6 : isHov ? 1.8 : (high && !dim) ? 1.1 : 0.5,
+      color: isSel ? '#0F172A' : isHov ? '#334155' : '#ffffff',
+      weight: isSel ? 2.6 : isHov ? 1.8 : 0.5,
       opacity: dim ? 0.3 : 1,
     }
   }
@@ -202,10 +205,17 @@ export default function NationalMap({
   useEffect(() => {
     if (!geoRef.current) return
     geoRef.current.setStyle(styleFor)
+    let selLayer = null, hovLayer = null
     geoRef.current.eachLayer((l) => {
       const k = featKey(l.feature); const row = byKey[k]
       if (row && l.getTooltip()) l.setTooltipContent(tipHtml(k, row))
+      if (k === selected) selLayer = l
+      if (k === hovered) hovLayer = l
     })
+    // 선택·커서 아래 폴리곤을 맨 위로 — 그래야 굵은 테두리가 이웃 폴리곤에
+    // 덮이지 않고 경계 전체가 온전히 보인다(예전에는 절반만 굵게 보였다).
+    if (hovLayer?.bringToFront) hovLayer.bringToFront()
+    if (selLayer?.bringToFront) selLayer.bringToFront()
   })
 
   // ── 지도 이동 조작 ──────────────────────────────────────────────────────
